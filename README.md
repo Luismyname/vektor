@@ -1,5 +1,9 @@
 # React + Vite
 
+## Configuracion de Supabase
+
+Para activar el registro completo, ejecuta el contenido de `supabase/profiles.sql` en el SQL Editor de tu proyecto Supabase. Este script crea la tabla de perfiles y el trigger que guarda los datos del registro.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
