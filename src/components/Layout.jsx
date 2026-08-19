@@ -1,12 +1,24 @@
 import { useState } from "react";
 import BackgroundWords from "./BackgroundWords";
 
-export default function Layout({ children }) {
+export default function Layout({ children, onOpenLogin, onOpenRegister }) {
   const [inicio, setInicio] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   function handleInicioClick() {
+    if (onOpenLogin) {
+      onOpenLogin();
+      return;
+    }
     setInicio(!inicio);
+  }
+
+  function handleRegistroClick() {
+    if (onOpenRegister) {
+      onOpenRegister();
+      return;
+    }
+    setInicio(false);
   }
 
   return (
@@ -32,7 +44,7 @@ export default function Layout({ children }) {
         </div>
 
         <div className="header-right">
-          {inicio ? (
+          {inicio && !onOpenLogin ? (
             <form
               id="formulario-inicio"
               className="login-form"
@@ -52,7 +64,9 @@ export default function Layout({ children }) {
               <button id="inicio" onClick={handleInicioClick}>
                 Inicio de sesión
               </button>
-              <button id="registro">Registro</button>
+              <button id="registro" onClick={handleRegistroClick}>
+                Registro
+              </button>
             </div>
           )}
         </div>
