@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackgroundWords from "./BackgroundWords";
-import { signIn } from "../services/auth";
 
-export default function Layout({ children, onOpenRegister }) {
+export default function Layout({ children, onOpenLogin, onOpenRegister }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   function handleRegistroClick() {
     if (onOpenRegister) {
@@ -18,40 +13,6 @@ export default function Layout({ children, onOpenRegister }) {
       return;
     }
     navigate("/register");
-  }
-
-  async function handleLoginSubmit(event) {
-    event.preventDefault();
-    setLoginError("");
-    setIsLoggingIn(true);
-
-    const { error } = await signIn(loginEmail, loginPassword);
-
-    setIsLoggingIn(false);
-
-    if (error) {
-      setLoginError("La contraseña o el usuario son incorrectos.");
-      return;
-    }
-
-    setLoginOpen(false);
-    setLoginEmail("");
-    setLoginPassword("");
-    navigate("/dashboard");
-  }
-
-  function handleLoginChange(setValue) {
-    return (event) => {
-      setValue(event.target.value);
-      setLoginError("");
-    };
-  }
-
-  function handleLoginCancel() {
-    setLoginOpen(false);
-    setLoginEmail("");
-    setLoginPassword("");
-    setLoginError("");
   }
 
   return (
@@ -78,34 +39,13 @@ export default function Layout({ children, onOpenRegister }) {
 
         <div className="header-right">
           {loginOpen ? (
-            <form id="formulario-inicio" className="login-form" onSubmit={handleLoginSubmit}>
-              <input
-                type="email"
-                placeholder="Correo electrónico"
-                aria-label="Correo electrónico"
-                value={loginEmail}
-                onChange={handleLoginChange(setLoginEmail)}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Contraseña"
-                aria-label="Contraseña"
-                value={loginPassword}
-                onChange={handleLoginChange(setLoginPassword)}
-                required
-              />
-              <div className="login-actions">
-                <button type="submit" disabled={isLoggingIn}>
-                  {isLoggingIn ? "Comprobando..." : "Iniciar"}
-                </button>
-                <button type="button" onClick={handleLoginCancel} disabled={isLoggingIn}>Cancelar</button>
-              </div>
-              {loginError && <p className="login-error" role="alert">{loginError}</p>}
-            </form>
+            <div className="login-actions">
+              <button type="button" onClick={() => navigate("/login")}>Continuar al inicio</button>
+              <button type="button" onClick={() => setLoginOpen(false)}>Cancelar</button>
+            </div>
           ) : (
             <div id="botones-inicio" className="login-cta">
-              <button id="inicio" onClick={() => setLoginOpen(true)}>
+              <button id="inicio" onClick={() => (onOpenLogin ? onOpenLogin() : setLoginOpen(true))}>
                 Inicio de sesión
               </button>
               <button id="registro" onClick={handleRegistroClick}>

@@ -43,6 +43,25 @@ function validateForm(form) {
   return ''
 }
 
+function getRegistrationErrorMessage(error) {
+  const errorText = `${error.code || ''} ${error.message || ''}`.toLowerCase()
+
+  if (errorText.includes('already registered') || errorText.includes('already exists')) {
+    return 'Ese correo electrónico ya está registrado.'
+  }
+  if (errorText.includes('password')) {
+    return 'La contraseña no cumple los requisitos configurados en Supabase.'
+  }
+  if (errorText.includes('rate limit')) {
+    return 'Se alcanzó el límite temporal de registros. Espera unos minutos e inténtalo de nuevo.'
+  }
+  if (errorText.includes('database error saving new user') || errorText.includes('trigger')) {
+    return 'No se pudo guardar el perfil. Ejecuta supabase/profiles.sql en el SQL Editor de Supabase.'
+  }
+
+  return 'No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo.'
+}
+
 export default function Register() {
   const navigate = useNavigate()
   const [form, setForm] = useState(initialForm)
@@ -71,9 +90,7 @@ export default function Register() {
     setIsSubmitting(false)
 
     if (registerError) {
-      setError(registerError.message.includes('already registered')
-        ? 'Ese correo electrónico ya está registrado.'
-        : 'No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo.')
+      setError(getRegistrationErrorMessage(registerError))
       return
     }
 
