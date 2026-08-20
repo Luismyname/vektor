@@ -1,44 +1,82 @@
-import { useEffect, useState } from "react";
-import { getUsersCount } from "../../services/users";
-import { getEvents } from "../../services/events";
-import DashboardCard from "./components/DashboardCard";
+import { useEffect, useState } from 'react'
+import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
+import DashboardActivity from './components/DashboardActivity'
+import DashboardHabits from './components/DashboardHabits'
+import DashboardSummary from './components/DashboardSummary'
+import DashboardTasks from './components/DashboardTasks'
 
 export default function Dashboard() {
-  const [users, setUsers] = useState(0);
-  const [events, setEvents] = useState([]);
+  const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    async function load() {
-      const usersCount = await getUsersCount();
-      const eventsList = await getEvents();
+    let active = true
 
-      setUsers(usersCount);
-      setEvents(eventsList);
+    async function loadDashboard() {
+      const { user: authenticatedUser, error: userError } = await getAuthenticatedUser()
+      if (userError || !authenticatedUser) {
+        if (active) setError('No se pudo cargar la sesión.')
+        return
+      }
+
+      const { profile: currentProfile, error: profileError } = await getCurrentProfile(authenticatedUser.id)
+      if (!active) return
+
+      if (profileError || !currentProfile) {
+        setError('No se pudo cargar tu perfil.')
+        return
+      }
+
+      setUser(authenticatedUser)
+      setProfile(currentProfile)
     }
 
-    load();
-  }, []);
+    loadDashboard()
+    return () => { active = false }
+  }, [])
+
+  if (error) return <div className="route-loading">{error}</div>
+  if (!user || !profile) return <div className="route-loading">Cargando tu dashboard...</div>
+
+  const answers = profile.answers && typeof profile.answers === 'object' ? Object.entries(profile.answers) : []
 
   return (
-    <div className="p-8 text-white bg-black min-h-screen">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+    <main className="dashboard-page">
+      <div className="dashboard-shell">
+        <section className="dashboard-intro">
+          <p className="auth-kicker">VEKTOR / DASHBOARD</p>
+          <h1>Tu dirección empieza aquí</h1>
+          <p>Este es el resumen de lo que descubrimos en tu onboarding.</p>
+        </section>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <DashboardCard title="Usuarios" value={users} />
-        <DashboardCard title="Eventos" value={events.length} />
-        <DashboardCard title="Estado" value="OK" />
-      </div>
+        <DashboardSummary
+          dominantValue={profile.dominant_value}
+          secondaryValue={profile.secondary_value}
+        />
+        <DashboardHabits habits={profile.habits} />
 
-      <div className="bg-neutral-900 p-6 rounded-xl">
-        <h2 className="text-xl mb-4">Actividad reciente</h2>
-        <ul>
-          {events.map((e) => (
-            <li key={e.id} className="border-b border-neutral-700 py-2">
-              {e.type} — {e.created_at}
-            </li>
-          ))}
-        </ul>
+        <div className="dashboard-lower-grid">
+          <DashboardTasks />
+          <DashboardActivity />
+        </div>
+
+        <section className="dashboard-card dashboard-answers" aria-labelledby="dashboard-answers-title">
+          <h2 id="dashboard-answers-title" className="dashboard-section-title">Tus respuestas</h2>
+          {answers.length ? (
+            <dl className="dashboard-answer-list">
+              {answers.map(([question, answer]) => (
+                <div className="dashboard-answer" key={question}>
+                  <dt>Pregunta {question}</dt>
+                  <dd>{String(answer)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="dashboard-empty">No hay respuestas disponibles.</p>
+          )}
+        </section>
       </div>
-    </div>
-  );
+    </main>
+  )
 }

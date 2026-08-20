@@ -1,12 +1,93 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { getAuthenticatedUser } from '../../services/auth'
+import { supabase } from '../../services/supabase'
+
+function getUserName(user) {
+  const metadata = user.user_metadata || {}
+  const fullName = [metadata.first_name, metadata.middle_name, metadata.last_name]
+    .filter(Boolean)
+    .join(' ')
+
+  return fullName || metadata.full_name || user.email || 'Usuario'
+}
+
+function getAvatarUrl(user, name) {
+  const metadata = user.user_metadata || {}
+  if (metadata.avatar_url || metadata.picture) return metadata.avatar_url || metadata.picture
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
+}
 
 export default function Navbar() {
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadUser() {
+      const { user: authenticatedUser } = await getAuthenticatedUser()
+      if (active) setUser(authenticatedUser)
+    }
+
+    loadUser()
+    return () => { active = false }
+  }, [])
+
+  async function handleSignOut() {
+    setIsSigningOut(true)
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      setIsSigningOut(false)
+      return
+    }
+
+    navigate('/', { replace: true })
+  }
+
+  const name = user ? getUserName(user) : ''
+
   return (
-    <nav className="bg-neutral-900 text-white p-4 flex gap-6">
-      <Link to="/">Inicio</Link>
-      <Link to="/dashboard">Dashboard</Link>
-      <Link to="/profile">Perfil y configuración</Link>
-      <Link to="/login">Login</Link>
-    </nav>
+    <header className="top-header" aria-label="barra superior">
+      <div className="header-left">
+        <button
+          type="button"
+          className="menu-toggle"
+          onClick={() => setMenuOpen((isOpen) => !isOpen)}
+          aria-expanded={menuOpen}
+          aria-controls="dashboard-menu"
+        >
+          ☰ Menu
+        </button>
+        {menuOpen && (
+          <nav id="dashboard-menu" className="menu-dropdown" aria-label="navegación del dashboard">
+            <ul>
+              <li><Link to="/profile" onClick={() => setMenuOpen(false)}>Perfil</Link></li>
+              <li><Link to="/dashboard#dashboard-habits" onClick={() => setMenuOpen(false)}>Hábitos iniciales</Link></li>
+              <li><Link to="/dashboard#dashboard-tasks" onClick={() => setMenuOpen(false)}>Tareas futuras</Link></li>
+              <li><Link to="/dashboard#dashboard-activity" onClick={() => setMenuOpen(false)}>Actividad</Link></li>
+            </ul>
+          </nav>
+        )}
+      </div>
+      {user && (
+        <div className="header-right">
+          <div className="onboarding-user">
+            <img className="onboarding-avatar" src={getAvatarUrl(user, name)} alt={`Avatar de ${name}`} />
+            <div>
+              <span className="onboarding-welcome">Tu espacio personal</span>
+              <strong>{name}</strong>
+            </div>
+          </div>
+          <button type="button" className="onboarding-signout" onClick={handleSignOut} disabled={isSigningOut}>
+            {isSigningOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
+          </button>
+        </div>
+      )}
+    </header>
   )
 }

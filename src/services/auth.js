@@ -12,7 +12,7 @@ export async function getAuthenticatedUser() {
 export async function getCurrentProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, user_id, completed_onboarding')
+    .select('id, user_id, answers, dominant_value, secondary_value, habits, completed_onboarding, created_at')
     .eq('user_id', userId)
     .maybeSingle()
 

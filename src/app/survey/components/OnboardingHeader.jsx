@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../../services/auth'
 import { supabase } from '../../../services/supabase'
 
@@ -23,6 +23,7 @@ export default function OnboardingHeader({ onSignedOut }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -54,17 +55,40 @@ export default function OnboardingHeader({ onSignedOut }) {
   const name = getUserName(user)
 
   return (
-    <header className="onboarding-header">
-      <div className="onboarding-user">
-        <img className="onboarding-avatar" src={getAvatarUrl(user, name)} alt={`Avatar de ${name}`} />
-        <div>
-          <span className="onboarding-welcome">Tu espacio personal</span>
-          <strong>{name}</strong>
-        </div>
+    <header className="onboarding-header top-header" aria-label="barra superior">
+      <div className="header-left">
+        <button
+          type="button"
+          className="menu-toggle"
+          onClick={() => setMenuOpen((isOpen) => !isOpen)}
+          aria-expanded={menuOpen}
+          aria-controls="onboarding-menu"
+        >
+          ☰ Menu
+        </button>
+        {menuOpen && (
+          <nav id="onboarding-menu" className="menu-dropdown" aria-label="navegación del onboarding">
+            <ul>
+              <li><Link to="/profile" onClick={() => setMenuOpen(false)}>Perfil</Link></li>
+              <li><Link to="/dashboard#dashboard-habits" onClick={() => setMenuOpen(false)}>Hábitos iniciales</Link></li>
+              <li><Link to="/dashboard#dashboard-tasks" onClick={() => setMenuOpen(false)}>Tareas futuras</Link></li>
+              <li><Link to="/dashboard#dashboard-activity" onClick={() => setMenuOpen(false)}>Actividad</Link></li>
+            </ul>
+          </nav>
+        )}
       </div>
-      <button type="button" className="onboarding-signout" onClick={handleSignOut} disabled={isSigningOut}>
-        {isSigningOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
-      </button>
+      <div className="header-right">
+        <div className="onboarding-user">
+          <img className="onboarding-avatar" src={getAvatarUrl(user, name)} alt={`Avatar de ${name}`} />
+          <div>
+            <span className="onboarding-welcome">Tu espacio personal</span>
+            <strong>{name}</strong>
+          </div>
+        </div>
+        <button type="button" className="onboarding-signout" onClick={handleSignOut} disabled={isSigningOut}>
+          {isSigningOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
+        </button>
+      </div>
     </header>
   )
 }
