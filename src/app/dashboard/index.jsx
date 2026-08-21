@@ -1,16 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
-import DashboardActivity from './components/DashboardActivity'
+import { getRecentActivity, hideActivityFromDashboard } from '../../services/activity'
+import { completeTask, extendTask, getTasks, startTask } from '../../services/tasks'
+import RecentActivityPanel from './components/RecentActivityPanel'
 import DashboardHabits from './components/DashboardHabits'
 import DashboardSummary from './components/DashboardSummary'
 import DashboardTasks from './components/DashboardTasks'
-import { getTasks } from '../../services/tasks'
+import TaskEndModal from './components/TaskEndModal'
+import TaskStartModal from './components/TaskStartModal'
+import TaskTimer from './components/TaskTimer'
+import { useTaskTimer } from '../../hooks/useTaskTimer'
+
+const DEFAULT_DURATION = 25
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tasks, setTasks] = useState([])
+  const [activities, setActivities] = useState([])
   const [error, setError] = useState('')
+  const [activeTask, setActiveTask] = useState(null)
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [selectedDuration, setSelectedDuration] = useState(DEFAULT_DURATION)
+  const [showStartModal, setShowStartModal] = useState(false)
+  const [showEndModal, setShowEndModal] = useState(false)
+
+  const activeTimer = useTaskTimer({
+    durationMinutes: activeTask ? (activeTask.duration || DEFAULT_DURATION) : DEFAULT_DURATION,
+    isActive: Boolean(activeTask),
+    onExpire: () => setShowEndModal(true),
+  })
+
+  const taskPriority = activeTask?.priority || 'medium'
 
   useEffect(() => {
     let active = true
@@ -30,20 +51,106 @@ export default function Dashboard() {
         return
       }
 
-      const { tasks: currentTasks } = await getTasks(authenticatedUser.id)
+      const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
+        getTasks(authenticatedUser.id),
+        getRecentActivity(authenticatedUser.id),
+      ])
+
+      if (!active) return
       setUser(authenticatedUser)
       setProfile(currentProfile)
       setTasks(currentTasks)
+      setActivities(currentActivities)
     }
 
     loadDashboard()
     return () => { active = false }
   }, [])
 
+  const refreshDashboard = async (userId) => {
+    const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
+      getTasks(userId),
+      getRecentActivity(userId),
+    ])
+    setTasks(currentTasks)
+    setActivities(currentActivities)
+  }
+
+  const openStartTaskModal = (task) => {
+    if (!task) return
+    setSelectedTask(task)
+    setSelectedDuration(Number(task?.duration) || DEFAULT_DURATION)
+    setShowStartModal(true)
+  }
+
+  const handleTaskSelection = (task) => {
+    if (!task) return
+    setActiveTask(task)
+    setSelectedTask(task)
+    setSelectedDuration(Number(task?.duration) || DEFAULT_DURATION)
+    setShowStartModal(true)
+  }
+
+  const handleStartConfirm = async () => {
+    if (!selectedTask || !user) return
+
+    const duration = Number(selectedDuration)
+    const { error } = await startTask(selectedTask, duration, user.id)
+
+    if (error) {
+      console.error('Start task failed:', error)
+      setError(`No se pudo iniciar la tarea. ${error?.message || 'Revisa la tabla activity y la política RLS.'}`)
+      return
+    }
+
+    setTasks((current) => current.map((task) => task.id === selectedTask.id ? { ...task, duration } : task))
+    setActiveTask({ ...selectedTask, duration })
+    setShowStartModal(false)
+    setSelectedTask(null)
+    setSelectedDuration(DEFAULT_DURATION)
+    activeTimer.start(duration)
+    await refreshDashboard(user.id)
+  }
+
+  const handleContinueTimer = async () => {
+    if (!activeTask || !user) return
+
+    const duration = Number(activeTask.duration || DEFAULT_DURATION)
+    const { error } = await extendTask(activeTask, duration, user.id)
+
+    if (error) {
+      setError('No se pudo registrar la extensión del tiempo.')
+      return
+    }
+
+    setShowEndModal(false)
+    activeTimer.start(duration)
+    await refreshDashboard(user.id)
+  }
+
+  const handleFinishTask = async () => {
+    if (!activeTask || !user) return
+
+    const { error } = await completeTask(activeTask.id)
+    if (error) {
+      console.error('Finish task failed:', error)
+      setError(`No se pudo completar la tarea. ${error?.message || 'Revisa la actualización en tasks y la actividad.'}`)
+      return
+    }
+
+    setShowEndModal(false)
+    setActiveTask(null)
+    setSelectedTask(null)
+    activeTimer.reset(DEFAULT_DURATION)
+    await refreshDashboard(user.id)
+  }
+
+  const answers = useMemo(() => (
+    profile?.answers && typeof profile.answers === 'object' ? Object.entries(profile.answers) : []
+  ), [profile])
+
   if (error) return <div className="route-loading">{error}</div>
   if (!user || !profile) return <div className="route-loading">Cargando tu dashboard...</div>
-
-  const answers = profile.answers && typeof profile.answers === 'object' ? Object.entries(profile.answers) : []
 
   return (
     <main className="dashboard-page">
@@ -60,9 +167,21 @@ export default function Dashboard() {
         />
         <DashboardHabits habits={profile.habits} />
 
+        <TaskTimer
+          task={activeTask}
+          durationMinutes={activeTask?.duration || DEFAULT_DURATION}
+          remainingSeconds={activeTimer.remainingSeconds}
+          isRunning={activeTimer.isRunning}
+          onClick={() => activeTask && handleTaskSelection(activeTask)}
+        />
+
         <div className="dashboard-lower-grid">
-          <DashboardTasks tasks={tasks} />
-          <DashboardActivity />
+          <DashboardTasks tasks={tasks} onStart={openStartTaskModal} activeTaskId={activeTask?.id} />
+          <RecentActivityPanel activities={activities} onHide={async (activityId) => {
+            if (!user) return
+            await hideActivityFromDashboard(activityId)
+            await refreshDashboard(user.id)
+          }} />
         </div>
 
         <section className="dashboard-card dashboard-answers" aria-labelledby="dashboard-answers-title">
@@ -81,6 +200,27 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+
+      <TaskStartModal
+        task={selectedTask}
+        isOpen={showStartModal}
+        onClose={() => {
+          setShowStartModal(false)
+          setSelectedTask(null)
+          setSelectedDuration(DEFAULT_DURATION)
+        }}
+        onConfirm={handleStartConfirm}
+        selectedDuration={selectedDuration}
+        onSelectDuration={setSelectedDuration}
+      />
+
+      <TaskEndModal
+        isOpen={showEndModal}
+        priority={taskPriority}
+        onContinue={handleContinueTimer}
+        onFinish={handleFinishTask}
+        onClose={() => setShowEndModal(false)}
+      />
     </main>
   )
 }

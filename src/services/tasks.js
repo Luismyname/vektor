@@ -1,5 +1,31 @@
 import { supabase } from './supabase'
 
+async function insertActivityEntry(entry) {
+  const payload = {
+    user_id: entry.user_id,
+    type: entry.type,
+    task_id: entry.task_id,
+    title: entry.title,
+    ...(Number.isFinite(Number(entry.duration)) ? { duration: Number(entry.duration) } : {}),
+  }
+
+  const { error } = await supabase.from('activity').insert(payload)
+  if (!error) return { error: null }
+
+  const errorText = `${error.message || ''} ${error.details || ''}`.toLowerCase()
+  if (errorText.includes('duration')) {
+    const { error: retryError } = await supabase.from('activity').insert({
+      user_id: entry.user_id,
+      type: entry.type,
+      task_id: entry.task_id,
+      title: entry.title,
+    })
+    return { error: retryError }
+  }
+
+  return { error }
+}
+
 export async function getTasks(userId) {
   const { data, error } = await supabase
     .from('tasks')
@@ -36,12 +62,32 @@ export async function updateTask(id, data) {
   return { task, error }
 }
 
+export async function startTask(task, duration, userId) {
+  return insertActivityEntry({
+    user_id: userId,
+    type: 'task_started',
+    task_id: task.id,
+    title: task.title,
+    duration,
+  })
+}
+
+export async function extendTask(task, duration, userId) {
+  return insertActivityEntry({
+    user_id: userId,
+    type: 'task_extended',
+    task_id: task.id,
+    title: task.title,
+    duration,
+  })
+}
+
 export async function completeTask(id) {
   const completedAt = new Date().toISOString()
   const { data: task, error: taskError } = await updateTask(id, { status: 'completed', completed_at: completedAt })
   if (taskError) return { task: null, error: taskError }
 
-  const { error: activityError } = await supabase.from('activity').insert({
+  const { error: activityError } = await insertActivityEntry({
     user_id: task.user_id,
     type: 'task_completed',
     task_id: task.id,

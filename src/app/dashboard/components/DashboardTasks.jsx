@@ -1,4 +1,4 @@
-export default function DashboardTasks({ tasks = [] }) {
+export default function DashboardTasks({ tasks = [], onStart = () => {}, activeTaskId = null }) {
   const pendingTasks = tasks.filter((task) => task.status !== 'completed')
 
   return (
@@ -6,7 +6,20 @@ export default function DashboardTasks({ tasks = [] }) {
       <h2 id="dashboard-tasks-title" className="dashboard-section-title">Tareas futuras</h2>
       {pendingTasks.length ? (
         <ul className="dashboard-task-summary">
-          {pendingTasks.slice(0, 3).map((task) => <li key={task.id}>{task.title}</li>)}
+          {pendingTasks.slice(0, 5).map((task) => {
+            const isActive = task.id === activeTaskId
+            return (
+              <li key={task.id} className={`dashboard-task-row ${isActive ? 'is-active-task' : ''}`}>
+                <div className="dashboard-task-copy">
+                  <strong>{task.title}</strong>
+                  {task.priority && <span className={`task-priority task-priority-${task.priority}`}>{task.priority}</span>}
+                </div>
+                <button type="button" className="primary-button small-button" onClick={() => onStart(task)}>
+                  {isActive ? 'Modificar' : 'Iniciar tarea'}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       ) : <p className="dashboard-empty">No tienes tareas pendientes.</p>}
     </section>

@@ -16,8 +16,11 @@ create table if not exists public.activity (
   type text not null,
   task_id uuid references public.tasks(id) on delete set null,
   title text not null,
+  duration integer,
   created_at timestamptz not null default now()
 );
+
+alter table public.activity add column if not exists duration integer;
 
 alter table public.tasks enable row level security;
 alter table public.activity enable row level security;
