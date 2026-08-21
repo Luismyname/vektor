@@ -8,6 +8,10 @@ import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Portada from './components/Portada'
 import Profile from './app/profile'
+import Habits from './app/habits'
+import Tasks from './app/tasks'
+import Activity from './app/activity'
+import Settings from './app/settings'
 import './Style/Estilo.css'
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
 
@@ -66,6 +70,10 @@ export default function App() {
         <Route path="/onboarding" element={<ProfileGate onboarding><PageLayout showNavbar={false}><Survey /></PageLayout></ProfileGate>} />
         <Route path="/survey" element={<Navigate to="/" replace />} />
         <Route path="/profile" element={<ProfileGate requireCompleted><PageLayout><Profile /></PageLayout></ProfileGate>} />
+        <Route path="/habits" element={<ProfileGate requireCompleted><PageLayout><Habits /></PageLayout></ProfileGate>} />
+        <Route path="/tasks" element={<ProfileGate requireCompleted><PageLayout><Tasks /></PageLayout></ProfileGate>} />
+        <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
+        <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
         <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
         <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
       </Routes>
