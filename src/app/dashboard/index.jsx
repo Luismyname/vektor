@@ -4,10 +4,12 @@ import DashboardActivity from './components/DashboardActivity'
 import DashboardHabits from './components/DashboardHabits'
 import DashboardSummary from './components/DashboardSummary'
 import DashboardTasks from './components/DashboardTasks'
+import { getTasks } from '../../services/tasks'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [tasks, setTasks] = useState([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -28,8 +30,10 @@ export default function Dashboard() {
         return
       }
 
+      const { tasks: currentTasks } = await getTasks(authenticatedUser.id)
       setUser(authenticatedUser)
       setProfile(currentProfile)
+      setTasks(currentTasks)
     }
 
     loadDashboard()
@@ -57,7 +61,7 @@ export default function Dashboard() {
         <DashboardHabits habits={profile.habits} />
 
         <div className="dashboard-lower-grid">
-          <DashboardTasks />
+          <DashboardTasks tasks={tasks} />
           <DashboardActivity />
         </div>
 

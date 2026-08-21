@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../../services/auth'
 import { saveOnboarding } from '../../../services/users'
+import { generateHabits } from '../../../lib/habits'
 
 const questions = [
   ['¿Qué es lo que más te impulsa a empezar el día?', ['Sentirme con energía y cuidar mi cuerpo.', 'Avanzar en mis metas y proyectos.', 'Conectar con personas importantes para mí.', 'Sentirme en calma y con claridad mental.']],
@@ -13,13 +14,6 @@ const questions = [
   ['¿Qué resultado te haría sentir que estás viviendo mejor?', ['Tener más fuerza, energía o salud.', 'Ser más constante y productivo.', 'Sentirme más conectado con los demás.', 'Sentirme más tranquilo, presente y equilibrado.']],
 ]
 const values = ['salud', 'crecimiento', 'conexion', 'bienestar']
-
-function buildHabits(dominantValue, secondaryValue) {
-  return [
-    { title: `Dedicar 15 minutos a ${dominantValue}`, value: dominantValue },
-    { title: `Reservar un momento para ${secondaryValue}`, value: secondaryValue },
-  ]
-}
 
 export default function SurveyForm() {
   const navigate = useNavigate()
@@ -40,7 +34,7 @@ export default function SurveyForm() {
     const [dominantValue, secondaryValue] = [counts[0][0], counts[1][0]]
     const { error: saveError } = userError || !user
       ? { error: userError || new Error('Sesión no disponible') }
-      : await saveOnboarding({ user, answers, dominantValue, secondaryValue, habits: buildHabits(dominantValue, secondaryValue) })
+      : await saveOnboarding({ user, answers, dominantValue, secondaryValue, habits: generateHabits(dominantValue, secondaryValue, answers) })
 
     setIsSubmitting(false)
     if (saveError) {

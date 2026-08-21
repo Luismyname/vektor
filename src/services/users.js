@@ -30,3 +30,14 @@ export async function saveOnboarding({ user, answers, dominantValue, secondaryVa
 
   return { data, error }
 }
+
+export async function saveHabits(userId, habits) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ habits })
+    .eq('user_id', userId)
+    .select('habits')
+    .single()
+
+  return { habits: data?.habits || null, error }
+}

@@ -331,6 +331,41 @@ body{
 .dashboard-habit-mark{ width:8px; height:8px; flex:0 0 auto; border-radius:50%; background:#a5b4fc; }
 .dashboard-lower-grid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
 .dashboard-empty{ margin:0; color:rgba(255,255,255,0.5); line-height:1.5; }
+.dashboard-task-summary{ display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+.dashboard-task-summary li{ padding:12px 14px; border-left:3px solid #a5b4fc; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.78); }
+.tasks-list-card,.task-create-card{ margin-bottom:16px; }
+.tasks-list-heading{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.tasks-count{ color:#a9b8ff; font-size:13px; }
+.task-form{ display:grid; gap:16px; }
+.task-form label{ display:grid; gap:7px; color:rgba(255,255,255,0.82); font-size:14px; }
+.task-form input,.task-form textarea,.task-form select{ width:100%; box-sizing:border-box; padding:12px; border:1px solid rgba(255,255,255,0.14); border-radius:8px; background:rgba(255,255,255,0.05); color:#fff; font:inherit; }
+.task-form select option{ color:#111827; }
+.task-form-grid{ display:grid; grid-template-columns:minmax(0, 1fr) 180px; gap:16px; }
+.task-list{ display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+.task-item{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:rgba(255,255,255,0.8); }
+.task-item-completed{ opacity:0.52; }
+.task-item-main{ display:flex; align-items:flex-start; gap:12px; min-width:0; cursor:pointer; }
+.task-item-main input{ margin-top:4px; accent-color:var(--accent); }
+.task-item-main span{ display:grid; gap:5px; min-width:0; }
+.task-item-main strong{ color:#fff; overflow-wrap:anywhere; }
+.task-item-main small{ color:rgba(255,255,255,0.58); overflow-wrap:anywhere; }
+.task-item-meta{ display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; flex:0 0 auto; }
+.task-priority,.task-related-value{ padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); font-size:11px; text-transform:capitalize; }
+.task-priority-high{ color:#fca5a5; }
+.task-priority-low{ color:#86efac; }
+.task-delete{ border:0; background:transparent; color:#fca5a5; cursor:pointer; font-size:12px; }
+.habits-grid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
+.habit-list{ display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+.habit-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:rgba(255,255,255,0.78); }
+.habit-item-inactive{ opacity:0.5; }
+.habit-item-label{ display:flex; align-items:flex-start; gap:12px; cursor:pointer; line-height:1.4; }
+.habit-item-label input{ margin-top:3px; accent-color:var(--accent); }
+.habit-remove{ border:0; background:transparent; color:#fca5a5; cursor:pointer; font-size:12px; }
+.habit-add-form{ display:flex; gap:8px; margin-bottom:16px; }
+.habit-add-form input{ min-width:0; flex:1; padding:12px; border:1px solid rgba(255,255,255,0.14); border-radius:8px; background:rgba(255,255,255,0.05); color:#fff; }
+.habit-add-form button{ padding:0 14px; border:1px solid #a5b4fc; border-radius:8px; background:#4f46e5; color:#fff; cursor:pointer; font-weight:700; }
+.habits-actions{ display:flex; align-items:center; gap:16px; }
+.form-message-success{ color:#86efac; }
 .dashboard-answers{ margin-top:16px; }
 .dashboard-answer-list{ display:grid; gap:12px; margin:0; }
 .dashboard-answer{ display:grid; gap:4px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); }
@@ -340,7 +375,9 @@ body{
   .dashboard-page{ padding:28px 14px 84px; }
   .dashboard-header{ align-items:flex-start; flex-direction:column; }
   .dashboard-signout{ width:100%; }
-  .dashboard-summary,.dashboard-lower-grid{ grid-template-columns:1fr; }
+  .dashboard-summary,.dashboard-lower-grid,.habits-grid,.task-form-grid{ grid-template-columns:1fr; }
+  .task-item{ align-items:flex-start; flex-direction:column; }
+  .task-item-meta{ justify-content:flex-start; }
 }
 .profile-setting{ display:flex; justify-content:space-between; align-items:center; gap:24px; margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.1); }
 .profile-setting h2{ margin:0 0 8px; font-size:18px; }

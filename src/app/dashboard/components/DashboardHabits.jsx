@@ -1,5 +1,5 @@
 export default function DashboardHabits({ habits }) {
-  const habitList = Array.isArray(habits) ? habits : []
+  const habitList = Array.isArray(habits) ? habits : habits?.recommended || []
 
   return (
     <section id="dashboard-habits" className="dashboard-card dashboard-habits" aria-labelledby="dashboard-habits-title">
