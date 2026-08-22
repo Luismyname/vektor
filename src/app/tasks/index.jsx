@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
-import { completeTask, createTask, deleteTask, getTasks } from '../../services/tasks'
+import { createTask, deleteTask, deleteTasks, getTasks, updateTask } from '../../services/tasks'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 
@@ -9,8 +9,10 @@ export default function Tasks() {
   const [profile, setProfile] = useState(null)
   const [tasks, setTasks] = useState([])
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [selectedTasks, setSelectedTasks] = useState([])
 
   useEffect(() => {
     let active = true
@@ -31,9 +33,13 @@ export default function Tasks() {
     return () => { active = false }
   }, [])
 
+  function showSuccessMessage(message) {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(""), 3000)
+  }
+
   async function handleCreate(data) {
     setIsSubmitting(true)
-    setMessage('')
     const { task, error: createError } = await createTask(data)
     setIsSubmitting(false)
     if (createError) {
@@ -41,22 +47,44 @@ export default function Tasks() {
       return false
     }
     setTasks((current) => [task, ...current])
-    setMessage('Tarea creada.')
+    showSuccessMessage('Tarea agregada')
     return true
   }
 
-  async function handleComplete(id) {
-    const { task, error: completeError } = await completeTask(id)
-    if (completeError) return setError('La tarea se completó, pero no se pudo registrar la actividad.')
+  function toggleTaskSelection(id) {
+    setSelectedTasks((current) => current.includes(id) ? current.filter((taskId) => taskId !== id) : [...current, id])
+  }
+
+  function toggleSelectAll() {
+    setSelectedTasks((current) => current.length === tasks.length ? [] : tasks.map((task) => task.id))
+  }
+
+  async function deleteSelectedTasks() {
+    const ids = selectedTasks
+    const { error: deleteError } = await deleteTasks(ids)
+    if (deleteError) return setError('No se pudieron eliminar las tareas seleccionadas.')
+    setTasks((current) => current.filter((task) => !ids.includes(task.id)))
+    setSelectedTasks([])
+  }
+
+  async function handleUpdate(id, data) {
+    setIsSubmitting(true)
+    const { task, error: updateError } = await updateTask(id, data)
+    setIsSubmitting(false)
+    if (updateError) {
+      setError('No se pudo actualizar la tarea.')
+      return false
+    }
     setTasks((current) => current.map((item) => item.id === id ? task : item))
-    setMessage('Tarea completada y registrada en actividad.')
+    showSuccessMessage('Tarea actualizada')
+    return true
   }
 
   async function handleDelete(id) {
     const { error: deleteError } = await deleteTask(id)
     if (deleteError) return setError('No se pudo eliminar la tarea.')
     setTasks((current) => current.filter((task) => task.id !== id))
-    setMessage('Tarea eliminada.')
+    setSelectedTasks((current) => current.filter((taskId) => taskId !== id))
   }
 
   if (error) return <div className="route-loading">{error}</div>
@@ -71,16 +99,16 @@ export default function Tasks() {
           <p>Organiza aquí los próximos pasos que quieres completar.</p>
         </section>
         <section className="dashboard-card task-create-card" aria-labelledby="task-form-title">
-          <h2 id="task-form-title" className="dashboard-section-title">Nueva tarea</h2>
-          <TaskForm userId={user.id} dominantValue={profile.dominant_value} onCreate={handleCreate} isSubmitting={isSubmitting} />
+          <h2 id="task-form-title" className="dashboard-section-title">{editingTask ? 'Editar tarea' : 'Nueva tarea'}</h2>
+          <TaskForm key={editingTask?.id || 'new'} userId={user.id} dominantValue={profile.dominant_value} task={editingTask} onCreate={handleCreate} onUpdate={handleUpdate} onCancel={() => setEditingTask(null)} isSubmitting={isSubmitting} />
+          {successMessage && <div className="task-success-banner" role="status">{successMessage}</div>}
         </section>
         <section className="dashboard-card tasks-list-card" aria-labelledby="tasks-list-title">
           <div className="tasks-list-heading">
             <h2 id="tasks-list-title" className="dashboard-section-title">Todas tus tareas</h2>
             <span className="tasks-count">{tasks.filter((task) => task.status !== 'completed').length} pendientes</span>
           </div>
-          <TaskList tasks={tasks} onComplete={handleComplete} onDelete={handleDelete} />
-          {message && <p className="form-message form-message-success" role="status">{message}</p>}
+          <TaskList tasks={tasks} selectedTasks={selectedTasks} onToggleSelection={toggleTaskSelection} onToggleSelectAll={toggleSelectAll} onDeleteSelected={deleteSelectedTasks} onDelete={handleDelete} onEdit={setEditingTask} />
         </section>
       </div>
     </main>

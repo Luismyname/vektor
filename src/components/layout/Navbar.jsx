@@ -34,7 +34,14 @@ export default function Navbar() {
     }
 
     loadUser()
-    return () => { active = false }
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setUser(session?.user || null)
+    })
+
+    return () => {
+      active = false
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   async function handleSignOut() {

@@ -101,3 +101,8 @@ export async function deleteTask(id) {
   const { error } = await supabase.from('tasks').delete().eq('id', id)
   return { error }
 }
+
+export async function deleteTasks(ids) {
+  const { error } = await supabase.from('tasks').delete().in('id', ids)
+  return { error }
+}

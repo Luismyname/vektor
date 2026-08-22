@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
+import { updateHiddenAnswers } from '../../services/users'
+import { questions } from '../survey/questions'
 import { getRecentActivity, hideActivityFromDashboard } from '../../services/activity'
 import { completeTask, extendTask, getTasks, startTask } from '../../services/tasks'
 import RecentActivityPanel from './components/RecentActivityPanel'
@@ -24,6 +26,7 @@ export default function Dashboard() {
   const [selectedDuration, setSelectedDuration] = useState(DEFAULT_DURATION)
   const [showStartModal, setShowStartModal] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
+  const [hiddenAnswers, setHiddenAnswers] = useState({})
 
   const activeTimer = useTaskTimer({
     durationMinutes: activeTask ? (activeTask.duration || DEFAULT_DURATION) : DEFAULT_DURATION,
@@ -59,6 +62,7 @@ export default function Dashboard() {
       if (!active) return
       setUser(authenticatedUser)
       setProfile(currentProfile)
+      setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
       setActivities(currentActivities)
     }
@@ -145,9 +149,34 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
-  const answers = useMemo(() => (
-    profile?.answers && typeof profile.answers === 'object' ? Object.entries(profile.answers) : []
-  ), [profile])
+  const answers = useMemo(() => questions.map(([question], index) => ({
+    key: String(index + 1),
+    question,
+    answer: profile?.answers?.[index + 1] ?? 'Sin respuesta',
+  })), [profile])
+
+  const hideAnswer = async (questionKey) => {
+    if (!user) return
+    const nextHiddenAnswers = { ...hiddenAnswers, [questionKey]: true }
+    const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
+    if (error) {
+      setError('No se pudo ocultar la respuesta.')
+      return
+    }
+    setHiddenAnswers(nextHiddenAnswers)
+  }
+
+  const showAnswer = async (questionKey) => {
+    if (!user) return
+    const nextHiddenAnswers = { ...hiddenAnswers }
+    delete nextHiddenAnswers[questionKey]
+    const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
+    if (error) {
+      setError('No se pudo mostrar la respuesta.')
+      return
+    }
+    setHiddenAnswers(nextHiddenAnswers)
+  }
 
   if (error) return <div className="route-loading">{error}</div>
   if (!user || !profile) return <div className="route-loading">Cargando tu dashboard...</div>
@@ -188,12 +217,14 @@ export default function Dashboard() {
           <h2 id="dashboard-answers-title" className="dashboard-section-title">Tus respuestas</h2>
           {answers.length ? (
             <dl className="dashboard-answer-list">
-              {answers.map(([question, answer]) => (
-                <div className="dashboard-answer" key={question}>
-                  <dt>Pregunta {question}</dt>
-                  <dd>{String(answer)}</dd>
+              {answers.map(({ key, question, answer }) => {
+                const isHidden = hiddenAnswers[key] === true
+                return <div className={`dashboard-answer${isHidden ? ' dashboard-answer-hidden' : ''}`} key={key}>
+                  <dt>{question}</dt>
+                  <dd>{isHidden ? 'Respuesta oculta' : String(answer)}</dd>
+                  <button className="dashboard-answer-hide" type="button" onClick={() => isHidden ? showAnswer(key) : hideAnswer(key)}>{isHidden ? 'Mostrar' : 'Ocultar'}</button>
                 </div>
-              ))}
+              })}
             </dl>
           ) : (
             <p className="dashboard-empty">No hay respuestas disponibles.</p>

@@ -2,6 +2,7 @@ create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references auth.users(id) on delete cascade,
   answers json,
+  hidden_answers json,
   dominant_value text,
   secondary_value text,
   habits json,
@@ -11,6 +12,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists user_id uuid;
 alter table public.profiles add column if not exists answers json;
+alter table public.profiles add column if not exists hidden_answers json;
 alter table public.profiles add column if not exists habits json;
 alter table public.profiles add column if not exists completed_onboarding boolean not null default false;
 

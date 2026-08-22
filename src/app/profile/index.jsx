@@ -32,6 +32,9 @@ export default function Profile() {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  const name = [form.firstName, form.lastName].filter(Boolean).join(' ') || form.email || 'Usuario'
+  const avatarUrl = form.avatarUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
+
   async function handleSubmit(event) {
     event.preventDefault()
     setIsSaving(true)
@@ -64,6 +67,13 @@ export default function Profile() {
         <p className="auth-kicker">VEKTOR / PERFIL</p>
         <h1 id="profile-title">Configuración de tu perfil</h1>
         <p className="auth-intro">Edita tu información personal, avatar y correo electrónico.</p>
+        <div className="profile-avatar-preview">
+          <img src={avatarUrl} alt={`Avatar de ${name}`} />
+          <div>
+            <strong>{form.avatarUrl.trim() ? 'Tu imagen de perfil' : 'Avatar con tus siglas'}</strong>
+            <p>La vista previa se actualiza al escribir una URL.</p>
+          </div>
+        </div>
         <form className="register-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label>Nombre<input name="firstName" value={form.firstName} onChange={handleChange} required /></label>
@@ -75,6 +85,7 @@ export default function Profile() {
           {message && <p className="form-message form-message-success" role="status">{message}</p>}
           <div className="register-actions">
             <button type="submit" disabled={isSaving}>{isSaving ? 'Guardando...' : 'Guardar cambios'}</button>
+            {form.avatarUrl.trim() && <button type="button" className="secondary-button" onClick={() => setForm((current) => ({ ...current, avatarUrl: '' }))}>Eliminar imagen</button>}
           </div>
         </form>
         <div className="profile-setting">

@@ -21,6 +21,7 @@ create table if not exists public.activity (
 );
 
 alter table public.activity add column if not exists duration integer;
+alter table public.activity add column if not exists hidden_in_dashboard boolean not null default false;
 
 alter table public.tasks enable row level security;
 alter table public.activity enable row level security;
@@ -38,5 +39,7 @@ drop policy if exists "Users can read their own activity" on public.activity;
 create policy "Users can read their own activity" on public.activity for select to authenticated using (auth.uid() = user_id);
 drop policy if exists "Users can create their own activity" on public.activity;
 create policy "Users can create their own activity" on public.activity for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "Users can hide their own activity" on public.activity;
+create policy "Users can hide their own activity" on public.activity for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 notify pgrst, 'reload schema';

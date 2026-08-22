@@ -41,3 +41,14 @@ export async function saveHabits(userId, habits) {
 
   return { habits: data?.habits || null, error }
 }
+
+export async function updateHiddenAnswers(userId, hiddenAnswers) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ hidden_answers: hiddenAnswers })
+    .eq('user_id', userId)
+    .select('hidden_answers')
+    .single()
+
+  return { hiddenAnswers: data?.hidden_answers || {}, error }
+}

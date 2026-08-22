@@ -1,10 +1,17 @@
-export default function TaskItem({ task, onComplete, onDelete }) {
+export default function TaskItem({ task, selected, onToggleSelection, onDelete, onEdit }) {
   const isCompleted = task.status === 'completed'
 
+  function handleKeyDown(event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onEdit(task)
+    }
+  }
+
   return (
-    <li className={`task-item${isCompleted ? ' task-item-completed' : ''}`}>
-      <label className="task-item-main">
-        <input type="checkbox" checked={isCompleted} onChange={() => !isCompleted && onComplete(task.id)} aria-label={`Completar ${task.title}`} />
+    <li className={`task-item${isCompleted ? ' task-item-completed' : ''}`} onClick={() => onEdit(task)} onKeyDown={handleKeyDown} role="button" tabIndex="0">
+      <label className="task-item-main" onClick={(event) => event.stopPropagation()}>
+        <input type="checkbox" checked={selected} onChange={() => onToggleSelection(task.id)} aria-label={`Seleccionar ${task.title}`} />
         <span>
           <strong>{task.title}</strong>
           {task.description && <small>{task.description}</small>}
@@ -13,7 +20,7 @@ export default function TaskItem({ task, onComplete, onDelete }) {
       <div className="task-item-meta">
         <span className={`task-priority task-priority-${task.priority}`}>{task.priority}</span>
         {task.related_value && <span className="task-related-value">{task.related_value}</span>}
-        <button className="task-delete" type="button" onClick={() => onDelete(task.id)} aria-label={`Eliminar ${task.title}`}>Eliminar</button>
+        <button className="task-delete" type="button" onClick={(event) => { event.stopPropagation(); onDelete(task.id) }} aria-label={`Eliminar ${task.title}`}>Eliminar</button>
       </div>
     </li>
   )
