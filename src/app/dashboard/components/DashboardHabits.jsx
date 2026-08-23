@@ -1,5 +1,9 @@
+import { normalizeHabits } from '../../../lib/habits'
+
 export default function DashboardHabits({ habits }) {
-  const habitList = Array.isArray(habits) ? habits : habits?.recommended || []
+  const normalizedHabits = normalizeHabits(habits)
+  const habitList = [...normalizedHabits.recommended, ...normalizedHabits.custom]
+    .filter((habit) => habit.active)
 
   return (
     <section id="dashboard-habits" className="dashboard-card dashboard-habits" aria-labelledby="dashboard-habits-title">

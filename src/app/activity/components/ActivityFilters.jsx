@@ -45,9 +45,9 @@ export default function ActivityFilters({ filters, onChange }) {
         <span>Tipo</span>
         <select value={filters.type || 'all'} onChange={(event) => handleChange('type', event.target.value)}>
           <option value="all">Todos</option>
-          <option value="task_started">Iniciadas</option>
-          <option value="task_extended">Ampliadas</option>
-          <option value="task_completed">Completadas</option>
+          <option value="pending">Tareas pendientes</option>
+          <option value="in_progress">Tareas en curso</option>
+          <option value="completed">Tareas finalizadas</option>
         </select>
       </label>
     </div>

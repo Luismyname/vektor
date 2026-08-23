@@ -1,11 +1,39 @@
 import { supabase } from './supabase'
 
-const ACTIVITY_TYPES = ['task_started', 'task_extended', 'task_completed']
+const ACTIVITY_TYPES = ['pending', 'in_progress', 'completed']
+
+function getDateRange(filters) {
+  const now = new Date()
+  const year = Number(filters.year) || now.getFullYear()
+  const month = Number(filters.month)
+  const day = Number(filters.day)
+
+  if (filters.day && (!Number.isInteger(day) || day < 1 || day > 31)) return null
+  if (filters.month && (!Number.isInteger(month) || month < 1 || month > 12)) return null
+  if (filters.year && (!Number.isInteger(year) || year < 1)) return null
+
+  let start
+  let end
+  if (filters.day) {
+    start = new Date(year, (month || now.getMonth() + 1) - 1, day)
+    if (start.getFullYear() !== year || start.getMonth() !== (month || now.getMonth() + 1) - 1 || start.getDate() !== day) return null
+    end = new Date(start)
+    end.setDate(end.getDate() + 1)
+  } else if (filters.month) {
+    start = new Date(year, month - 1, 1)
+    end = new Date(year, month, 1)
+  } else if (filters.year) {
+    start = new Date(year, 0, 1)
+    end = new Date(year + 1, 0, 1)
+  }
+
+  return start && end ? { start: start.toISOString(), end: end.toISOString() } : null
+}
 
 export async function getRecentActivity(userId) {
   const { data, error } = await supabase
     .from('activity')
-    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard')
+    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard, tasks(status)')
     .eq('user_id', userId)
     .in('type', ACTIVITY_TYPES)
     .eq('hidden_in_dashboard', false)
@@ -28,14 +56,16 @@ export async function hideActivityFromDashboard(activityId) {
 export async function getActivityHistory(userId, filters = {}) {
   let query = supabase
     .from('activity')
-    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard')
+    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard, tasks(status)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
   if (filters.type && filters.type !== 'all') query = query.eq('type', filters.type)
-  if (filters.day) query = query.eq('created_at', new Date(`${filters.year || new Date().getFullYear()}-${String(filters.month || new Date().getMonth() + 1).padStart(2, '0')}-${String(filters.day).padStart(2, '0')}T00:00:00Z`).toISOString())
-  if (filters.month && !filters.day) query = query.gte('created_at', new Date(`${filters.year || new Date().getFullYear()}-${String(filters.month).padStart(2, '0')}-01T00:00:00Z`).toISOString()).lt('created_at', new Date(`${filters.year || new Date().getFullYear()}-${String(Number(filters.month) + 1).padStart(2, '0')}-01T00:00:00Z`).toISOString())
-  if (filters.year && !filters.month && !filters.day) query = query.gte('created_at', new Date(`${filters.year}-01-01T00:00:00Z`).toISOString()).lt('created_at', new Date(`${Number(filters.year) + 1}-01-01T00:00:00Z`).toISOString())
+
+  const dateRange = getDateRange(filters)
+  if (dateRange) {
+    query = query.gte('created_at', dateRange.start).lt('created_at', dateRange.end)
+  }
 
   const { data, error } = await query
   return { activities: data || [], error }
@@ -66,6 +96,29 @@ export async function getActivity(userId) {
     .order('created_at', { ascending: false })
 
   return { activities: data || [], error }
+}
+
+export async function getActivityById(activityId) {
+  const { data, error } = await supabase
+    .from('activity')
+    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard, tasks(status, description, priority, related_value)')
+    .eq('id', activityId)
+    .single()
+  return { activity: data, error }
+}
+
+export async function finalizeActivity(activityId, taskId) {
+  const { error: activityError } = await supabase
+    .from('activity')
+    .update({ type: 'completed' })
+    .eq('id', activityId)
+  if (activityError) return { error: activityError }
+
+  const { error: taskError } = await supabase
+    .from('tasks')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', taskId)
+  return { error: taskError }
 }
 
 export async function createActivityEntry(entry) {

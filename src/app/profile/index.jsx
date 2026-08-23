@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../services/auth'
-import { supabase } from '../../services/supabase'
+import { updateProfile } from '../../services/users'
 
 export default function Profile() {
   const [user, setUser] = useState(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', avatarUrl: '' })
+  const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: '', avatarUrl: '' })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -18,6 +18,7 @@ export default function Profile() {
       setUser(authenticatedUser)
       setForm({
         firstName: metadata.first_name || '',
+        middleName: metadata.middle_name || '',
         lastName: metadata.last_name || '',
         email: authenticatedUser.email || '',
         avatarUrl: metadata.avatar_url || '',
@@ -32,7 +33,7 @@ export default function Profile() {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
-  const name = [form.firstName, form.lastName].filter(Boolean).join(' ') || form.email || 'Usuario'
+  const name = [form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ') || form.email || 'Usuario'
   const avatarUrl = form.avatarUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
 
   async function handleSubmit(event) {
@@ -41,15 +42,7 @@ export default function Profile() {
     setMessage('')
     setError('')
 
-    const { data, error: updateError } = await supabase.auth.updateUser({
-      email: form.email.trim(),
-      data: {
-        ...user.user_metadata,
-        first_name: form.firstName.trim(),
-        last_name: form.lastName.trim(),
-        avatar_url: form.avatarUrl.trim(),
-      },
-    })
+    const { data, error: updateError } = await updateProfile({ user, ...form })
 
     setIsSaving(false)
     if (updateError) {
@@ -77,7 +70,8 @@ export default function Profile() {
         <form className="register-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label>Nombre<input name="firstName" value={form.firstName} onChange={handleChange} required /></label>
-            <label>Apellido<input name="lastName" value={form.lastName} onChange={handleChange} required /></label>
+            <label>Segundo nombre<input name="middleName" value={form.middleName} onChange={handleChange} /></label>
+            <label>Apellidos<input name="lastName" value={form.lastName} onChange={handleChange} required /></label>
             <label className="field-wide">Email<input name="email" type="email" value={form.email} onChange={handleChange} required /></label>
             <label className="field-wide">URL del avatar<input name="avatarUrl" type="url" value={form.avatarUrl} onChange={handleChange} placeholder="https://..." /></label>
           </div>

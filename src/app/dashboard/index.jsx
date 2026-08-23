@@ -60,11 +60,14 @@ export default function Dashboard() {
       ])
 
       if (!active) return
+      const activeActivity = currentActivities.find((activity) => activity.type === 'in_progress')
+      const persistedActiveTask = currentTasks.find((task) => task.id === activeActivity?.task_id)
       setUser(authenticatedUser)
       setProfile(currentProfile)
       setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
       setActivities(currentActivities)
+      if (persistedActiveTask) setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || DEFAULT_DURATION })
     }
 
     loadDashboard()

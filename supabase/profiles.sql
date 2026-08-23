@@ -11,6 +11,9 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles add column if not exists user_id uuid;
+alter table public.profiles add column if not exists first_name text;
+alter table public.profiles add column if not exists middle_name text;
+alter table public.profiles add column if not exists last_name text;
 alter table public.profiles add column if not exists answers json;
 alter table public.profiles add column if not exists hidden_answers json;
 alter table public.profiles add column if not exists habits json;
@@ -33,9 +36,6 @@ update public.profiles set user_id = id where user_id is null;
 alter table public.profiles alter column user_id set not null;
 
 alter table public.profiles drop column if exists email;
-alter table public.profiles drop column if exists first_name;
-alter table public.profiles drop column if exists middle_name;
-alter table public.profiles drop column if exists last_name;
 alter table public.profiles drop column if exists birth_date;
 alter table public.profiles drop column if exists address;
 alter table public.profiles drop column if exists nickname;

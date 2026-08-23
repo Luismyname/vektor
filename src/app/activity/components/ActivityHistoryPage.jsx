@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../../services/auth'
 import { getActivityHistory, hideActivityFromDashboard } from '../../../services/activity'
 import ActivityFilters from './ActivityFilters'
@@ -13,6 +14,7 @@ const DEFAULT_FILTERS = {
 }
 
 export default function ActivityHistoryPage() {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
@@ -111,7 +113,7 @@ export default function ActivityHistoryPage() {
               <ul className="activity-history-list">
                 {filteredBySearch.map((activity) => (
                   <div key={activity.id} className="activity-history-row">
-                    <ActivityHistoryItem activity={activity} />
+                    <ActivityHistoryItem activity={activity} onClick={(selectedActivity) => navigate(`/activity/${selectedActivity.id}`)} />
                     {activity.hidden_in_dashboard !== true && (
                       <button type="button" className="ghost-button" onClick={() => handleHideFromDashboard(activity.id)}>
                         Ocultar del dashboard

@@ -8,10 +8,12 @@ export default function DashboardTasks({ tasks = [], onStart = () => {}, activeT
         <ul className="dashboard-task-summary">
           {pendingTasks.slice(0, 5).map((task) => {
             const isActive = task.id === activeTaskId
+            const statusLabel = isActive || task.status === 'in_progress' ? 'Tarea en curso' : 'Tarea pendiente'
             return (
               <li key={task.id} className={`dashboard-task-row ${isActive ? 'is-active-task' : ''}`}>
                 <div className="dashboard-task-copy">
                   <strong>{task.title}</strong>
+                  <span className="task-related-value">{statusLabel}</span>
                   {task.priority && <span className={`task-priority task-priority-${task.priority}`}>{task.priority}</span>}
                 </div>
                 <button type="button" className="primary-button small-button" onClick={() => onStart(task)}>

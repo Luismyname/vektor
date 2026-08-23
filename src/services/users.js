@@ -5,6 +5,33 @@ export async function getUsersCount() {
   return count
 }
 
+export async function updateProfile({ user, firstName, middleName, lastName, email, avatarUrl }) {
+  const first_name = firstName.trim()
+  const middle_name = middleName.trim()
+  const last_name = lastName.trim()
+  const avatar_url = avatarUrl.trim()
+
+  const { data, error: authError } = await supabase.auth.updateUser({
+    email: email.trim(),
+    data: {
+      ...user.user_metadata,
+      first_name,
+      middle_name,
+      last_name,
+      avatar_url,
+    },
+  })
+
+  if (authError) return { data: null, error: authError }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ first_name, middle_name, last_name })
+    .eq('user_id', user.id)
+
+  return { data, error: profileError }
+}
+
 export async function saveOnboarding({ user, answers, dominantValue, secondaryValue, habits }) {
   const payload = {
     answers,

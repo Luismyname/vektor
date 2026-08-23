@@ -353,6 +353,10 @@ body{
 .activity-filters{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; }
 .activity-filters label, .activity-search{ display:grid; gap:8px; color:rgba(255,255,255,0.78); font-size:13px; }
 .activity-filters input, .activity-filters select, .activity-search input{ width:100%; box-sizing:border-box; padding:11px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; }
+.activity-filters select{ background-color:#0f172a; color:#fff; }
+.activity-filters select option{ background-color:#0f172a; color:#fff; }
+.activity-filters select option:checked{ background-color:#334155; color:#fff; }
+.activity-filters select option:hover{ background-color:#475569; color:#fff; }
 .activity-history-list-wrap{ min-height:120px; }
 .activity-history-list{ display:grid; gap:12px; margin:0; padding:0; list-style:none; }
 .activity-history-item{ display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.08); }

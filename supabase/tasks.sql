@@ -23,6 +23,14 @@ create table if not exists public.activity (
 alter table public.activity add column if not exists duration integer;
 alter table public.activity add column if not exists hidden_in_dashboard boolean not null default false;
 
+update public.activity set type = 'in_progress' where type in ('task_started', 'task_extended');
+update public.activity set type = 'completed' where type = 'task_completed';
+insert into public.activity (user_id, type, task_id, title)
+select tasks.user_id, tasks.status, tasks.id, tasks.title
+from public.tasks
+where tasks.status in ('pending', 'in_progress', 'completed')
+  and not exists (select 1 from public.activity where activity.task_id = tasks.id);
+
 alter table public.tasks enable row level security;
 alter table public.activity enable row level security;
 

@@ -11,6 +11,7 @@ import Profile from './app/profile'
 import Habits from './app/habits'
 import Tasks from './app/tasks'
 import Activity from './app/activity'
+import ActivityDetail from './app/activity/components/ActivityDetail'
 import Settings from './app/settings'
 import './Style/Estilo.css'
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="/habits" element={<ProfileGate requireCompleted><PageLayout><Habits /></PageLayout></ProfileGate>} />
         <Route path="/tasks" element={<ProfileGate requireCompleted><PageLayout><Tasks /></PageLayout></ProfileGate>} />
         <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
+        <Route path="/activity/:activityId" element={<ProfileGate requireCompleted><PageLayout><ActivityDetail /></PageLayout></ProfileGate>} />
         <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
         <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
         <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
