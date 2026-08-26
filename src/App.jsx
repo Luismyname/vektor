@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
-import Dashboard from './app/dashboard'
-import Survey from './app/survey'
-import Login from './app/auth/login'
-import Register from './app/auth/register'
+const Dashboard = lazy(() => import('./app/dashboard'))
+const Survey = lazy(() => import('./app/survey'))
+const Login = lazy(() => import('./app/auth/login'))
+const Register = lazy(() => import('./app/auth/register'))
+const Demo = lazy(() => import('./app/demo'))
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Portada from './components/Portada'
-import Profile from './app/profile'
-import Habits from './app/habits'
-import Tasks from './app/tasks'
-import Activity from './app/activity'
-import ActivityDetail from './app/activity/components/ActivityDetail'
-import Settings from './app/settings'
-import './Style/Estilo.css'
+const Profile = lazy(() => import('./app/profile'))
+const Habits = lazy(() => import('./app/habits'))
+const Tasks = lazy(() => import('./app/tasks'))
+const Activity = lazy(() => import('./app/activity'))
+const ActivityDetail = lazy(() => import('./app/activity/components/ActivityDetail'))
+const Settings = lazy(() => import('./app/settings'))
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
 
 function ProfileGate({ children, requireCompleted = false, onboarding = false }) {
@@ -65,8 +65,10 @@ function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
+        <Routes>
         <Route path="/" element={<Portada />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
         <Route path="/onboarding" element={<ProfileGate onboarding><PageLayout showNavbar={false}><Survey /></PageLayout></ProfileGate>} />
         <Route path="/survey" element={<Navigate to="/" replace />} />
@@ -78,7 +80,8 @@ export default function App() {
         <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
         <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
         <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

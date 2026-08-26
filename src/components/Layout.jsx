@@ -63,9 +63,10 @@ export default function Layout({ children, onOpenLogin, onOpenRegister }) {
 
       <footer className="site-footer">
         <div className="footer-inner">
-          <a href="#">@luis Rodriguez</a>
-          <a href="#">GitHub</a>
-          <a href="#">LinkedIn</a>
+          <span>Vektor</span>
+          <span>Proyecto de Luis Guillermo Rodríguez Velásquez</span>
+          <a href="https://github.com/Luismyname/" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://www.linkedin.com/in/luis-guillermo-rodriguez-velasquez-786a83b6" target="_blank" rel="noreferrer">LinkedIn</a>
         </div>
       </footer>
     </div>

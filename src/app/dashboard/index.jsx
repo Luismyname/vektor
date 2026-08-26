@@ -12,10 +12,13 @@ import TaskEndModal from './components/TaskEndModal'
 import TaskStartModal from './components/TaskStartModal'
 import TaskTimer from './components/TaskTimer'
 import { useTaskTimer } from '../../hooks/useTaskTimer'
+import { usePreferences } from '../../hooks/usePreferences'
 
 const DEFAULT_DURATION = 25
 
 export default function Dashboard() {
+  const { preferences } = usePreferences()
+  const defaultDuration = preferences.timerMinutes || DEFAULT_DURATION
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tasks, setTasks] = useState([])
@@ -23,16 +26,17 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [activeTask, setActiveTask] = useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
-  const [selectedDuration, setSelectedDuration] = useState(DEFAULT_DURATION)
+  const [selectedDuration, setSelectedDuration] = useState(defaultDuration)
   const [showStartModal, setShowStartModal] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
   const [hiddenAnswers, setHiddenAnswers] = useState({})
 
   const activeTimer = useTaskTimer({
-    durationMinutes: activeTask ? (activeTask.duration || DEFAULT_DURATION) : DEFAULT_DURATION,
+    durationMinutes: activeTask ? (activeTask.duration || defaultDuration) : defaultDuration,
     isActive: Boolean(activeTask),
     onExpire: () => setShowEndModal(true),
   })
+  const { hydrate: hydrateTimer } = activeTimer
 
   const taskPriority = activeTask?.priority || 'medium'
 
@@ -67,12 +71,15 @@ export default function Dashboard() {
       setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
       setActivities(currentActivities)
-      if (persistedActiveTask) setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || DEFAULT_DURATION })
+      if (persistedActiveTask) {
+        setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || defaultDuration })
+        hydrateTimer()
+      }
     }
 
     loadDashboard()
     return () => { active = false }
-  }, [])
+  }, [defaultDuration, hydrateTimer])
 
   const refreshDashboard = async (userId) => {
     const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
@@ -86,7 +93,7 @@ export default function Dashboard() {
   const openStartTaskModal = (task) => {
     if (!task) return
     setSelectedTask(task)
-    setSelectedDuration(Number(task?.duration) || DEFAULT_DURATION)
+    setSelectedDuration(Number(task?.duration) || defaultDuration)
     setShowStartModal(true)
   }
 
@@ -94,7 +101,7 @@ export default function Dashboard() {
     if (!task) return
     setActiveTask(task)
     setSelectedTask(task)
-    setSelectedDuration(Number(task?.duration) || DEFAULT_DURATION)
+    setSelectedDuration(Number(task?.duration) || defaultDuration)
     setShowStartModal(true)
   }
 
@@ -114,7 +121,7 @@ export default function Dashboard() {
     setActiveTask({ ...selectedTask, duration })
     setShowStartModal(false)
     setSelectedTask(null)
-    setSelectedDuration(DEFAULT_DURATION)
+    setSelectedDuration(defaultDuration)
     activeTimer.start(duration)
     await refreshDashboard(user.id)
   }
@@ -122,7 +129,7 @@ export default function Dashboard() {
   const handleContinueTimer = async () => {
     if (!activeTask || !user) return
 
-    const duration = Number(activeTask.duration || DEFAULT_DURATION)
+    const duration = Number(activeTask.duration || defaultDuration)
     const { error } = await extendTask(activeTask, duration, user.id)
 
     if (error) {
@@ -148,7 +155,7 @@ export default function Dashboard() {
     setShowEndModal(false)
     setActiveTask(null)
     setSelectedTask(null)
-    activeTimer.reset(DEFAULT_DURATION)
+    activeTimer.reset(defaultDuration)
     await refreshDashboard(user.id)
   }
 
@@ -193,15 +200,15 @@ export default function Dashboard() {
           <p>Este es el resumen de lo que descubrimos en tu onboarding.</p>
         </section>
 
-        <DashboardSummary
-          dominantValue={profile.dominant_value}
-          secondaryValue={profile.secondary_value}
-        />
+        {preferences.showValues && <DashboardSummary
+            dominantValue={profile.dominant_value}
+            secondaryValue={profile.secondary_value}
+          />}
         <DashboardHabits habits={profile.habits} />
 
         <TaskTimer
           task={activeTask}
-          durationMinutes={activeTask?.duration || DEFAULT_DURATION}
+          durationMinutes={activeTask?.duration || defaultDuration}
           remainingSeconds={activeTimer.remainingSeconds}
           isRunning={activeTimer.isRunning}
           onClick={() => activeTask && handleTaskSelection(activeTask)}
@@ -241,7 +248,7 @@ export default function Dashboard() {
         onClose={() => {
           setShowStartModal(false)
           setSelectedTask(null)
-          setSelectedDuration(DEFAULT_DURATION)
+          setSelectedDuration(defaultDuration)
         }}
         onConfirm={handleStartConfirm}
         selectedDuration={selectedDuration}

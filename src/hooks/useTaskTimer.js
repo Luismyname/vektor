@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire }) {
-  const [durationSeconds, setDurationSeconds] = useState(durationMinutes * 60)
-  const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60)
-  const [isRunning, setIsRunning] = useState(isActive)
+  const [durationSeconds, setDurationSeconds] = useState(() => readTimer()?.durationSeconds || durationMinutes * 60)
+  const [remainingSeconds, setRemainingSeconds] = useState(() => getRemaining(readTimer(), durationMinutes * 60))
+  const [isStopped, setIsStopped] = useState(false)
+  const onExpireRef = useRef(onExpire)
+  const isRunning = Boolean(isActive) && !isStopped && remainingSeconds > 0
 
   useEffect(() => {
-    const nextDurationSeconds = Math.max(durationMinutes * 60, 0)
-    setDurationSeconds(nextDurationSeconds)
-    setRemainingSeconds(nextDurationSeconds)
-  }, [durationMinutes])
-
-  useEffect(() => {
-    setIsRunning(Boolean(isActive))
-  }, [isActive])
+    onExpireRef.current = onExpire
+  }, [onExpire])
 
   useEffect(() => {
     if (!isRunning) return undefined
@@ -22,8 +18,9 @@ export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire 
       setRemainingSeconds((current) => {
         if (current <= 1) {
           window.clearInterval(interval)
-          setIsRunning(false)
-          onExpire?.()
+          setIsStopped(true)
+          localStorage.removeItem('vektor-active-timer')
+          onExpireRef.current?.()
           return 0
         }
         return current - 1
@@ -37,19 +34,29 @@ export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire 
     const nextSeconds = Math.max(nextDuration * 60, 0)
     setDurationSeconds(nextSeconds)
     setRemainingSeconds(nextSeconds)
-    setIsRunning(true)
+    setIsStopped(false)
+    localStorage.setItem('vektor-active-timer', JSON.stringify({ durationSeconds: nextSeconds, startedAt: Date.now() }))
   }, [durationMinutes])
 
   const stop = useCallback(() => {
-    setIsRunning(false)
+    setIsStopped(true)
   }, [])
 
   const reset = useCallback((nextDuration = durationMinutes) => {
     const nextSeconds = Math.max(nextDuration * 60, 0)
     setDurationSeconds(nextSeconds)
     setRemainingSeconds(nextSeconds)
-    setIsRunning(false)
+    setIsStopped(true)
+    localStorage.removeItem('vektor-active-timer')
   }, [durationMinutes])
+
+  const hydrate = useCallback(() => {
+    const savedTimer = readTimer()
+    if (!savedTimer) return
+    setDurationSeconds(savedTimer.durationSeconds)
+    setRemainingSeconds(getRemaining(savedTimer, savedTimer.durationSeconds))
+    setIsStopped(false)
+  }, [])
 
   return {
     durationSeconds,
@@ -58,5 +65,19 @@ export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire 
     start,
     stop,
     reset,
+    hydrate,
   }
+}
+
+function readTimer() {
+  try {
+    return JSON.parse(localStorage.getItem('vektor-active-timer') || 'null')
+  } catch {
+    return null
+  }
+}
+
+function getRemaining(savedTimer, fallbackSeconds) {
+  if (!savedTimer?.startedAt) return fallbackSeconds
+  return Math.max(savedTimer.durationSeconds - Math.floor((Date.now() - savedTimer.startedAt) / 1000), 0)
 }

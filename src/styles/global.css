@@ -1,0 +1,17 @@
+:root {
+  --page-bg: #0f172a;
+  --panel-bg: rgba(15, 23, 42, 0.82);
+  --page-text: #f7f7fb;
+  --muted-text: rgba(255, 255, 255, 0.7);
+  --accent: #6c5ce7;
+}
+
+:root[data-theme='light'] {
+  --page-bg: #f4f6fb;
+  --panel-bg: #ffffff;
+  --page-text: #182033;
+  --muted-text: #596174;
+  --accent: #5146c7;
+}
+
+body { background: var(--page-bg); color: var(--page-text); }
