@@ -21,7 +21,7 @@ Vektor es una aplicación web de productividad personal que conecta valores, há
 - React 19 y React Router 7.
 - Vite 8.
 - Supabase Auth, PostgreSQL y políticas RLS.
-- CSS propio y Framer Motion.
+- CSS propio organizado por capas globales, componentes y utilidades.
 
 ## Arquitectura
 
@@ -93,7 +93,6 @@ Visita `/demo` después de iniciar el servidor para probar el flujo completo con
 
 ## Roadmap
 
-- Persistir el instante de inicio para recuperar sesiones activas después de recargar.
 - Añadir estadísticas de enfoque y evolución de hábitos.
 - Ampliar la cobertura de tests unitarios y añadir pruebas end-to-end.
 - Publicar una demo con datos de prueba y un flujo de acceso documentado.

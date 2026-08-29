@@ -5,6 +5,11 @@ body { background: var(--page-bg); color: var(--page-text); }
 .settings-list { display: grid; gap: 1px; margin: 28px 0; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; overflow: hidden; }
 .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 16px; background: var(--panel-bg); color: var(--page-text); }
 .settings-row select, .settings-row input { padding: 8px 10px; border: 1px solid rgba(127,127,160,.35); border-radius: 6px; background: transparent; color: inherit; }
+.settings-row select { color-scheme: dark; background-color: #1e293b; color: #ffffff; }
+.settings-row select option { background-color: #1e293b; color: #ffffff; }
+.settings-row select option:checked { background-color: #334155; color: #ffffff; }
+:root[data-theme='light'] .settings-row select { color-scheme: light; background-color: transparent; color: inherit; }
+:root[data-theme='light'] .settings-row select option { background-color: transparent; color: inherit; }
 .settings-row input { width: 64px; margin-right: 6px; }
 .settings-toggle { min-width: 100px; padding: 8px 12px; border: 1px solid rgba(127,127,160,.4); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .settings-toggle.is-on { border-color: var(--accent); color: var(--accent); }
