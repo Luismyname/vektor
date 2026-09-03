@@ -73,9 +73,6 @@ export async function updateTask(id, data) {
 }
 
 export async function startTask(task, duration, userId) {
-  const { error: taskError } = await updateTask(task.id, { status: 'in_progress' })
-  if (taskError) return { error: taskError }
-
   const { data, error } = await supabase
     .from('activity')
     .update({ type: 'in_progress', duration })
@@ -103,6 +100,16 @@ export async function extendTask(task, duration, userId) {
     .update({ type: 'in_progress', duration: totalDuration })
     .eq('task_id', task.id)
     .eq('user_id', userId)
+  return { error }
+}
+
+export async function stopTask(task, userId) {
+  const { error } = await supabase
+    .from('activity')
+    .update({ type: 'pending', duration: null })
+    .eq('task_id', task.id)
+    .eq('user_id', userId)
+
   return { error }
 }
 

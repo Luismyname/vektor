@@ -3,7 +3,7 @@ import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
 import { updateHiddenAnswers } from '../../services/users'
 import { questions } from '../survey/questions'
 import { getRecentActivity, hideActivityFromDashboard } from '../../services/activity'
-import { completeTask, extendTask, getTasks, startTask } from '../../services/tasks'
+import { completeTask, extendTask, getTasks, startTask, stopTask } from '../../services/tasks'
 import RecentActivityPanel from './components/RecentActivityPanel'
 import DashboardHabits from './components/DashboardHabits'
 import DashboardSummary from './components/DashboardSummary'
@@ -142,6 +142,30 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
+  const handlePauseTimer = () => {
+    activeTimer.pause()
+  }
+
+  const handleResumeTimer = () => {
+    activeTimer.resume()
+  }
+
+  const handleStopTimer = async () => {
+    if (!activeTask || !user) return
+
+    const { error } = await stopTask(activeTask, user.id)
+    if (error) {
+      setError('No se pudo detener la tarea.')
+      return
+    }
+
+    setActiveTask(null)
+    setSelectedTask(null)
+    setShowStartModal(false)
+    activeTimer.reset(0)
+    await refreshDashboard(user.id)
+  }
+
   const handleFinishTask = async () => {
     if (!activeTask || !user) return
 
@@ -212,6 +236,9 @@ export default function Dashboard() {
           remainingSeconds={activeTimer.remainingSeconds}
           isRunning={activeTimer.isRunning}
           onClick={() => activeTask && handleTaskSelection(activeTask)}
+          onPause={handlePauseTimer}
+          onResume={handleResumeTimer}
+          onStop={handleStopTimer}
         />
 
         <div className="dashboard-lower-grid">

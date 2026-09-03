@@ -5,7 +5,7 @@ function formatTime(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-export default function TaskTimer({ task, durationMinutes, remainingSeconds, isRunning, onClick }) {
+export default function TaskTimer({ task, durationMinutes, remainingSeconds, isRunning, onClick, onPause, onResume, onStop }) {
   if (!task) {
     return (
       <section className="dashboard-card task-timer-card">
@@ -16,7 +16,7 @@ export default function TaskTimer({ task, durationMinutes, remainingSeconds, isR
   }
 
   return (
-    <button type="button" className="dashboard-card task-timer-card task-timer-button" aria-live="polite" onClick={onClick}>
+    <section className="dashboard-card task-timer-card" aria-live="polite">
       <div className="task-timer-header">
         <div>
           <p className="task-timer-kicker">Tarea activa</p>
@@ -27,6 +27,18 @@ export default function TaskTimer({ task, durationMinutes, remainingSeconds, isR
 
       <div className="task-timer-value">{formatTime(remainingSeconds)}</div>
       <p className="task-timer-status">{isRunning ? 'Cuenta regresiva en curso' : 'Pausa'}</p>
-    </button>
+
+      <div className="task-timer-actions">
+        <button type="button" className="secondary-button" onClick={isRunning ? onPause : onResume} disabled={remainingSeconds <= 0}>
+          {isRunning ? 'Pausar' : 'Reanudar'}
+        </button>
+        <button type="button" className="primary-button danger" onClick={onStop}>
+          Stop
+        </button>
+        <button type="button" className="timer-edit-button" onClick={onClick}>
+          Modificar duración
+        </button>
+      </div>
+    </section>
   )
 }
