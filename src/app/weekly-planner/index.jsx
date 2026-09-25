@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
-import { getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress } from '../../services/weekly-planner'
+import { formatDate, getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
@@ -18,11 +18,17 @@ function shiftWeek(weekStart, amount) {
 export default function WeeklyPlannerPage() {
   const [user, setUser] = useState(null)
   const [authError, setAuthError] = useState('')
+  const [currentTime, setCurrentTime] = useState(new Date())
   const planner = useWeeklyPlanner(user?.id)
   const review = useWeeklyReview(user?.id, planner.weekStart)
   const [progress, setProgress] = useState(null)
   const [habitConsistency, setHabitConsistency] = useState([])
   const dates = useMemo(() => getWeekDates(planner.weekStart), [planner.weekStart])
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -114,7 +120,7 @@ export default function WeeklyPlannerPage() {
             <section><h2>Hábitos</h2>{planner.habits.map((habit) => <button key={habit.id} type="button" draggable className="weekly-habit-picker" onDragStart={(event) => handleHabitDragStart(event, habit)} onClick={() => scheduleHabit(habit)}><span>{habit.title}</span><small>Arrastra o +07:00</small></button>)}</section>
             {isRescheduling && <p className="weekly-muted">Buscando el siguiente hueco...</p>}
           </aside>
-          <WeeklyGrid dates={dates} entries={planner.entries} taskById={planner.taskById} habitById={planner.habitById} focusSessions={planner.focusSessions} onDropTask={handleDropTask} onDragStart={handleDragStart} onStatusChange={handleStatusChange} onDurationChange={handleDurationChange} onAutoReschedule={handleAutoReschedule} onDelete={planner.removeEntry} onTaskUpdate={handleTaskUpdate} onClearDay={planner.clearDay} />
+          <WeeklyGrid dates={dates} currentTime={currentTime} today={formatDate(currentTime)} entries={planner.entries} taskById={planner.taskById} habitById={planner.habitById} focusSessions={planner.focusSessions} onDropTask={handleDropTask} onDragStart={handleDragStart} onStatusChange={handleStatusChange} onDurationChange={handleDurationChange} onAutoReschedule={handleAutoReschedule} onDelete={planner.removeEntry} onTaskUpdate={handleTaskUpdate} onClearDay={planner.clearDay} />
         </div>
         <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
       </div>

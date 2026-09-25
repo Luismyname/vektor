@@ -4,6 +4,8 @@
   --page-text: #f7f7fb;
   --muted-text: rgba(255, 255, 255, 0.7);
   --accent: #6c5ce7;
+
+  /* ✔️ Variables usadas por TODA la app */
   --bg-main: var(--page-bg);
   --bg-card: var(--panel-bg);
   --text-primary: var(--page-text);
@@ -15,9 +17,16 @@
   --page-text: #182033;
   --muted-text: #596174;
   --accent: #5146c7;
+
+  /* ✔️ Variables sincronizadas con el tema claro */
   --bg-main: var(--page-bg);
   --bg-card: var(--panel-bg);
   --text-primary: var(--page-text);
 }
 
-body { background: var(--page-bg); color: var(--page-text); }
+/* ✔️ CORRECCIÓN CRÍTICA:
+   El body debe usar las mismas variables que el resto de la app */
+body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+}
