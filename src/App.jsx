@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 const Dashboard = lazy(() => import('./app/dashboard'))
 const Survey = lazy(() => import('./app/survey'))
 const Login = lazy(() => import('./app/auth/login'))
@@ -14,6 +14,7 @@ const Tasks = lazy(() => import('./app/tasks'))
 const Activity = lazy(() => import('./app/activity'))
 const ActivityDetail = lazy(() => import('./app/activity/components/ActivityDetail'))
 const Settings = lazy(() => import('./app/settings'))
+const WeeklyPlanner = lazy(() => import('./app/weekly-planner'))
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
 
 function ProfileGate({ children, requireCompleted = false, onboarding = false }) {
@@ -63,8 +64,10 @@ function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
 }
 
 export default function App() {
+  const Router = window.desktop?.isElectron ? HashRouter : BrowserRouter
+
   return (
-    <BrowserRouter>
+    <Router>
       <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
         <Routes>
         <Route path="/" element={<Portada />} />
@@ -78,10 +81,11 @@ export default function App() {
         <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
         <Route path="/activity/:activityId" element={<ProfileGate requireCompleted><PageLayout><ActivityDetail /></PageLayout></ProfileGate>} />
         <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
+        <Route path="/weekly-planner" element={<ProfileGate requireCompleted><PageLayout><WeeklyPlanner /></PageLayout></ProfileGate>} />
         <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
         <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
         </Routes>
       </Suspense>
-    </BrowserRouter>
+    </Router>
   )
 }

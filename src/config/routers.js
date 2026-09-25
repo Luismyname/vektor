@@ -3,5 +3,6 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   SURVEY: '/survey',
   LOGIN: '/login',
-  REGISTER: '/register'
+  REGISTER: '/register',
+  WEEKLY_PLANNER: '/weekly-planner'
 }

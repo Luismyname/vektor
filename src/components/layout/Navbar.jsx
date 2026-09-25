@@ -77,6 +77,7 @@ export default function Navbar() {
               <li><Link to="/profile" onClick={() => setMenuOpen(false)}>Perfil</Link></li>
               <li><Link to="/habits" onClick={() => setMenuOpen(false)}>Hábitos iniciales</Link></li>
               <li><Link to="/tasks" onClick={() => setMenuOpen(false)}>Tareas</Link></li>
+              <li><Link to="/weekly-planner" onClick={() => setMenuOpen(false)}>Plan semanal</Link></li>
               <li><Link to="/activity" onClick={() => setMenuOpen(false)}>Actividad</Link></li>
               <li><Link to="/settings" onClick={() => setMenuOpen(false)}>Configuración</Link></li>
             </ul>

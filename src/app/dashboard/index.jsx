@@ -13,6 +13,7 @@ import TaskStartModal from './components/TaskStartModal'
 import TaskTimer from './components/TaskTimer'
 import { useTaskTimer } from '../../hooks/useTaskTimer'
 import { usePreferences } from '../../hooks/usePreferences'
+import WeeklyPreview from '../../components/dashboard/WeeklyPreview'
 
 const DEFAULT_DURATION = 25
 
@@ -229,6 +230,7 @@ export default function Dashboard() {
             secondaryValue={profile.secondary_value}
           />}
         <DashboardHabits habits={profile.habits} />
+        <WeeklyPreview userId={user.id} />
 
         <TaskTimer
           task={activeTask}

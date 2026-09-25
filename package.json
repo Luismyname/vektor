@@ -2,10 +2,14 @@
   "name": "vector",
   "private": true,
   "version": "0.0.0",
+  "description": "Vektor, productividad personal basada en valores, hábitos y tareas.",
+  "author": "Luis Guillermo Rodríguez Velásquez",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "desktop:dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "vite build",
+    "desktop:build": "npm run build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -25,12 +29,32 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^38.1.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "jsdom": "^30.0.1",
     "vite": "^8.0.12",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wait-on": "^8.0.4"
+  },
+  "main": "electron/main.mjs",
+  "build": {
+    "appId": "com.vektor.app",
+    "productName": "Vektor",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    }
   }
 }
