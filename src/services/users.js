@@ -33,8 +33,19 @@ export async function updateProfile({ user, firstName, middleName, lastName, ema
 }
 
 export async function saveOnboarding({ user, answers, dominantValue, secondaryValue, habits }) {
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  const authenticatedUser = authData?.user
+  if (authError || !authenticatedUser) {
+    return { data: null, error: authError || new Error('Sesión no disponible.') }
+  }
+  if (user?.id !== authenticatedUser.id) {
+    return { data: null, error: new Error('El usuario del perfil no coincide con la sesión autenticada.') }
+  }
+
+  const userId = authenticatedUser.id
   const payload = {
     answers,
+    hidden_answers: {},
     dominant_value: dominantValue,
     secondary_value: secondaryValue,
     habits,
@@ -42,15 +53,16 @@ export async function saveOnboarding({ user, answers, dominantValue, secondaryVa
   }
   const { data: existingProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
+    .select('id, hidden_answers')
+    .eq('user_id', userId)
     .maybeSingle()
 
   if (profileError) return { data: null, error: profileError }
+  if (existingProfile?.hidden_answers != null) payload.hidden_answers = existingProfile.hidden_answers
 
   const query = existingProfile
-    ? supabase.from('profiles').update(payload).eq('user_id', user.id)
-    : supabase.from('profiles').insert({ ...payload, user_id: user.id })
+    ? supabase.from('profiles').update(payload).eq('user_id', userId)
+    : supabase.from('profiles').insert({ ...payload, user_id: userId })
   const { data, error } = await query
     .select('id, user_id, completed_onboarding')
     .single()
