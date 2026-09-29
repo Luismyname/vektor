@@ -1,4 +1,5 @@
-.weekly-planner-page { min-height: 100vh; padding: 48px 24px 80px; background: var(--bg-main); color: var(--text-primary); }
+.weekly-planner-page { min-height: 100vh; padding: calc(var(--vektor-header-height) + 48px) 24px 80px; background: var(--bg-main); color: var(--text-primary); }
+.weekly-planner-page h1, .weekly-planner-page h2 { color: #fff; }
 .weekly-planner-shell { width: min(1500px, 100%); margin: 0 auto; }
 .weekly-planner-header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 28px; }
 .weekly-planner-header h1 { max-width: 680px; margin: 8px 0; font-size: clamp(30px, 4vw, 52px); letter-spacing: 0; }
@@ -124,7 +125,7 @@
 }
 
 @media (max-width: 560px) { 
-  .weekly-planner-page { padding: 30px 12px 50px; }
+  .weekly-planner-page { padding: calc(var(--vektor-header-height) + 30px) 12px 50px; }
   .weekly-metrics { grid-template-columns: repeat(2, 1fr); }
   .weekly-sidebar, .weekly-review-grid { grid-template-columns: 1fr; }
 }

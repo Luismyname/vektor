@@ -97,7 +97,7 @@ body{
   right:0;
   width:100%;
   max-width:none;
-  height:70px;
+  height:var(--vektor-header-height);
   background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(11,18,32,0.85));
   border-bottom:1px solid rgba(255,255,255,0.04);
   padding:0 20px;
@@ -170,7 +170,7 @@ body{
 
 .menu-dropdown{
   position:absolute;
-  top:70px;
+  top:var(--vektor-header-height);
   left:0;
   background:linear-gradient(180deg, rgba(15,23,42,0.98), rgba(11,18,32,0.95));
   border-radius:0 0 8px 8px;
@@ -187,8 +187,8 @@ body{
 
 /* Contenido principal desplazado por el header superior */
 .main-content{
-  margin-top:70px;
-  min-height:calc(100vh - 70px - 50px);
+  margin-top:var(--vektor-header-height);
+  min-height:calc(100vh - var(--vektor-header-height) - 50px);
   position:relative;
   z-index:10;
   display:flex;
@@ -303,7 +303,7 @@ body{
 .route-loading{ min-height:100vh; display:grid; place-items:center; color:var(--muted); background:#0f172a; }
 .dashboard-page{
   min-height:calc(100vh - 120px);
-  margin-top:70px;
+  margin-top:var(--vektor-header-height);
   padding:48px 20px 88px;
   box-sizing:border-box;
   background:linear-gradient(135deg,#111d35 0%, #0f172a 52%, #091326 100%);
@@ -499,7 +499,7 @@ body{
 
 .auth-kicker{
   margin:0 0 8px;
-  color:#a9b8ff;
+  color:#fff;
   font-size:12px;
   font-weight:700;
   letter-spacing:2px;
