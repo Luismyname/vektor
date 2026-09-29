@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
+import { useState } from 'react'
 import { updateHiddenAnswers } from '../../services/users'
-import { questions } from '../survey/questions'
-import { getRecentActivity, hideActivityFromDashboard } from '../../services/activity'
-import { completeTask, extendTask, getTasks, startTask, stopTask } from '../../services/tasks'
+import { hideActivityFromDashboard } from '../../services/activity'
+import { completeTask, extendTask, startTask, stopTask } from '../../services/tasks'
 import RecentActivityPanel from './components/RecentActivityPanel'
 import DashboardHabits from './components/DashboardHabits'
 import DashboardSummary from './components/DashboardSummary'
@@ -11,6 +9,8 @@ import DashboardTasks from './components/DashboardTasks'
 import TaskEndModal from './components/TaskEndModal'
 import TaskStartModal from './components/TaskStartModal'
 import TaskTimer from './components/TaskTimer'
+import DashboardAnswers from './components/DashboardAnswers'
+import { useDashboardData } from './hooks/useDashboardData'
 import { useTaskTimer } from '../../hooks/useTaskTimer'
 import { usePreferences } from '../../hooks/usePreferences'
 import WeeklyPreview from '../../components/dashboard/WeeklyPreview'
@@ -20,77 +20,35 @@ const DEFAULT_DURATION = 25
 export default function Dashboard() {
   const { preferences } = usePreferences()
   const defaultDuration = preferences.timerMinutes || DEFAULT_DURATION
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [tasks, setTasks] = useState([])
-  const [activities, setActivities] = useState([])
-  const [error, setError] = useState('')
-  const [activeTask, setActiveTask] = useState(null)
+
+  const {
+    user,
+    profile,
+    tasks,
+    setTasks,
+    activities,
+    error,
+    hiddenAnswers,
+    setHiddenAnswers,
+    refreshDashboard,
+    activeTask,
+    setActiveTask,
+  } = useDashboardData(defaultDuration)
+
   const [selectedTask, setSelectedTask] = useState(null)
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration)
   const [showStartModal, setShowStartModal] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
-  const [hiddenAnswers, setHiddenAnswers] = useState({})
 
   const activeTimer = useTaskTimer({
     durationMinutes: activeTask ? (activeTask.duration || defaultDuration) : defaultDuration,
     isActive: Boolean(activeTask),
     onExpire: () => setShowEndModal(true),
   })
-  const { hydrate: hydrateTimer } = activeTimer
 
   const taskPriority = activeTask?.priority || 'medium'
 
-  useEffect(() => {
-    let active = true
-
-    async function loadDashboard() {
-      const { user: authenticatedUser, error: userError } = await getAuthenticatedUser()
-      if (userError || !authenticatedUser) {
-        if (active) setError('No se pudo cargar la sesión.')
-        return
-      }
-
-      const { profile: currentProfile, error: profileError } = await getCurrentProfile(authenticatedUser.id)
-      if (!active) return
-
-      if (profileError || !currentProfile) {
-        setError('No se pudo cargar tu perfil.')
-        return
-      }
-
-      const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
-        getTasks(authenticatedUser.id),
-        getRecentActivity(authenticatedUser.id),
-      ])
-
-      if (!active) return
-      const activeActivity = currentActivities.find((activity) => activity.type === 'in_progress')
-      const persistedActiveTask = currentTasks.find((task) => task.id === activeActivity?.task_id)
-      setUser(authenticatedUser)
-      setProfile(currentProfile)
-      setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
-      setTasks(currentTasks)
-      setActivities(currentActivities)
-      if (persistedActiveTask) {
-        setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || defaultDuration })
-        hydrateTimer()
-      }
-    }
-
-    loadDashboard()
-    return () => { active = false }
-  }, [defaultDuration, hydrateTimer])
-
-  const refreshDashboard = async (userId) => {
-    const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
-      getTasks(userId),
-      getRecentActivity(userId),
-    ])
-    setTasks(currentTasks)
-    setActivities(currentActivities)
-  }
-
+  // Handlers de tareas
   const openStartTaskModal = (task) => {
     if (!task) return
     setSelectedTask(task)
@@ -114,7 +72,6 @@ export default function Dashboard() {
 
     if (error) {
       console.error('Start task failed:', error)
-      setError(`No se pudo iniciar la tarea. ${error?.message || 'Revisa la tabla activity y la política RLS.'}`)
       return
     }
 
@@ -133,32 +90,21 @@ export default function Dashboard() {
     const duration = Number(activeTask.duration || defaultDuration)
     const { error } = await extendTask(activeTask, duration, user.id)
 
-    if (error) {
-      setError('No se pudo registrar la extensión del tiempo.')
-      return
-    }
+    if (error) return
 
     setShowEndModal(false)
     activeTimer.start(duration)
     await refreshDashboard(user.id)
   }
 
-  const handlePauseTimer = () => {
-    activeTimer.pause()
-  }
-
-  const handleResumeTimer = () => {
-    activeTimer.resume()
-  }
+  const handlePauseTimer = () => activeTimer.pause()
+  const handleResumeTimer = () => activeTimer.resume()
 
   const handleStopTimer = async () => {
     if (!activeTask || !user) return
 
     const { error } = await stopTask(activeTask, user.id)
-    if (error) {
-      setError('No se pudo detener la tarea.')
-      return
-    }
+    if (error) return
 
     setActiveTask(null)
     setSelectedTask(null)
@@ -173,7 +119,6 @@ export default function Dashboard() {
     const { error } = await completeTask(activeTask.id)
     if (error) {
       console.error('Finish task failed:', error)
-      setError(`No se pudo completar la tarea. ${error?.message || 'Revisa la actualización en tasks y la actividad.'}`)
       return
     }
 
@@ -184,21 +129,12 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
-  const answers = useMemo(() => questions.map(([question], index) => ({
-    key: String(index + 1),
-    question,
-    answer: profile?.answers?.[index + 1] ?? 'Sin respuesta',
-  })), [profile])
-
+  // Handlers de respuestas
   const hideAnswer = async (questionKey) => {
     if (!user) return
     const nextHiddenAnswers = { ...hiddenAnswers, [questionKey]: true }
     const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
-    if (error) {
-      setError('No se pudo ocultar la respuesta.')
-      return
-    }
-    setHiddenAnswers(nextHiddenAnswers)
+    if (!error) setHiddenAnswers(nextHiddenAnswers)
   }
 
   const showAnswer = async (questionKey) => {
@@ -206,11 +142,7 @@ export default function Dashboard() {
     const nextHiddenAnswers = { ...hiddenAnswers }
     delete nextHiddenAnswers[questionKey]
     const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
-    if (error) {
-      setError('No se pudo mostrar la respuesta.')
-      return
-    }
-    setHiddenAnswers(nextHiddenAnswers)
+    if (!error) setHiddenAnswers(nextHiddenAnswers)
   }
 
   if (error) return <div className="route-loading">{error}</div>
@@ -225,10 +157,12 @@ export default function Dashboard() {
           <p>Este es el resumen de lo que descubrimos en tu onboarding.</p>
         </section>
 
-        {preferences.showValues && <DashboardSummary
+        {preferences.showValues && (
+          <DashboardSummary
             dominantValue={profile.dominant_value}
             secondaryValue={profile.secondary_value}
-          />}
+          />
+        )}
         <DashboardHabits habits={profile.habits} />
         <WeeklyPreview userId={user.id} />
 
@@ -252,23 +186,12 @@ export default function Dashboard() {
           }} />
         </div>
 
-        <section className="dashboard-card dashboard-answers" aria-labelledby="dashboard-answers-title">
-          <h2 id="dashboard-answers-title" className="dashboard-section-title">Tus respuestas</h2>
-          {answers.length ? (
-            <dl className="dashboard-answer-list">
-              {answers.map(({ key, question, answer }) => {
-                const isHidden = hiddenAnswers[key] === true
-                return <div className={`dashboard-answer${isHidden ? ' dashboard-answer-hidden' : ''}`} key={key}>
-                  <dt>{question}</dt>
-                  <dd>{isHidden ? 'Respuesta oculta' : String(answer)}</dd>
-                  <button className="dashboard-answer-hide" type="button" onClick={() => isHidden ? showAnswer(key) : hideAnswer(key)}>{isHidden ? 'Mostrar' : 'Ocultar'}</button>
-                </div>
-              })}
-            </dl>
-          ) : (
-            <p className="dashboard-empty">No hay respuestas disponibles.</p>
-          )}
-        </section>
+        <DashboardAnswers
+          profile={profile}
+          hiddenAnswers={hiddenAnswers}
+          onHide={hideAnswer}
+          onShow={showAnswer}
+        />
       </div>
 
       <TaskStartModal
