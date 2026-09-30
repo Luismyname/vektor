@@ -127,3 +127,141 @@ body {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* ============================================================
+   OPTIMIZACIÓN MÓVIL — Fase 1: CSS Base
+   ============================================================ */
+
+/* Variables de espaciado para móvil */
+:root {
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  
+  /* Tamaño mínimo táctil (44px recomendado por Apple) */
+  --touch-target: 44px;
+  
+  /* Safe areas para notch */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Optimización de touch targets (excluye checkboxes y radios) */
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+a {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+}
+
+/* Inputs optimizados para móvil (excluye checkboxes y radios) */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-size: 16px; /* Evita zoom en iOS */
+  padding: 0.75rem;
+}
+
+/* Breakpoints estándar */
+/* iPhone SE, Android pequeño */
+@media (max-width: 360px) {
+  :root {
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.5rem;
+  }
+  
+  .error-boundary-content {
+    padding: 1rem;
+  }
+  
+  .error-boundary-content h1 {
+    font-size: 1.25rem;
+  }
+}
+
+/* iPhone 14, Android mediano */
+@media (max-width: 390px) {
+  .error-boundary-actions {
+    flex-direction: column;
+  }
+  
+  .error-boundary-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Tablets y pantallas medianas */
+@media (max-width: 768px) {
+  .error-boundary-content {
+    max-width: 90%;
+  }
+}
+
+/* Optimizaciones de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Soporte para modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  /* Ya está manejado por el tema de la app */
+}
+
+/* Safe areas para notch */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
+  }
+}
+
+/* ============================================================
+   INDICADORES VISUALES DE TAREAS
+   ============================================================ */
+
+/* Tareas completadas */
+.completed-tasks-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.completed-tasks-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-task-row.is-completed {
+  opacity: 0.7;
+}
+
+.dashboard-task-row.is-completed .dashboard-task-copy strong {
+  text-decoration: line-through;
+  color: var(--muted-text);
+}
+
+/* Check de tarea completada */
+.task-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.15);
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+}

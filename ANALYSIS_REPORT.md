@@ -2,7 +2,7 @@
 
 **Proyecto:** vector v0.0.0  
 **Descripción:** Vektor, productividad personal basada en valores, hábitos y tareas.  
-**Fecha:** 29/9/2026, 22:34:31  
+**Fecha:** 30/9/2026, 12:30:56  
 **Autor:** Luis Guillermo Rodríguez Velásquez
 
 ---
@@ -11,14 +11,14 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Directorios | 39 |
-| Archivos | 99 |
-| Líneas de código | 4952 |
-| Componentes React | 58 |
-| Custom Hooks | 7 |
-| Tests | 5 |
+| Directorios | 41 |
+| Archivos | 110 |
+| Líneas de código | 6011 |
+| Componentes React | 65 |
+| Custom Hooks | 9 |
+| Tests | 10 |
 | Migraciones SQL | 3 |
-| Promedio líneas/archivo | 56 |
+| Promedio líneas/archivo | 61 |
 
 ---
 
@@ -27,7 +27,6 @@
 - React
 - React Router
 - Supabase
-- Electron
 - Vite
 - Vitest
 - ESLint
@@ -47,9 +46,9 @@
 | Patrón | Estado |
 |--------|--------|
 | Lazy Loading | ✅ |
-| Context API | ❌ |
-| Error Boundaries | ❌ |
-| Custom Hooks | 6 |
+| Context API | ✅ |
+| Error Boundaries | ✅ |
+| Custom Hooks | 7 |
 
 ---
 
@@ -69,9 +68,6 @@
 - **@types/react**: ^19.2.14
 - **@types/react-dom**: ^19.2.3
 - **@vitejs/plugin-react**: ^6.0.1
-- **concurrently**: ^9.2.1
-- **electron**: ^38.1.0
-- **electron-builder**: ^26.0.12
 - **eslint**: ^10.3.0
 - **eslint-plugin-react-hooks**: ^7.1.1
 - **eslint-plugin-react-refresh**: ^0.5.2
@@ -85,7 +81,7 @@
 
 ## 🧩 Módulos del Proyecto
 
-### Componentes (58 totales)
+### Componentes (65 totales)
 - **De aplicación:** 0
 - **Compartidos:** 0
 
@@ -98,13 +94,15 @@
 - `src\services\users.js`
 - `src\services\weekly-planner.js`
 
-### Custom Hooks (7)
+### Custom Hooks (9)
+- `src\app\dashboard\hooks\useDashboardData.js`
 - `src\hooks\usePreferences.js`
 - `src\hooks\useTaskTimer.js`
 - `src\hooks\weekly-planner\useTaskAutoReschedule.js`
 - `src\hooks\weekly-planner\useWeeklyPlanner.js`
 - `src\hooks\weekly-planner\useWeeklyReview.js`
 - `src\services\users.js`
+- `tests\useDashboardData.test.js`
 - `tests\useTaskTimer.test.jsx`
 
 ---
@@ -113,20 +111,21 @@
 
 | Categoría | Cantidad | Descripción |
 |-----------|----------|-------------|
-| 🔴 Alta (>200 líneas) | 2 | Archivos que necesitan refactorización |
-| 🟡 Media (100-200) | 11 | Archivos aceptables |
-| 🟢 Baja (<100) | 76 | Archivos bien enfocados |
+| 🔴 Alta (>200 líneas) | 3 | Archivos que necesitan refactorización |
+| 🟡 Media (100-200) | 15 | Archivos aceptables |
+| 🟢 Baja (<100) | 80 | Archivos bien enfocados |
 
 ### Archivos Complejos
-- `src\app\dashboard\index.jsx` (297 líneas, ~22 funciones)
+- `src\app\dashboard\index.jsx` (220 líneas, ~15 funciones)
 - `src\Style\Estilo.css` (613 líneas, ~0 funciones)
+- `tests\TaskTimer.test.jsx` (205 líneas, ~49 funciones)
 
 ---
 
 ## 🧪 Testing
 
 - **Framework:** Vitest + Testing Library
-- **Tests unitarios:** 5
+- **Tests unitarios:** 10
 - **Cobertura:** No medido (considera agregar coverage)
 - **E2E:** No detectado (considera Playwright o Cypress)
 
@@ -135,36 +134,28 @@
 ## 💡 Recomendaciones Inteligentes
 
 
-### 1. 🔴 [ALTA] Resiliencia
+### 1. 🔴 [ALTA] Mantenibilidad
 
-**No se detectaron Error Boundaries. Sin ellos, un error en cualquier componente puede tumbar toda la aplicación.**
-
-- 📈 **Impacto:** Evitará caídas completas de la app
-- 💪 **Esfuerzo:** Bajo
-
-
-
-### 2. 🔴 [ALTA] Mantenibilidad
-
-**Se encontraron 2 archivos con más de 200 líneas. Los archivos grandes son difíciles de mantener y probar. Considera dividirlos.**
+**Se encontraron 3 archivos con más de 200 líneas. Los archivos grandes son difíciles de mantener y probar. Considera dividirlos.**
 
 - 📈 **Impacto:** Reducirá la complejidad cognitiva
 - 💪 **Esfuerzo:** Alto
 - 📁 **Archivos:**
   - `src\app\dashboard\index.jsx`
   - `src\Style\Estilo.css`
+  - `tests\TaskTimer.test.jsx`
 
 
-### 3. 🔴 [ALTA] Testing
+### 2. 🔴 [ALTA] Testing
 
-**Solo tienes 5 tests para 58 componentes (cobertura ~9%). Se recomienda al menos 60-70% de cobertura.**
+**Solo tienes 10 tests para 65 componentes (cobertura ~15%). Se recomienda al menos 60-70% de cobertura.**
 
 - 📈 **Impacto:** Reducirá bugs en producción
 - 💪 **Esfuerzo:** Alto
 
 
 
-### 4. 🟡 [MEDIA] Calidad de Código
+### 3. 🟡 [MEDIA] Calidad de Código
 
 **Tu proyecto usa JavaScript pero no TypeScript. TypeScript detectaría errores en tiempo de desarrollo y mejoraría la documentación del código.**
 
@@ -173,9 +164,9 @@
 
 
 
-### 5. 🟡 [MEDIA] Mantenimiento
+### 4. 🟡 [MEDIA] Mantenimiento
 
-**Hay 5 TODOs pendientes que deberías resolver o documentar.**
+**Hay 6 TODOs pendientes que deberías resolver o documentar.**
 
 - 📈 **Impacto:** Reducirá deuda técnica
 - 💪 **Esfuerzo:** Bajo
@@ -183,26 +174,9 @@
   - `src\app\activity\components\ActivityFilters.jsx:47`
   - `src\app\activity\components\ActivityHistoryPage.jsx:93`
   - `src\app\auth\register.jsx:28`
+  - `src\context\AuthContext.jsx:9`
   - `src\Style\Estilo.css:3`
   - `src\Style\Estilo.css:13`
-
-
-### 6. 🟡 [MEDIA] Arquitectura
-
-**Con muchos componentes, considera usar Context API o un estado global (Zustand, Redux) para evitar prop drilling.**
-
-- 📈 **Impacto:** Simplificará el manejo de estado
-- 💪 **Esfuerzo:** Medio
-
-
-
-### 7. 🟢 [BAJA] Documentación
-
-**Considera crear un directorio /docs con documentación del proyecto, guías de contribución y decisiones arquitectónicas (ADRs).**
-
-- 📈 **Impacto:** Facilitará la incorporación de nuevos desarrolladores
-- 💪 **Esfuerzo:** Bajo
-
 
 
 ---
@@ -229,4 +203,4 @@ Vektor, productividad personal basada en valores, hábitos y tareas.
 ---
 
 *Reporte generado por el Agente de Análisis de Proyecto*
-*Fecha: 29/9/2026, 22:34:31*
+*Fecha: 30/9/2026, 12:30:56*

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { createActivityEntry, getInProgressActivity, hideActivityFromDashboard } from './activity'
 
 async function insertActivityEntry(entry) {
   const payload = {
@@ -113,18 +114,39 @@ export async function stopTask(task, userId) {
   return { error }
 }
 
-export async function completeTask(id) {
+export async function completeTask(task, userId, fallbackDuration = 0) {
+  const taskDetails = typeof task === 'object' && task !== null ? task : null
+  const taskId = taskDetails?.id || task
+  if (!taskId || !userId) return { task: null, error: new Error('Falta la tarea o el usuario para finalizar la sesión.') }
+
+  const { activity: activeActivity, error: readActivityError } = await getInProgressActivity(taskId, userId)
+  if (readActivityError) return { task: null, error: readActivityError }
+
+  const recordedDuration = Number(activeActivity?.duration ?? fallbackDuration)
+  const duration = Math.max(0, Math.round(Number.isFinite(recordedDuration) ? recordedDuration : 0))
   const completedAt = new Date().toISOString()
-  const { data: task, error: taskError } = await updateTask(id, { status: 'completed', completed_at: completedAt })
+  const { task: completedTask, error: taskError } = await updateTask(taskId, { status: 'completed', completed_at: completedAt })
   if (taskError) return { task: null, error: taskError }
 
-  const { error: activityError } = await supabase
-    .from('activity')
-    .update({ type: 'completed' })
-    .eq('task_id', task.id)
-    .eq('user_id', task.user_id)
+  const { error: activityError } = await createActivityEntry({
+    user_id: userId,
+    type: 'completed',
+    task_id: taskId,
+    title: taskDetails?.title || completedTask.title,
+    duration,
+  })
 
-  return { task, error: activityError || null }
+  if (activityError) {
+    await updateTask(taskId, {
+      status: taskDetails?.status || 'pending',
+      completed_at: taskDetails?.completed_at || null,
+    })
+    return { task: null, error: activityError }
+  }
+
+  if (activeActivity?.id) await hideActivityFromDashboard(activeActivity.id)
+
+  return { task: completedTask, error: null }
 }
 
 export async function deleteTask(id) {

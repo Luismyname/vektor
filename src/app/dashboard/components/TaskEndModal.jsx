@@ -1,4 +1,4 @@
-export default function TaskEndModal({ isOpen, onContinue, onFinish, onClose, priority }) {
+export default function TaskEndModal({ isOpen, onContinue, onFinish, onClose, priority, isFinishing = false, errorMessage = '' }) {
   if (!isOpen) return null
 
   const suggestionByPriority = {
@@ -15,15 +15,18 @@ export default function TaskEndModal({ isOpen, onContinue, onFinish, onClose, pr
             <p className="modal-kicker">Resumen</p>
             <h3 id="task-end-modal-title">¿Has terminado la tarea?</h3>
           </div>
-          <button className="modal-close" type="button" onClick={onClose} aria-label="Cerrar modal">×</button>
+          <button className="modal-close" type="button" onClick={onClose} aria-label="Cerrar modal" disabled={isFinishing}>×</button>
         </div>
 
         <p className="task-end-question">¿Quieres continuar?</p>
         <p className="task-end-suggestion">{suggestionByPriority[priority] || suggestionByPriority.medium}</p>
+        {errorMessage && <p className="task-end-error" role="alert">{errorMessage}</p>}
 
         <div className="modal-actions">
-          <button type="button" className="secondary-button" onClick={onContinue}>Continuar</button>
-          <button type="button" className="primary-button danger" onClick={onFinish}>Terminar</button>
+          <button type="button" className="secondary-button" onClick={onContinue} disabled={isFinishing}>Continuar</button>
+          <button type="button" className="primary-button danger" onClick={onFinish} disabled={isFinishing} aria-busy={isFinishing}>
+            {isFinishing ? 'Finalizando...' : 'Terminar'}
+          </button>
         </div>
       </div>
     </div>

@@ -28,7 +28,7 @@ export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire 
     }, 1000)
 
     return () => window.clearInterval(interval)
-  }, [isRunning, onExpire])
+  }, [isRunning])
 
   const start = useCallback((nextDuration = durationMinutes) => {
     const nextSeconds = Math.max(nextDuration * 60, 0)

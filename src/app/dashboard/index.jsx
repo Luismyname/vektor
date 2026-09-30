@@ -39,11 +39,16 @@ export default function Dashboard() {
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration)
   const [showStartModal, setShowStartModal] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
+  const [isFinishingTask, setIsFinishingTask] = useState(false)
+  const [finishError, setFinishError] = useState('')
 
   const activeTimer = useTaskTimer({
     durationMinutes: activeTask ? (activeTask.duration || defaultDuration) : defaultDuration,
     isActive: Boolean(activeTask),
-    onExpire: () => setShowEndModal(true),
+    onExpire: () => {
+      setFinishError('')
+      setShowEndModal(true)
+    },
   })
 
   const taskPriority = activeTask?.priority || 'medium'
@@ -114,19 +119,40 @@ export default function Dashboard() {
   }
 
   const handleFinishTask = async () => {
-    if (!activeTask || !user) return
-
-    const { error } = await completeTask(activeTask.id)
-    if (error) {
-      console.error('Finish task failed:', error)
+    if (isFinishingTask) return
+    if (!activeTask) {
+      setShowEndModal(false)
+      activeTimer.reset(0)
+      return
+    }
+    if (!user) {
+      setFinishError('No se pudo identificar tu sesión. Inténtalo de nuevo.')
       return
     }
 
-    setShowEndModal(false)
-    setActiveTask(null)
-    setSelectedTask(null)
-    activeTimer.reset(defaultDuration)
-    await refreshDashboard(user.id)
+    setIsFinishingTask(true)
+    setFinishError('')
+    try {
+      const fallbackDuration = Math.ceil(activeTimer.durationSeconds / 60)
+      const { error } = await completeTask(activeTask, user.id, fallbackDuration)
+      if (error) {
+        console.error('Finish task failed:', error)
+        setFinishError('No se pudo registrar la sesión. Comprueba tu conexión e inténtalo de nuevo.')
+        return
+      }
+
+      setShowEndModal(false)
+      setActiveTask(null)
+      setSelectedTask(null)
+      setShowStartModal(false)
+      activeTimer.reset(0)
+      await refreshDashboard(user.id)
+    } catch (error) {
+      console.error('Finish task failed:', error)
+      setFinishError('No se pudo registrar la sesión. Comprueba tu conexión e inténtalo de nuevo.')
+    } finally {
+      setIsFinishingTask(false)
+    }
   }
 
   // Handlers de respuestas
@@ -210,6 +236,8 @@ export default function Dashboard() {
       <TaskEndModal
         isOpen={showEndModal}
         priority={taskPriority}
+        isFinishing={isFinishingTask}
+        errorMessage={finishError}
         onContinue={handleContinueTimer}
         onFinish={handleFinishTask}
         onClose={() => setShowEndModal(false)}

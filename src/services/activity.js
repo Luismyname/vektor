@@ -53,6 +53,18 @@ export async function hideActivityFromDashboard(activityId) {
   return { activity: data, error }
 }
 
+export async function getInProgressActivity(taskId, userId) {
+  const { data, error } = await supabase
+    .from('activity')
+    .select('id, duration')
+    .eq('task_id', taskId)
+    .eq('user_id', userId)
+    .eq('type', 'in_progress')
+    .maybeSingle()
+
+  return { activity: data, error }
+}
+
 export async function getActivityHistory(userId, filters = {}) {
   let query = supabase
     .from('activity')

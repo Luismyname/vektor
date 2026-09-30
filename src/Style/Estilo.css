@@ -403,6 +403,7 @@ body{
 .task-end-panel{ max-width:420px; }
 .task-end-question{ margin:0 0 10px; color:#fff; font-size:20px; font-weight:700; }
 .task-end-suggestion{ margin:0; color:rgba(255,255,255,0.68); line-height:1.6; }
+.task-end-error{ margin:12px 0 0; color:#fda4af; font-size:13px; line-height:1.5; }
 .tasks-list-card,.task-create-card{ margin-bottom:16px; }
 .tasks-list-heading{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .tasks-count{ color:#a9b8ff; font-size:13px; }
