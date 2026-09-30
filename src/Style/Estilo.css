@@ -33,12 +33,6 @@
 }
 
 /* --- Layout y estilos globales --- */
-:root{
-  --sidebar-width: 260px;
-  --accent: #6c5ce7;
-  --muted: rgba(255,255,255,0.85);
-}
-
 html,body,#root{
   height: 100%;
 }
