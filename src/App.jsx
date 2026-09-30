@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from './context/AuthContext'
 const Dashboard = lazy(() => import('./app/dashboard'))
 const Survey = lazy(() => import('./app/survey'))
@@ -68,6 +69,7 @@ function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <Analytics />
       <AuthProvider>
         <ErrorBoundary>
           <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
