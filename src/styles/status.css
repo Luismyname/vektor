@@ -1,0 +1,23 @@
+/* ============================================================
+   CLASES DE ESTADO UNIFICADAS
+   ============================================================ */
+
+/* Estado: Completado */
+.status-completed {
+  border-left-color: #22c55e;
+}
+
+/* Estado: Fallido */
+.status-failed {
+  border-left-color: #ef4444;
+}
+
+/* Estado: Movido */
+.status-moved {
+  border-left-color: #eab308;
+}
+
+/* Estado: Programado */
+.status-scheduled {
+  border-left-color: #3b82f6;
+}

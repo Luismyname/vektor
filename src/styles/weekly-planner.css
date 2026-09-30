@@ -1,3 +1,5 @@
+@import './status.css';
+
 .weekly-planner-page { min-height: 100vh; padding: calc(var(--vektor-header-height) + 48px) 24px 80px; background: var(--bg-main); color: var(--text-primary); }
 .weekly-planner-page h1, .weekly-planner-page h2 { color: #fff; }
 .weekly-planner-shell { width: min(1500px, 100%); margin: 0 auto; }
@@ -76,10 +78,7 @@
 .weekly-task-block, .weekly-habit-block { top: calc((var(--start-hour, 5) - 5) * 48px); }
 .weekly-task-block { background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--accent); }
 .weekly-habit-block { background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--accent); }
-.weekly-block.status-completed { border-left-color: #22c55e; }
-.weekly-block.status-failed { border-left-color: #ef4444; }
-.weekly-block.status-moved { border-left-color: #eab308; }
-.weekly-block.status-scheduled { border-left-color: #3b82f6; }
+
 .weekly-block span { opacity: .75; }
 
 /* ✔️ CORRECCIÓN 2 — desplegables visibles */
@@ -117,14 +116,14 @@
 
 .weekly-clear-week-button { border-color: #ef4444 !important; color: #ef4444 !important; }
 
-@media (max-width: 900px) { 
+@media (max-width: 768px) { 
   .weekly-planner-header { align-items: start; flex-direction: column; }
   .weekly-workspace { grid-template-columns: 1fr; }
   .weekly-sidebar { position: static; grid-template-columns: 1fr 1fr; }
   .weekly-review-grid { grid-template-columns: repeat(2, 1fr); } 
 }
 
-@media (max-width: 560px) { 
+@media (max-width: 600px) { 
   .weekly-planner-page { padding: calc(var(--vektor-header-height) + 30px) 12px 50px; }
   .weekly-metrics { grid-template-columns: repeat(2, 1fr); }
   .weekly-sidebar, .weekly-review-grid { grid-template-columns: 1fr; }

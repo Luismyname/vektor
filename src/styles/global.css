@@ -5,11 +5,26 @@
   --page-text: #f7f7fb;
   --muted-text: rgba(255, 255, 255, 0.7);
   --accent: #6c5ce7;
+  --sidebar-width: 260px;
+  --muted: rgba(255, 255, 255, 0.85);
+
+  /* ✔️ Variables de colores frecuentes - TEMA OSCURO (original) */
+  --color-white: #ffffff;
+  --color-white-10: rgba(255, 255, 255, 0.1);
+  --color-white-04: rgba(255, 255, 255, 0.04);
+  --color-white-08: rgba(255, 255, 255, 0.08);
+  --color-border: rgba(127, 127, 160, 0.35);
+  --color-border-light: rgba(127, 127, 160, 0.2);
+  --color-border-lighter: rgba(127, 127, 160, 0.25);
+  --color-accent-light: #a5b4fc;
+  --color-success: #4ade80;
+  --color-danger: #b4232e;
 
   /* ✔️ Variables usadas por TODA la app */
   --bg-main: var(--page-bg);
   --bg-card: var(--panel-bg);
   --text-primary: var(--page-text);
+  --muted: rgba(255, 255, 255, 0.85);
 }
 
 :root[data-theme='light'] {
@@ -19,10 +34,25 @@
   --muted-text: #596174;
   --accent: #5146c7;
 
+  /* ✔️ Variables de colores frecuentes - Tema Claro */
+  --color-white: #182033;
+  --color-white-10: rgba(24, 32, 51, 0.1);
+  --color-white-04: rgba(24, 32, 51, 0.04);
+  --color-white-08: rgba(24, 32, 51, 0.08);
+  --color-border: rgba(24, 32, 51, 0.35);
+  --color-border-light: rgba(24, 32, 51, 0.2);
+  --color-border-lighter: rgba(24, 32, 51, 0.15);
+  --color-accent-light: #5146c7;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-danger-light: rgba(220, 38, 38, 0.1);
+  --muted: #596174;
+
   /* ✔️ Variables sincronizadas con el tema claro */
   --bg-main: var(--page-bg);
   --bg-card: var(--panel-bg);
   --text-primary: var(--page-text);
+  --muted: #596174;
 }
 
 /* ✔️ CORRECCIÓN CRÍTICA:
@@ -49,6 +79,7 @@ body {
   background: var(--bg-card);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
 }
 
 .error-boundary-content h1 {

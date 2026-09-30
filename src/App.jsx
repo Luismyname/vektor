@@ -73,26 +73,26 @@ export default function App() {
       <Analytics />
       <ThemeProvider>
         <AuthProvider>
-        <ErrorBoundary>
-          <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
-            <Routes>
-            <Route path="/" element={<Portada />} />
-            <Route path="/demo" element={<Demo />} />
-            <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
-            <Route path="/onboarding" element={<ProfileGate onboarding><PageLayout showNavbar={false}><Survey /></PageLayout></ProfileGate>} />
-            <Route path="/survey" element={<Navigate to="/" replace />} />
-            <Route path="/profile" element={<ProfileGate requireCompleted><PageLayout><Profile /></PageLayout></ProfileGate>} />
-            <Route path="/habits" element={<ProfileGate requireCompleted><PageLayout><Habits /></PageLayout></ProfileGate>} />
-            <Route path="/tasks" element={<ProfileGate requireCompleted><PageLayout><Tasks /></PageLayout></ProfileGate>} />
-            <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
-            <Route path="/activity/:activityId" element={<ProfileGate requireCompleted><PageLayout><ActivityDetail /></PageLayout></ProfileGate>} />
-            <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
-            <Route path="/weekly-planner" element={<ProfileGate requireCompleted><PageLayout><WeeklyPlanner /></PageLayout></ProfileGate>} />
-            <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
-            <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
+              <Routes>
+              <Route path="/" element={<Portada />} />
+              <Route path="/demo" element={<Demo />} />
+              <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
+              <Route path="/onboarding" element={<ProfileGate onboarding><PageLayout showNavbar={false}><Survey /></PageLayout></ProfileGate>} />
+              <Route path="/survey" element={<Navigate to="/" replace />} />
+              <Route path="/profile" element={<ProfileGate requireCompleted><PageLayout><Profile /></PageLayout></ProfileGate>} />
+              <Route path="/habits" element={<ProfileGate requireCompleted><PageLayout><Habits /></PageLayout></ProfileGate>} />
+              <Route path="/tasks" element={<ProfileGate requireCompleted><PageLayout><Tasks /></PageLayout></ProfileGate>} />
+              <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
+              <Route path="/activity/:activityId" element={<ProfileGate requireCompleted><PageLayout><ActivityDetail /></PageLayout></ProfileGate>} />
+              <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
+              <Route path="/weekly-planner" element={<ProfileGate requireCompleted><PageLayout><WeeklyPlanner /></PageLayout></ProfileGate>} />
+              <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
+              <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

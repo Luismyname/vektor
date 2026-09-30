@@ -21,7 +21,6 @@ export function usePreferences() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
-    document.documentElement.dataset.theme = preferences.theme
   }, [preferences])
 
   function updatePreference(name, value) {

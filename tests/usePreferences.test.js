@@ -5,12 +5,10 @@ import { usePreferences } from '../src/hooks/usePreferences'
 describe('usePreferences', () => {
   beforeEach(() => {
     localStorage.clear()
-    document.documentElement.removeAttribute('data-theme')
   })
 
   afterEach(() => {
     localStorage.clear()
-    document.documentElement.removeAttribute('data-theme')
   })
 
   it('debe retornar preferencias por defecto cuando no hay datos guardados', () => {
@@ -69,14 +67,16 @@ describe('usePreferences', () => {
     expect(saved.sounds).toBe(true)
   })
 
-  it('debe aplicar el tema al documento', () => {
+  it('debe notificar cambios de tema al ThemeProvider via localStorage', () => {
     const { result } = renderHook(() => usePreferences())
 
     act(() => {
       result.current.updatePreference('theme', 'light')
     })
 
-    expect(document.documentElement.dataset.theme).toBe('light')
+    // El tema se guarda en localStorage, ThemeProvider lo detecta vía storage event
+    const saved = JSON.parse(localStorage.getItem('vektor-preferences'))
+    expect(saved.theme).toBe('light')
   })
 
   it('debe mantener otras preferencias al actualizar una', () => {
