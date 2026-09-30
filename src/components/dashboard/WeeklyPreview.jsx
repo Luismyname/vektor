@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getAuthenticatedUser } from '../../services/auth'
+import { useAuth } from '../../context/AuthContext'
 import { getWeekDates, getWeekStart, getWeeklyPlanner } from '../../services/weekly-planner'
 
 const STATUS_LABELS = { completed: 'Completada', failed: 'Fallida', moved: 'Movida', scheduled: 'Programada' }
 
 export default function WeeklyPreview({ userId }) {
+  const { user: authUser } = useAuth()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -15,18 +16,20 @@ export default function WeeklyPreview({ userId }) {
   useEffect(() => {
     let active = true
     async function loadWeeklyPreview() {
+      if (!authUser) {
+        if (active) {
+          setError('No se pudo validar la sesión.')
+          setLoading(false)
+        }
+        return
+      }
+
       setLoading(true)
       setError('')
       setEntries([])
 
       try {
-        const { user, error: authError } = await getAuthenticatedUser()
-        if (authError) throw authError
-        if (!user || (userId && user.id !== userId)) {
-          throw new Error('No se pudo validar la sesión.')
-        }
-
-        const { entries: weeklyEntries, error: plannerError } = await getWeeklyPlanner(user.id, weekStart)
+        const { entries: weeklyEntries, error: plannerError } = await getWeeklyPlanner(authUser.id, weekStart)
         if (plannerError) throw plannerError
 
         if (active) setEntries((weeklyEntries || []).filter((entry) => entry.task_id || entry.habit_id))
@@ -39,7 +42,7 @@ export default function WeeklyPreview({ userId }) {
 
     loadWeeklyPreview()
     return () => { active = false }
-  }, [userId, weekStart])
+  }, [authUser, userId, weekStart])
 
   return (
     <section className="dashboard-card weekly-preview" aria-labelledby="weekly-preview-title">

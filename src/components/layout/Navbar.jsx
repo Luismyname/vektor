@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getAuthenticatedUser } from '../../services/auth'
+import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabase'
 
 function getUserName(user) {
@@ -21,28 +21,9 @@ function getAvatarUrl(user, name) {
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [user, setUser] = useState(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
-
-  useEffect(() => {
-    let active = true
-
-    async function loadUser() {
-      const { user: authenticatedUser } = await getAuthenticatedUser()
-      if (active) setUser(authenticatedUser)
-    }
-
-    loadUser()
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setUser(session?.user || null)
-    })
-
-    return () => {
-      active = false
-      authListener.subscription.unsubscribe()
-    }
-  }, [])
 
   async function handleSignOut() {
     setIsSigningOut(true)

@@ -20,9 +20,9 @@ Vektor es una aplicación web de productividad personal que conecta valores, há
 
 - React 19 y React Router 7.
 - Vite 8.
-- Electron 38 y electron-builder para la aplicación de escritorio de Windows.
 - Supabase Auth, PostgreSQL y políticas RLS.
 - CSS propio organizado por capas globales, componentes y utilidades.
+- Tests con Vitest y Testing Library.
 
 ## Arquitectura
 
@@ -71,23 +71,14 @@ Otros comandos disponibles:
 npm run lint
 npm run build
 npm run preview
+npm test
 ```
 
-Para abrir Vektor como aplicación de escritorio durante el desarrollo:
+## Despliegue
 
-```bash
-npm run desktop:dev
-```
+La aplicación está desplegada en Vercel: [https://vektor-eight-tau.vercel.app](https://vektor-eight-tau.vercel.app)
 
-Para generar el instalador de Windows:
-
-```bash
-npm run desktop:build
-```
-
-El instalador y los archivos desempaquetados se generan en `release/`.
-
-En producción Electron carga `dist/index.html` mediante `file://`, por lo que Vite usa rutas relativas y la aplicación de escritorio usa hash routing. Los logs de arranque y del renderer se guardan en `%APPDATA%/Vektor/logs/main.log`.
+Para desplegar en Vercel, conecta tu repositorio y configura las variables de entorno `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 
 ## Flujo principal
 
