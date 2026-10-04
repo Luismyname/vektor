@@ -4,7 +4,14 @@ import HabitBlock from './HabitBlock'
 
 const HOURS = Array.from({ length: 18 }, (_, index) => index + 5)
 
-export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate }) {
+function getFocusLabel(session) {
+  if (session.status === 'running') return 'Enfoque en curso'
+  if (session.status === 'paused') return 'Enfoque en pausa'
+  if (session.status === 'interrupted') return `Enfoque interrumpido${session.duration_minutes ? ` · ${session.duration_minutes} min` : ''}`
+  return `Enfoque ${session.duration_minutes ? `${session.duration_minutes} min` : 'completado'}`
+}
+
+export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot }) {
   const startHour = 5
   const endHour = 23
   const totalHours = endHour - startHour
@@ -15,11 +22,11 @@ export default function DayColumn({ date, today, currentTime, entries, taskById,
   return (
     <section className="weekly-day-column" aria-label={date}>
       <div className="weekly-day-body">
-        {HOURS.map((hour) => <HourSlot key={hour} date={date} hour={hour} onDropTask={onDropTask} />)}
+        {HOURS.map((hour) => <HourSlot key={hour} date={date} hour={hour} onDropTask={onDropTask} onClick={onClickSlot} />)}
         {date === today && <div className="current-time-line" style={{ top: `${percent}%` }} />}
         {entries.filter((entry) => entry.task_id).map((entry) => <TaskBlock key={entry.id} entry={entry} task={taskById[entry.task_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} />)}
         {entries.filter((entry) => entry.habit_id).map((entry) => <HabitBlock key={entry.id} entry={entry} habit={habitById[entry.habit_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
-        {sessions.map((session) => <div key={`focus-${session.id}`} className="weekly-focus-marker" title="Sesión de enfoque completada">Enfoque {session.duration ? `${session.duration} min` : 'completado'}</div>)}
+        {sessions.map((session) => <div key={`focus-${session.id}`} className="weekly-focus-marker" title={getFocusLabel(session)}>{getFocusLabel(session)}</div>)}
       </div>
     </section>
   )

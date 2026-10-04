@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { getAuthenticatedUser, getCurrentProfile } from '../../../services/auth'
 import { getRecentActivity } from '../../../services/activity'
 import { getTasks } from '../../../services/tasks'
+import { getActiveFocusSession } from '../../../services/focus-sessions'
 
 const DEFAULT_DURATION = 25
 
@@ -16,6 +17,7 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
   const [error, setError] = useState('')
   const [hiddenAnswers, setHiddenAnswers] = useState({})
   const [activeTask, setActiveTask] = useState(null)
+  const [activeFocusSession, setActiveFocusSession] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -35,9 +37,10 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
         return
       }
 
-      const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
+      const [{ tasks: currentTasks }, { activities: currentActivities }, { session: currentFocusSession }] = await Promise.all([
         getTasks(authenticatedUser.id),
         getRecentActivity(authenticatedUser.id),
+        getActiveFocusSession(authenticatedUser.id),
       ])
 
       if (!active) return
@@ -50,6 +53,7 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
       setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
       setActivities(currentActivities)
+      setActiveFocusSession(currentFocusSession)
 
       if (persistedActiveTask) {
         setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || defaultDuration })
@@ -81,5 +85,7 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
     refreshDashboard,
     activeTask,
     setActiveTask,
+    activeFocusSession,
+    setActiveFocusSession,
   }
 }

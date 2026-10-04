@@ -16,9 +16,14 @@ vi.mock('../src/services/tasks', () => ({
   getTasks: vi.fn(),
 }))
 
+vi.mock('../src/services/focus-sessions', () => ({
+  getActiveFocusSession: vi.fn(),
+}))
+
 import { getAuthenticatedUser, getCurrentProfile } from '../src/services/auth'
 import { getRecentActivity } from '../src/services/activity'
 import { getTasks } from '../src/services/tasks'
+import { getActiveFocusSession } from '../src/services/focus-sessions'
 
 afterEach(() => {
   vi.clearAllMocks()
@@ -49,6 +54,7 @@ describe('useDashboardData', () => {
     getCurrentProfile.mockResolvedValue({ profile: mockProfile, error: null })
     getTasks.mockResolvedValue({ tasks: mockTasks, error: null })
     getRecentActivity.mockResolvedValue({ activities: mockActivities, error: null })
+    getActiveFocusSession.mockResolvedValue({ session: null, error: null })
   })
 
   it('debe cargar los datos del dashboard correctamente', async () => {
@@ -121,6 +127,18 @@ describe('useDashboardData', () => {
       expect(result.current.activeTask).toBeTruthy()
       expect(result.current.activeTask.id).toBe('task-1')
     })
+  })
+
+  it('debe recuperar la sesión de enfoque activa del usuario', async () => {
+    const activeSession = { id: 'focus-1', task_id: 'task-1', status: 'paused' }
+    getActiveFocusSession.mockResolvedValue({ session: activeSession, error: null })
+
+    const { result } = renderHook(() => useDashboardData(25))
+
+    await waitFor(() => {
+      expect(result.current.activeFocusSession).toEqual(activeSession)
+    })
+    expect(getActiveFocusSession).toHaveBeenCalledWith('user-123')
   })
 
   it('debe retornar null como activeTask si no hay actividad en progreso', async () => {

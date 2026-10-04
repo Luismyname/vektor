@@ -1,6 +1,6 @@
 import DayColumn from './DayColumn'
 
-export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay }) {
+export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot }) {
   return (
     <div className="weekly-grid-wrap">
       <div className="weekly-grid-spacer" aria-hidden="true" />
@@ -9,7 +9,7 @@ export default function WeeklyGrid({ dates, currentTime, today, entries, taskByI
       </div>
       <div className="weekly-time-axis" aria-hidden="true">{Array.from({ length: 19 }, (_, index) => <span key={index}>{String(index + 5).padStart(2, '0')}:00</span>)}</div>
       <div className="weekly-grid">
-        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} />)}
+        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} onClickSlot={onClickSlot} />)}
       </div>
     </div>
   )

@@ -1,19 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
-import { formatDate, getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress } from '../../services/weekly-planner'
+import { formatDate, getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress, shiftWeek } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
 import WeeklyGrid from '../../components/weekly-planner/WeeklyGrid'
 import WeeklyReview from '../../components/weekly-planner/WeeklyReview'
+import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotModal'
 import '../../styles/weekly-planner.css'
-
-function shiftWeek(weekStart, amount) {
-  const date = new Date(`${weekStart}T12:00:00`)
-  date.setDate(date.getDate() + amount * 7)
-  return getWeekStart(date)
-}
 
 export default function WeeklyPlannerPage() {
   const [user, setUser] = useState(null)
@@ -24,6 +19,9 @@ export default function WeeklyPlannerPage() {
   const [progress, setProgress] = useState(null)
   const [habitConsistency, setHabitConsistency] = useState([])
   const dates = useMemo(() => getWeekDates(planner.weekStart), [planner.weekStart])
+
+  // Modal state
+  const [modalSlot, setModalSlot] = useState(null)
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -102,6 +100,34 @@ export default function WeeklyPlannerPage() {
     await planner.scheduleHabit(habit, day, '07:00', '07:30')
   }
 
+  // Modal handlers
+  function handleClickSlot(date, startTime, endTime) {
+    setModalSlot({ date, startTime, endTime })
+  }
+
+  async function handleModalSubmit(action) {
+    const { date, startTime, endTime } = modalSlot
+    const selectedStartTime = action.startTime || startTime
+    const selectedEndTime = action.endTime || endTime
+
+    if (action.type === 'task') {
+      await planner.scheduleTask(action.task, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'habit') {
+      await planner.scheduleHabit(action.habit, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'new-task') {
+      await planner.createTaskAndSchedule(action, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'new-habit') {
+      await planner.createHabitAndSchedule(action, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'reminder') {
+      await planner.createReminder(action, date, selectedStartTime, selectedEndTime)
+    }
+    setModalSlot(null)
+  }
+
+  function handleModalClose() {
+    setModalSlot(null)
+  }
+
   if (authError) return <div className="route-loading">{authError}</div>
   if (!user || planner.loading) return <div className="route-loading">Cargando tu semana...</div>
 
@@ -120,10 +146,23 @@ export default function WeeklyPlannerPage() {
             <section><h2>Hábitos</h2>{planner.habits.map((habit) => <button key={habit.id} type="button" draggable className="weekly-habit-picker" onDragStart={(event) => handleHabitDragStart(event, habit)} onClick={() => scheduleHabit(habit)}><span>{habit.title}</span><small>Arrastra o +07:00</small></button>)}</section>
             {isRescheduling && <p className="weekly-muted">Buscando el siguiente hueco...</p>}
           </aside>
-          <WeeklyGrid dates={dates} currentTime={currentTime} today={formatDate(currentTime)} entries={planner.entries} taskById={planner.taskById} habitById={planner.habitById} focusSessions={planner.focusSessions} onDropTask={handleDropTask} onDragStart={handleDragStart} onStatusChange={handleStatusChange} onDurationChange={handleDurationChange} onAutoReschedule={handleAutoReschedule} onDelete={planner.removeEntry} onTaskUpdate={handleTaskUpdate} onClearDay={planner.clearDay} />
+          <WeeklyGrid dates={dates} currentTime={currentTime} today={formatDate(currentTime)} entries={planner.entries} taskById={planner.taskById} habitById={planner.habitById} focusSessions={planner.focusSessions} onDropTask={handleDropTask} onDragStart={handleDragStart} onStatusChange={handleStatusChange} onDurationChange={handleDurationChange} onAutoReschedule={handleAutoReschedule} onDelete={planner.removeEntry} onTaskUpdate={handleTaskUpdate} onClearDay={planner.clearDay} onClickSlot={handleClickSlot} />
         </div>
         <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
       </div>
+      
+      <WeeklyTimeSlotModal
+        isOpen={!!modalSlot}
+        onClose={handleModalClose}
+        date={modalSlot?.date}
+        startTime={modalSlot?.startTime}
+        endTime={modalSlot?.endTime}
+        onSubmit={handleModalSubmit}
+        onCancel={handleModalClose}
+        tasks={planner.tasks}
+        habits={planner.habits}
+        user={user}
+      />
     </main>
   )
 }

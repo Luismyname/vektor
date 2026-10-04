@@ -104,5 +104,6 @@ function getRemaining(savedTimer, fallbackSeconds) {
     return savedTimer.remainingSeconds
   }
   if (!savedTimer?.startedAt) return fallbackSeconds
-  return Math.max(savedTimer.durationSeconds - Math.floor((Date.now() - savedTimer.startedAt) / 1000), 0)
+  const remainingSeconds = savedTimer.remainingSeconds ?? savedTimer.durationSeconds
+  return Math.max(remainingSeconds - Math.floor((Date.now() - savedTimer.startedAt) / 1000), 0)
 }

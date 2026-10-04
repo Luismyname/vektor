@@ -26,6 +26,19 @@ describe('useTaskTimer', () => {
     expect(result.current.remainingSeconds).toBe(50)
   })
 
+  it('recupera desde localStorage una sesión reanudada usando su restante previo', () => {
+    localStorage.setItem('vektor-active-timer', JSON.stringify({
+      durationSeconds: 60,
+      remainingSeconds: 30,
+      startedAt: Date.now() - 5000,
+      isPaused: false,
+    }))
+
+    const { result } = renderHook(() => useTaskTimer({ durationMinutes: 1, isActive: true }))
+
+    expect(result.current.remainingSeconds).toBe(25)
+  })
+
   it('pausa sin perder el tiempo restante y conserva la sesión persistida', () => {
     const { result } = renderHook(() => useTaskTimer({ durationMinutes: 1, isActive: true }))
 

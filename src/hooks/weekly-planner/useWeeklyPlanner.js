@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry } from '../../services/weekly-planner'
+import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder } from '../../services/weekly-planner'
 
 export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   const [weekStart, setWeekStart] = useState(initialWeek)
@@ -70,8 +70,66 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     setEntries([])
   }
 
-  const taskById = useMemo(() => Object.fromEntries(tasks.map((task) => [task.id, task])), [tasks])
-  const habitById = useMemo(() => Object.fromEntries(habits.flatMap((habit) => [[habit.id, habit], [habit.title, habit]])), [habits])
+  // Wrapper functions for new modal operations
+  const createTaskAndScheduleWrapper = async (taskData, date, startTime, endTime) => {
+    const result = await createTaskAndSchedule(taskData, date, startTime, endTime, userId)
+    if (result.error) {
+      setError(result.error.message || 'No se pudo crear la tarea.')
+      return null
+    }
+    await load()
+    return result.entry
+  }
 
-  return { weekStart, setWeekStart, entries, tasks, habits, focusSessions, taskById, habitById, loading, error, reload: load, scheduleTask: schedule, scheduleHabit: scheduleExistingHabit, moveTask: move, resizeEntry: resize, updateStatus, updateTaskData, removeEntry, clearDay, clearWeek }
+  const createHabitAndScheduleWrapper = async (habitData, date, startTime, endTime) => {
+    const result = await createHabitAndSchedule(habitData, date, startTime, endTime, userId)
+    if (result.error) {
+      setError(result.error.message || 'No se pudo crear el hábito.')
+      return null
+    }
+    await load()
+    return result.entry
+  }
+
+  const createReminderWrapper = async (reminderData, date, startTime, endTime) => {
+    const result = await createReminder(reminderData, date, startTime, endTime, userId)
+    if (result.error) {
+      setError(result.error.message || 'No se pudo crear el recordatorio.')
+      return null
+    }
+    await load()
+    return result.entry
+  }
+
+  const taskById = useMemo(() => Object.fromEntries(tasks.map((task) => [task.id, task])), [tasks])
+  const habitById = useMemo(() => Object.fromEntries(habits.map((habit) => [habit.id, habit])), [habits])
+
+  return {
+    weekStart,
+    setWeekStart,
+    entries,
+    tasks,
+    habits,
+    focusSessions,
+    loading,
+    error,
+    reload: load,
+    schedule,
+    scheduleExistingHabit,
+    scheduleTask: schedule,
+    scheduleHabit: scheduleExistingHabit,
+    moveTask: move,
+    movePlannerEntry: move,
+    resizeEntry: resize,
+    updateStatus,
+    updateTaskData,
+    removeEntry,
+    clearDay,
+    clearWeek,
+    taskById,
+    habitById,
+    createTaskAndSchedule: createTaskAndScheduleWrapper,
+    createHabitAndSchedule: createHabitAndScheduleWrapper,
+    createReminder: createReminderWrapper,
+  }
 }

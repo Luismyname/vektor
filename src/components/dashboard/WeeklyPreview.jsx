@@ -10,7 +10,7 @@ export default function WeeklyPreview({ userId }) {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const weekStart = getWeekStart()
+  const weekStart = useMemo(() => getWeekStart(), [])
   const dates = useMemo(() => getWeekDates(weekStart), [weekStart])
 
   useEffect(() => {
