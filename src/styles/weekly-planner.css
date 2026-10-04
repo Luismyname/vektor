@@ -7,6 +7,229 @@
 .weekly-planner-header h1 { max-width: 680px; margin: 8px 0; font-size: clamp(30px, 4vw, 52px); letter-spacing: 0; }
 .weekly-planner-header p:not(.auth-kicker) { max-width: 620px; color: var(--muted-text); }
 .weekly-week-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.weekly-time-slot-modal {
+  width: min(980px, 95vw);
+  max-width: 95vw;
+  max-height: min(84vh, 820px);
+  overflow: hidden;
+  padding: 20px 18px 18px;
+  background: var(--bg-card);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.5);
+}
+
+.weekly-time-slot-modal .modal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.weekly-time-slot-modal .modal-tab {
+  flex: 0 1 auto;
+  padding: 8px 12px;
+  border: 1px solid rgba(107, 78, 255, 0.38);
+  border-radius: 10px;
+  background: #6B4EFF;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.weekly-time-slot-modal .modal-tab:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 8px 18px rgba(107, 78, 255, 0.25);
+}
+
+.weekly-time-slot-modal .modal-tab.active {
+  background: #7a61ff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+}
+
+.weekly-time-slot-modal .tab-panels {
+  display: block;
+}
+
+.weekly-time-slot-modal .selector-modal {
+  display: grid;
+  gap: 12px;
+}
+
+.weekly-time-slot-modal .selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weekly-time-slot-modal .selector-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.weekly-time-slot-modal .close-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted-text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.weekly-time-slot-modal .selector-search {
+  width: 100%;
+}
+
+.weekly-time-slot-modal .search-input {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid rgba(127,127,160,.35);
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.weekly-time-slot-modal .search-input::-webkit-search-cancel-button,
+.weekly-time-slot-modal .search-input::-webkit-clear-button,
+.weekly-time-slot-modal .search-input::-ms-clear {
+  display: none;
+}
+
+.weekly-time-slot-modal .task-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.weekly-time-slot-modal .task-options,
+.weekly-time-slot-modal .habit-options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekly-time-slot-modal .task-option,
+.weekly-time-slot-modal .habit-option {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(127,127,160,.2);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.24);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+}
+
+.weekly-time-slot-modal .task-option:hover,
+.weekly-time-slot-modal .habit-option:hover {
+  border-color: rgba(107, 78, 255, 0.5);
+  background: rgba(107, 78, 255, 0.06);
+}
+
+.weekly-time-slot-modal .task-option-content,
+.weekly-time-slot-modal .habit-option-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.weekly-time-slot-modal .task-title,
+.weekly-time-slot-modal .habit-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.weekly-time-slot-modal .task-priority,
+.weekly-time-slot-modal .habit-duration {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+
+.weekly-time-slot-modal .task-description {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.weekly-time-slot-modal .task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+.weekly-time-slot-modal .empty-state {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .weekly-time-slot-modal {
+    width: min(95vw, 540px);
+    max-width: 95vw;
+    padding: 16px 14px 14px;
+  }
+
+  .weekly-time-slot-modal .modal-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .weekly-time-slot-modal .modal-tab {
+    width: 100%;
+    text-align: center;
+  }
+
+  .weekly-time-slot-modal .task-list {
+    max-height: 42vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-time-slot-modal {
+    width: 95vw;
+    max-width: 95vw;
+    padding: 14px 12px 12px;
+  }
+
+  .weekly-time-slot-modal .selector-header {
+    align-items: flex-start;
+  }
+
+  .weekly-time-slot-modal .search-input {
+    height: 34px;
+  }
+
+  .weekly-time-slot-modal .task-option,
+  .weekly-time-slot-modal .habit-option {
+    padding: 9px 10px;
+  }
+}
+
+.weekly-week-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 .weekly-week-controls button, .weekly-block-actions button { border: 1px solid rgba(127,127,160,.35); border-radius: 6px; padding: 9px 12px; background: var(--bg-card); color: inherit; cursor: pointer; }
 .weekly-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
 .weekly-metrics div { display: grid; gap: 7px; padding: 15px 17px; border: 1px solid rgba(127,127,160,.25); border-radius: 8px; background: var(--bg-card); }

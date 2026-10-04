@@ -5,9 +5,10 @@ export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
   const { theme } = useTheme()
   const [search, setSearch] = useState('')
 
+  const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks])
+
   const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((task) => task.status !== 'completed')
+    return visibleTasks
       .filter((task) =>
         task.title.toLowerCase().includes(search.toLowerCase())
       )
@@ -15,12 +16,12 @@ export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
         const priorityOrder = { high: 0, medium: 1, low: 2 }
         return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1)
       })
-  }, [tasks, search])
+  }, [visibleTasks, search])
 
   const priorityLabels = {
-    high: { label: 'Alta', color: 'var(--color-danger)' },
-    medium: { label: 'Media', color: 'var(--accent)' },
-    low: { label: 'Baja', color: 'var(--color-success)' }
+    high: { label: 'HIGH', color: 'var(--color-danger)' },
+    medium: { label: 'MEDIUM', color: 'var(--accent)' },
+    low: { label: 'LOW', color: 'var(--color-success)' }
   }
 
   return (
@@ -37,6 +38,8 @@ export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar tarea..."
           className="search-input"
+          aria-label="Buscar tarea"
+          data-testid="task-search-input"
         />
       </div>
 
@@ -51,6 +54,8 @@ export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
                   key={task.id}
                   className="task-option"
                   role="option"
+                  data-status={task.status}
+                  data-priority={task.priority}
                   onClick={() => onSelect(task)}
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task) }}
