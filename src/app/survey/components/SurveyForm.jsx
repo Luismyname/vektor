@@ -4,14 +4,17 @@ import { getAuthenticatedUser } from '../../../services/auth'
 import { saveOnboarding } from '../../../services/users'
 import { generateHabits } from '../../../lib/habits'
 import { questions } from '../questions'
+// Valores válidos que la puntuación de la encuesta puede asignar a cada respuesta.
 const values = ['salud', 'crecimiento', 'conexion', 'bienestar']
 
+// Recoge respuestas, calcula los valores dominantes y guarda el onboarding.
 export default function SurveyForm() {
   const navigate = useNavigate()
   const [answers, setAnswers] = useState({})
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Exige las siete respuestas antes de persistir perfil y hábitos recomendados.
   async function handleSubmit(event) {
     event.preventDefault()
     const hasAllAnswers = questions.every((_, questionIndex) => values.includes(answers[questionIndex + 1]))

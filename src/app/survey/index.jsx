@@ -2,6 +2,7 @@ import SurveyForm from './components/SurveyForm'
 import OnboardingHeader from './components/OnboardingHeader'
 import { useState } from 'react'
 
+// Ensambla cabecera y encuesta, reiniciando el formulario al cerrar sesión.
 export default function Survey() {
   const [formVersion, setFormVersion] = useState(0)
 

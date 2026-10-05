@@ -1,3 +1,4 @@
+// Permite seleccionar duración antes de iniciar la sesión de una tarea.
 export default function TaskStartModal({ task, isOpen, onClose, onConfirm, selectedDuration, onSelectDuration }) {
   if (!isOpen || !task) return null
 

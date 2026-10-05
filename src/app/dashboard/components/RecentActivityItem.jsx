@@ -1,9 +1,11 @@
+// Deriva una etiqueta visible combinando estado de tarea y tipo de evento.
 function getStatusLabel(activity) {
   if (activity.tasks?.status === 'completed' || activity.type === 'task_completed') return 'Tarea finalizada'
   if (activity.tasks?.status === 'in_progress' || activity.type === 'task_started' || activity.type === 'task_extended') return 'Tarea en curso'
   return 'Tarea pendiente'
 }
 
+// Fila de actividad reciente con duración, hora y acción para ocultarla.
 export default function RecentActivityItem({ activity, onHide }) {
   const createdAt = activity.created_at ? new Date(activity.created_at) : null
   const formattedTime = createdAt ? createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ahora'

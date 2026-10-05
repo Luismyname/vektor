@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { getAuthenticatedUser } from '../services/auth'
 import { supabase } from '../services/supabase'
 
+// Contexto compartido para exponer sesión y estado de carga a la aplicación.
 const AuthContext = createContext(null)
 
 /**

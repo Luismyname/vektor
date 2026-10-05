@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { finalizeActivity, getActivityById } from '../../../services/activity'
 
+// Traducciones de los estados persistidos para la ficha de actividad.
 const STATUS_LABELS = {
   pending: 'Tarea pendiente',
   in_progress: 'Tarea en curso',
   completed: 'Tarea finalizada',
 }
 
+// Muestra el detalle de una actividad y permite completar la tarea asociada.
 export default function ActivityDetail() {
   const { activityId } = useParams()
   const [activity, setActivity] = useState(null)
@@ -26,6 +28,7 @@ export default function ActivityDetail() {
     return () => { active = false }
   }, [activityId])
 
+  // Finaliza en persistencia y actualiza la ficha sin volver a cargar la ruta.
   async function handleFinalize() {
     if (!activity || activity.type === 'completed') return
     setIsFinalizing(true)

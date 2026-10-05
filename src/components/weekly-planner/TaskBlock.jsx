@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import WeeklyBlockModal from './WeeklyBlockModal'
 
+// Nombres visibles para los estados posibles de una tarea planificada.
 const STATUS_LABELS = { scheduled: 'Programada', completed: 'Completada', failed: 'Fallida', moved: 'Pospuesta' }
 
+// Renderiza una tarea posicionada por horario y habilita edición en un modal.
 export default function TaskBlock({ entry, task, onStatusChange, onDragStart, onAutoReschedule, onDurationChange, onDelete, onTaskUpdate }) {
   const [isEditing, setIsEditing] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -12,6 +14,7 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
   const startHour = Number(entry.start_time.slice(0, 2))
   const duration = Math.max((Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3, 5))) - (startHour * 60 + Number(entry.start_time.slice(3, 5))), 30)
 
+  // Valida el título y persiste los campos editables de la tarea.
   async function saveTask() {
     const nextTitle = title.trim()
     if (!nextTitle) return

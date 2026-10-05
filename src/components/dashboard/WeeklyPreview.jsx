@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getWeekDates, getWeekStart, getWeeklyPlanner } from '../../services/weekly-planner'
 
+// Etiquetas de estado usadas en la vista resumida del plan semanal.
 const STATUS_LABELS = { completed: 'Completada', failed: 'Fallida', moved: 'Movida', scheduled: 'Programada' }
 
+// Carga los bloques de la semana actual y presenta un resumen enlazado al planner.
 export default function WeeklyPreview({ userId }) {
   const { user: authUser } = useAuth()
   const [entries, setEntries] = useState([])

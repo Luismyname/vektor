@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { registerUser } from '../../services/auth'
 
+// Valores iniciales del formulario de alta, reutilizados al limpiarlo.
 const initialForm = {
   firstName: '',
   middleName: '',
@@ -13,6 +14,7 @@ const initialForm = {
   passwordConfirmation: '',
 }
 
+// Calcula la edad cumplida, considerando si el cumpleaños ya ocurrió este año.
 function getAge(birthDate) {
   const birthday = new Date(`${birthDate}T00:00:00`)
   const today = new Date()
@@ -23,6 +25,7 @@ function getAge(birthDate) {
   return age
 }
 
+// Comprueba campos obligatorios, mayoría de edad y reglas de contraseña.
 function validateForm(form) {
   if (!form.firstName || !form.lastName || !form.birthDate || !form.address || !form.email) {
     return 'Completa todos los campos obligatorios.'
@@ -43,6 +46,7 @@ function validateForm(form) {
   return ''
 }
 
+// Traduce errores de Supabase a mensajes útiles para el formulario de registro.
 function getRegistrationErrorMessage(error) {
   const errorText = `${error.code || ''} ${error.message || ''}`.toLowerCase()
 
@@ -62,6 +66,7 @@ function getRegistrationErrorMessage(error) {
   return 'No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo.'
 }
 
+// Gestiona el alta de cuenta, validación local y confirmación por correo.
 export default function Register() {
   const navigate = useNavigate()
   const [form, setForm] = useState(initialForm)

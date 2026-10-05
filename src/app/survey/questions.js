@@ -1,3 +1,4 @@
+// Preguntas y opciones que alimentan la encuesta de valores del onboarding.
 export const questions = [
   ['¿Qué es lo que más te impulsa a empezar el día?', ['Sentirme con energía y cuidar mi cuerpo.', 'Avanzar en mis metas y proyectos.', 'Conectar con personas importantes para mí.', 'Sentirme en calma y con claridad mental.']],
   ['¿Qué tipo de actividades disfrutas más en tu tiempo libre?', ['Actividades físicas o al aire libre.', 'Aprender algo nuevo o mejorar habilidades.', 'Compartir tiempo con amigos o familia.', 'Actividades tranquilas como leer, meditar o crear.']],

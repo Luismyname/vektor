@@ -4,6 +4,7 @@ import { createTask, deleteTask, deleteTasks, getTasks, updateTask } from '../..
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 
+// Coordina carga, creación, edición, selección múltiple y borrado de tareas.
 export default function Tasks() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -38,6 +39,7 @@ export default function Tasks() {
     setTimeout(() => setSuccessMessage(""), 3000)
   }
 
+  // Crea la tarea en Supabase y la incorpora al listado local si tuvo éxito.
   async function handleCreate(data) {
     setIsSubmitting(true)
     const { task, error: createError } = await createTask(data)
@@ -59,6 +61,7 @@ export default function Tasks() {
     setSelectedTasks((current) => current.length === tasks.length ? [] : tasks.map((task) => task.id))
   }
 
+  // Elimina en lote las tareas seleccionadas y limpia la selección visual.
   async function deleteSelectedTasks() {
     const ids = selectedTasks
     const { error: deleteError } = await deleteTasks(ids)
@@ -67,6 +70,7 @@ export default function Tasks() {
     setSelectedTasks([])
   }
 
+  // Actualiza una tarea y reemplaza su versión en el estado de la pantalla.
   async function handleUpdate(id, data) {
     setIsSubmitting(true)
     const { task, error: updateError } = await updateTask(id, data)

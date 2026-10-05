@@ -1,10 +1,12 @@
 import { supabase } from './supabase'
 
+// Cuenta usuarios sin transferir sus registros al cliente.
 export async function getUsersCount() {
   const { count } = await supabase.from('users').select('*', { count: 'exact', head: true })
   return count
 }
 
+// Actualiza metadatos de autenticación y los campos básicos del perfil.
 export async function updateProfile({ user, firstName, middleName, lastName, email, avatarUrl }) {
   const first_name = firstName.trim()
   const middle_name = middleName.trim()
@@ -32,6 +34,7 @@ export async function updateProfile({ user, firstName, middleName, lastName, ema
   return { data, error: profileError }
 }
 
+// Persiste respuestas y resultados del onboarding tras validar la sesión propietaria.
 export async function saveOnboarding({ user, answers, dominantValue, secondaryValue, habits }) {
   const { data: authData, error: authError } = await supabase.auth.getUser()
   const authenticatedUser = authData?.user
@@ -70,6 +73,7 @@ export async function saveOnboarding({ user, answers, dominantValue, secondaryVa
   return { data, error }
 }
 
+// Reemplaza la lista de hábitos guardada en el perfil del usuario.
 export async function saveHabits(userId, habits) {
   const { data, error } = await supabase
     .from('profiles')
@@ -81,6 +85,7 @@ export async function saveHabits(userId, habits) {
   return { habits: data?.habits || null, error }
 }
 
+// Guarda qué respuestas del onboarding se ocultan en la interfaz.
 export async function updateHiddenAnswers(userId, hiddenAnswers) {
   const { data, error } = await supabase
     .from('profiles')

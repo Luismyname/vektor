@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from '../../../hooks/useTheme'
 import { getTimeRange } from '../../../services/weekly-planner'
 
+// Recoge datos de una tarea nueva y calcula el intervalo que ocupará en la agenda.
 export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }) {
   const { theme } = useTheme()
   const [title, setTitle] = useState('')
@@ -27,6 +28,7 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
+  // Valida el título y devuelve tarea, prioridad, duración y horario al padre.
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) {

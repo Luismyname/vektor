@@ -1,5 +1,6 @@
 import RecentActivityItem from './RecentActivityItem'
 
+// Lista las actividades del dashboard y delega su ocultación al componente padre.
 export default function RecentActivityPanel({ activities = [], onHide }) {
   return (
     <section id="dashboard-activity" className="dashboard-card" aria-labelledby="dashboard-activity-title">

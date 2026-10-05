@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder } from '../../services/weekly-planner'
 
+// Coordina datos, mutaciones y operaciones de agenda que consume la vista semanal.
 export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   const [weekStart, setWeekStart] = useState(initialWeek)
   const [entries, setEntries] = useState([])

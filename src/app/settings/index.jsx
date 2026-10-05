@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { usePreferences } from '../../hooks/usePreferences'
 import { useTheme } from '../../hooks/useTheme'
 
+// Presenta preferencias locales de interfaz y el tema sincronizado del usuario.
 export default function Settings() {
   const { preferences, updatePreference } = usePreferences()
   const { theme, setTheme } = useTheme()

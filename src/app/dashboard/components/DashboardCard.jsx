@@ -1,3 +1,4 @@
+// Tarjeta compacta de métrica con etiqueta y valor proporcionados por el padre.
 export default function DashboardCard({ title, value }) {
   return (
     <div className="bg-neutral-900 p-4 rounded-xl text-center">

@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { useTaskTimer } from '../../hooks/useTaskTimer'
 
+// Preguntas locales para simular la orientación sin guardar datos en Supabase.
 const demoQuestions = [
   '¿Qué quieres cuidar esta semana?',
   '¿Qué te gustaría aprender?',
   '¿Qué actividad te conecta con otras personas?',
 ]
 
+// Tareas de ejemplo iniciales para recorrer la demostración.
 const initialTasks = [
   { id: 1, title: 'Planificar la semana', status: 'pending' },
   { id: 2, title: 'Leer 10 páginas', status: 'completed' },
 ]
 
+// Simula onboarding, tareas, enfoque e historial usando estado exclusivamente local.
 export default function Demo() {
   const [step, setStep] = useState('survey')
   const [answers, setAnswers] = useState({})
@@ -21,6 +24,7 @@ export default function Demo() {
   const [history, setHistory] = useState([{ id: 1, title: 'Leer 10 páginas', type: 'completed' }])
   const timer = useTaskTimer({ durationMinutes: 1, isActive: Boolean(activeTask), onExpire: () => setStep('history') })
 
+  // Añade una tarea local validando que el título no esté vacío.
   function addTask(event) {
     event.preventDefault()
     const title = taskTitle.trim()
@@ -29,12 +33,14 @@ export default function Demo() {
     setTaskTitle('')
   }
 
+  // Activa una tarea de demostración y arranca un temporizador breve.
   function startTask(task) {
     setActiveTask(task)
     setStep('timer')
     timer.start(1)
   }
 
+  // Marca la tarea activa como terminada y crea una entrada de historial local.
   function finishTask() {
     if (!activeTask) return
     setTasks((current) => current.map((task) => task.id === activeTask.id ? { ...task, status: 'completed' } : task))

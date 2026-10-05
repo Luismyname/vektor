@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { autoReschedule } from '../../services/weekly-planner'
 
+// Expone estado y errores de la reprogramación automática de una tarea.
 export function useTaskAutoReschedule(userId, weekStart, onSuccess) {
   const [isRescheduling, setIsRescheduling] = useState(false)
   const [error, setError] = useState('')

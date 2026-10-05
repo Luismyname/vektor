@@ -1,7 +1,9 @@
 import { useState } from 'react'
 
+// Valores iniciales compartidos por el formulario de alta y edición de tareas.
 const initialForm = { title: '', description: '', priority: 'medium', related_value: '' }
 
+// Formulario reutilizable que decide entre crear una tarea o actualizarla.
 export default function TaskForm({ userId, dominantValue, task, onCreate, onUpdate, onCancel, isSubmitting }) {
   const [form, setForm] = useState(task ? { ...initialForm, ...task, related_value: task.related_value || '' } : initialForm)
 
@@ -10,6 +12,7 @@ export default function TaskForm({ userId, dominantValue, task, onCreate, onUpda
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  // Normaliza datos y delega la persistencia según el modo alta/edición.
   async function handleSubmit(event) {
     event.preventDefault()
     if (!form.title.trim()) return

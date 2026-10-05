@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from '../../../hooks/useTheme'
 import { getTimeRange } from '../../../services/weekly-planner'
 
+// Construye un hábito nuevo junto con su duración e intervalo horario.
 export default function CreateHabitForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }) {
   const { theme } = useTheme()
   const [title, setTitle] = useState('')
@@ -19,6 +20,7 @@ export default function CreateHabitForm({ onSubmit, onCancel, initialDuration = 
 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
+  // Rechaza nombres vacíos y envía el hábito listo para ser persistido y agendado.
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) {

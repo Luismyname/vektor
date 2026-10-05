@@ -4,11 +4,10 @@ import { getRecentActivity } from '../../../services/activity'
 import { getTasks } from '../../../services/tasks'
 import { getActiveFocusSession } from '../../../services/focus-sessions'
 
+// Duración de enfoque aplicada al reconstruir una tarea sin duración registrada.
 const DEFAULT_DURATION = 25
 
-/**
- * Hook para cargar y gestionar los datos del dashboard
- */
+// Carga sesión, perfil, tareas, actividad y sesión activa para el dashboard.
 export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import Layout from "./Layout";
 
+// Construye la portada y proporciona navegación de acceso/registro al layout.
 export default function Portada({ onOpenLogin, onOpenRegister }) {
   const navigate = useNavigate();
 

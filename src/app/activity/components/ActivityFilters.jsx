@@ -1,3 +1,4 @@
+// Controles de fecha y estado que devuelven filtros actualizados al historial.
 export default function ActivityFilters({ filters, onChange }) {
   const handleChange = (field, value) => {
     onChange({ ...filters, [field]: value })

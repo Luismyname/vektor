@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../../services/auth'
 import { supabase } from '../../../services/supabase'
 
+// Obtiene el nombre legible desde metadatos de registro o email.
 function getUserName(user) {
   const metadata = user.user_metadata || {}
   const fullName = [metadata.first_name, metadata.middle_name, metadata.last_name]
@@ -12,6 +13,7 @@ function getUserName(user) {
   return fullName || metadata.full_name || user.email || 'Usuario'
 }
 
+// Usa el avatar guardado o genera una imagen basada en el nombre.
 function getAvatarUrl(user, name) {
   const metadata = user.user_metadata || {}
   if (metadata.avatar_url || metadata.picture) return metadata.avatar_url || metadata.picture
@@ -19,6 +21,7 @@ function getAvatarUrl(user, name) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
 }
 
+// Muestra identidad, navegación y cierre de sesión durante el onboarding.
 export default function OnboardingHeader({ onSignedOut }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -37,6 +40,7 @@ export default function OnboardingHeader({ onSignedOut }) {
     return () => { active = false }
   }, [])
 
+  // Cierra Supabase y notifica al formulario para reiniciarlo antes de salir.
   async function handleSignOut() {
     setIsSigningOut(true)
     onSignedOut?.()

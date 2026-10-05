@@ -1,5 +1,6 @@
 import ActivityItem from './ActivityItem'
 
+// Agrupa eventos recientes y propaga la selección de una tarea al dashboard.
 export default function ActivityPanel({ activities = [], tasks = [], onSelectActivity = () => {} }) {
   return (
     <section id="dashboard-activity" className="dashboard-card" aria-labelledby="dashboard-activity-title">

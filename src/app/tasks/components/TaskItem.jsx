@@ -1,3 +1,4 @@
+// Presenta una tarea accesible con selección, edición y eliminación.
 export default function TaskItem({ task, selected, onToggleSelection, onDelete, onEdit }) {
   const isCompleted = task.status === 'completed'
   const statusLabel = task.status === 'completed'
@@ -6,6 +7,7 @@ export default function TaskItem({ task, selected, onToggleSelection, onDelete, 
       ? 'Tarea en curso'
       : 'Tarea pendiente'
 
+  // Permite abrir edición con teclado igual que con el clic en la fila.
   function handleKeyDown(event) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()

@@ -1,3 +1,4 @@
+// Plantillas de hábitos organizadas por valor personal para el onboarding.
 const habitTemplates = {
   salud: [
     'Dormir mínimo 7 horas',
@@ -49,6 +50,7 @@ const habitTemplates = {
   ],
 }
 
+// Recomienda hábitos a partir de los valores elegidos y normaliza el formato de salida.
 export function generateHabits(dominantValue, secondaryValue, answers = {}) {
   const value = [dominantValue, secondaryValue, answers?.[3]]
     .map(normalizeValue)
@@ -61,11 +63,13 @@ export function generateHabits(dominantValue, secondaryValue, answers = {}) {
   }
 }
 
+// Unifica etiquetas equivalentes para que coincidan con las categorías de plantillas.
 function normalizeValue(value) {
   const normalizedValue = String(value || '').trim().toLowerCase()
   return normalizedValue === 'bienestar emocional' ? 'bienestar' : normalizedValue
 }
 
+// Convierte listas antiguas o estructuras actuales al esquema recommended/custom.
 export function normalizeHabits(habits) {
   if (Array.isArray(habits)) return { recommended: habits.map(normalizeHabit), custom: [] }
   return {
@@ -74,6 +78,7 @@ export function normalizeHabits(habits) {
   }
 }
 
+// Completa campos y valores por defecto de un hábito individual.
 function normalizeHabit(habit) {
   return {
     id: habit?.id || crypto.randomUUID(),

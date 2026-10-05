@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateProfile } from '../../services/users'
 
+// Carga y permite editar datos personales y avatar del usuario autenticado.
 export default function Profile() {
   const [user, setUser] = useState(null)
   const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: '', avatarUrl: '' })
@@ -36,6 +37,7 @@ export default function Profile() {
   const name = [form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ') || form.email || 'Usuario'
   const avatarUrl = form.avatarUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
 
+  // Persiste los cambios del perfil y muestra el resultado de la operación.
   async function handleSubmit(event) {
     event.preventDefault()
     setIsSaving(true)

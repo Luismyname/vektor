@@ -1,14 +1,17 @@
 import { supabase } from './supabase'
 
+// Inicia sesión con email y contraseña, normalizando espacios del identificador.
 export async function signIn(identifier, password) {
   return supabase.auth.signInWithPassword({ email: identifier.trim(), password })
 }
 
+// Devuelve el usuario validado por la sesión actual de Supabase.
 export async function getAuthenticatedUser() {
   const { data, error } = await supabase.auth.getUser()
   return { user: data.user, error }
 }
 
+// Busca el perfil de onboarding asociado al usuario autenticado.
 export async function getCurrentProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
@@ -19,6 +22,7 @@ export async function getCurrentProfile(userId) {
   return { profile: data, error }
 }
 
+// Decide si la sesión debe ir al login, al onboarding o al dashboard.
 export async function getOnboardingDestination() {
   const { user, error: userError } = await getAuthenticatedUser()
 
@@ -30,6 +34,7 @@ export async function getOnboardingDestination() {
   return { destination: profile?.completed_onboarding ? '/dashboard' : '/onboarding', error: null }
 }
 
+// Crea una cuenta y guarda los datos personales como metadatos de autenticación.
 export async function registerUser({
   firstName,
   middleName,

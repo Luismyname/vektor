@@ -9,23 +9,27 @@ import { Component } from 'react'
  *     <MiComponente />
  *   </ErrorBoundary>
  */
+// Aísla fallos de renderizado y ofrece una vista de recuperación al usuario.
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false, error: null, errorInfo: null }
   }
 
+  // Activa el fallback durante el siguiente render después de un error hijo.
   static getDerivedStateFromError(error) {
     // Actualiza el estado para mostrar la UI de fallback
     return { hasError: true, error }
   }
 
+  // Registra el error y su traza para facilitar el diagnóstico.
   componentDidCatch(error, errorInfo) {
     // Registra el error para debugging
     console.error('ErrorBoundary atrapó un error:', error, errorInfo)
     this.setState({ errorInfo })
   }
 
+  // Limpia el estado de error para volver a intentar renderizar los hijos.
   handleReset = () => {
     // Reinicia el estado para intentar renderizar de nuevo
     this.setState({ hasError: false, error: null, errorInfo: null })

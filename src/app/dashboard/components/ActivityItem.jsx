@@ -1,9 +1,11 @@
+// Etiquetas de reserva para tipos de evento de actividad sin tarea asociada.
 const ACTIVITY_LABELS = {
   task_started: 'Tarea iniciada',
   task_extended: 'Tiempo ampliado',
   task_completed: 'Tarea completada',
 }
 
+// Relaciona cada evento con su tarea y habilita selección cuando aún está abierta.
 export default function ActivityItem({ activity, tasks = [], onSelectActivity = () => {} }) {
   const formattedDuration = activity.duration ? `${activity.duration} min` : 'Sin duración'
   const createdAt = activity.created_at ? new Date(activity.created_at) : null

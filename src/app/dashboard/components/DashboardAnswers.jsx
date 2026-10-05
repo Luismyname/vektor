@@ -1,9 +1,7 @@
 import { useMemo } from 'react'
 import { questions } from '../../survey/questions'
 
-/**
- * Componente para mostrar las respuestas del onboarding en el dashboard
- */
+// Presenta respuestas de onboarding y permite ocultarlas o volver a mostrarlas.
 export default function DashboardAnswers({ profile, hiddenAnswers, onHide, onShow }) {
   const answers = useMemo(() => questions.map(([question], index) => ({
     key: String(index + 1),

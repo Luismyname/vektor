@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// Gestiona cuenta atrás, pausa/reanudación y recuperación del temporizador persistido.
 export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire }) {
   const [durationSeconds, setDurationSeconds] = useState(() => readTimer()?.durationSeconds || durationMinutes * 60)
   const [remainingSeconds, setRemainingSeconds] = useState(() => getRemaining(readTimer(), durationMinutes * 60))
@@ -91,6 +92,7 @@ export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire 
   }
 }
 
+// Lee el temporizador guardado y devuelve null ante ausencia o JSON inválido.
 function readTimer() {
   try {
     return JSON.parse(localStorage.getItem('vektor-active-timer') || 'null')
@@ -99,6 +101,7 @@ function readTimer() {
   }
 }
 
+// Reconstruye el tiempo restante descontando el tiempo transcurrido desde el inicio.
 function getRemaining(savedTimer, fallbackSeconds) {
   if (savedTimer?.isPaused && Number.isFinite(savedTimer.remainingSeconds)) {
     return savedTimer.remainingSeconds

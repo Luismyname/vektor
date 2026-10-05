@@ -1,3 +1,4 @@
+// Rutas canónicas de las pantallas principales para evitar literales dispersos.
 export const ROUTES = {
   HOME: '/',
   DASHBOARD: '/dashboard',

@@ -1,3 +1,4 @@
+// Presenta el encabezado principal de la portada pública.
 export default function Hero() {
   return (
     <div className="p-20 text-center">

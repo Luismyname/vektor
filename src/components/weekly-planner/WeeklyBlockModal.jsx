@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
+// Presenta detalles/controles de un bloque en un portal y cierra con Escape.
 export default function WeeklyBlockModal({ title, description, start, end, status, statusLabel, onClose, children }) {
   useEffect(() => {
     function handleKeyDown(event) {

@@ -1,9 +1,11 @@
+// Convierte el estado interno de una actividad en una etiqueta legible.
 function getStatusLabel(activity) {
   if (activity.type === 'completed') return 'Tarea finalizada'
   if (activity.type === 'in_progress') return 'Tarea en curso'
   return 'Tarea pendiente'
 }
 
+// Presenta título, estado, duración y fecha de una entrada del historial.
 export default function ActivityHistoryItem({ activity, onClick }) {
   const createdAt = activity.created_at ? new Date(activity.created_at) : null
   const formattedDate = createdAt ? createdAt.toLocaleString([], {

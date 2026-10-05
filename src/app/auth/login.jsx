@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getOnboardingDestination, signIn } from '../../services/auth'
 
+// Presenta el acceso y dirige al usuario al siguiente paso permitido de su perfil.
 export default function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -9,6 +10,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Valida credenciales y resuelve la ruta posterior según el onboarding.
   async function handleSubmit(event) {
     event.preventDefault()
     setIsSubmitting(true)

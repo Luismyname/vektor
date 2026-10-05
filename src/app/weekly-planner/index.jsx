@@ -10,6 +10,7 @@ import WeeklyReview from '../../components/weekly-planner/WeeklyReview'
 import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotModal'
 import '../../styles/weekly-planner.css'
 
+// Une estado de agenda, métricas, revisión y edición por arrastrar o por modal.
 export default function WeeklyPlannerPage() {
   const [user, setUser] = useState(null)
   const [authError, setAuthError] = useState('')
@@ -48,11 +49,13 @@ export default function WeeklyPlannerPage() {
 
   const { autoReschedule, isRescheduling } = useTaskAutoReschedule(user?.id, planner.weekStart, planner.reload)
 
+  // Escribe en el DataTransfer la identidad del bloque y su tipo al arrastrarlo.
   function handleDragStart(event, entry) {
     event.dataTransfer.setData('text/planner-entry', entry.id)
     event.dataTransfer.setData(entry.task_id ? 'text/task' : 'text/habit', entry.task_id || entry.habit_id)
   }
 
+  // Mueve un bloque existente o agenda una tarea/hábito arrastrado desde la barra.
   async function handleDropTask(itemId, entryId, itemType, date, start, end) {
     if (entryId) {
       const entry = planner.entries.find((item) => item.id === entryId)
@@ -71,40 +74,48 @@ export default function WeeklyPlannerPage() {
     event.dataTransfer.setData('text/habit', habit.id)
   }
 
+  // Suma minutos a una hora sin permitir que el resultado supere el final del día.
   function addMinutes(time, amount) {
     const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
     const total = Math.min(hours * 60 + minutes + amount, 23 * 60)
     return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
   }
 
+  // Redimensiona el bloque conservando la hora inicial y ajustando su final.
   async function handleDurationChange(entry, duration) {
     await planner.resizeEntry(entry, entry.start_time, addMinutes(entry.start_time, duration))
   }
 
+  // Persiste el nuevo estado de una entrada del planificador.
   async function handleStatusChange(entry, status) {
     await planner.updateStatus(entry.id, status)
   }
 
+  // Guarda cambios de una tarea y sincroniza el índice de tareas del hook.
   async function handleTaskUpdate(taskId, changes) {
     const { task, error } = await updateTask(taskId, changes)
     if (error) return
     planner.updateTaskData(taskId, task)
   }
 
+  // Solicita al hook asignar automáticamente un nuevo hueco a una tarea.
   async function handleAutoReschedule(taskId) {
     await autoReschedule(taskId)
   }
 
+  // Agenda rápidamente un hábito para hoy en un intervalo matutino por defecto.
   async function scheduleHabit(habit) {
     const day = dates[Math.min(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1, 6)]
     await planner.scheduleHabit(habit, day, '07:00', '07:30')
   }
 
   // Modal handlers
+  // Abre el formulario contextual con la fecha y horas del intervalo seleccionado.
   function handleClickSlot(date, startTime, endTime) {
     setModalSlot({ date, startTime, endTime })
   }
 
+  // Despacha la acción del modal al flujo de tarea, hábito, recordatorio o creación.
   async function handleModalSubmit(action) {
     const { date, startTime, endTime } = modalSlot
     const selectedStartTime = action.startTime || startTime
@@ -124,6 +135,7 @@ export default function WeeklyPlannerPage() {
     setModalSlot(null)
   }
 
+  // Cierra el modal y descarta el intervalo seleccionado.
   function handleModalClose() {
     setModalSlot(null)
   }

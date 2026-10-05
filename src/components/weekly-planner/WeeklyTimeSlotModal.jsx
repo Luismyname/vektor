@@ -6,6 +6,7 @@ import CreateReminderForm from './forms/CreateReminderForm'
 import ExistingTaskSelector from './forms/ExistingTaskSelector'
 import ExistingHabitSelector from './forms/ExistingHabitSelector'
 
+// Selector por pestañas para añadir tareas, hábitos o recordatorios a una franja.
 export default function WeeklyTimeSlotModal({
   isOpen,
   onClose,

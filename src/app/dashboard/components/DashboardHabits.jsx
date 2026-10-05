@@ -1,5 +1,6 @@
 import { normalizeHabits } from '../../../lib/habits'
 
+// Normaliza hábitos heredados y muestra solo los activos en el panel.
 export default function DashboardHabits({ habits }) {
   const normalizedHabits = normalizeHabits(habits)
   const habitList = [...normalizedHabits.recommended, ...normalizedHabits.custom]

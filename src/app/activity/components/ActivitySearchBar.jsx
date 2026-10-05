@@ -1,3 +1,4 @@
+// Campo controlado para filtrar localmente por título o fecha.
 export default function ActivitySearchBar({ value, onChange }) {
   return (
     <label className="activity-search">

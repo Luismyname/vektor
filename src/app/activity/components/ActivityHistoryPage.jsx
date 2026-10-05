@@ -6,6 +6,7 @@ import ActivityFilters from './ActivityFilters'
 import ActivityHistoryItem from './ActivityHistoryItem'
 import ActivitySearchBar from './ActivitySearchBar'
 
+// Estado inicial para consultar historial sin restricciones de fecha ni tipo.
 const DEFAULT_FILTERS = {
   day: '',
   month: '',
@@ -13,6 +14,7 @@ const DEFAULT_FILTERS = {
   type: 'all',
 }
 
+// Carga y combina historial, filtros y búsqueda, con acciones de navegación/ocultación.
 export default function ActivityHistoryPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -72,6 +74,7 @@ export default function ActivityHistoryPage() {
     })
   }, [activities, query])
 
+  // Oculta la actividad en dashboard y recarga el historial con filtros actuales.
   const handleHideFromDashboard = async (activityId) => {
     if (!user) return
     await hideActivityFromDashboard(activityId)

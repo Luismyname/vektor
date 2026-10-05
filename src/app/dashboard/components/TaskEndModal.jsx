@@ -1,3 +1,4 @@
+// Ofrece continuar o cerrar la tarea al terminar una sesión cronometrada.
 export default function TaskEndModal({ isOpen, onContinue, onFinish, onClose, priority, isFinishing = false, errorMessage = '' }) {
   if (!isOpen) return null
 

@@ -1,7 +1,9 @@
 import { supabase } from './supabase'
 
+// Columnas compartidas por las consultas de sesiones de enfoque.
 const FOCUS_SESSION_FIELDS = 'id, user_id, task_id, planned_duration_seconds, started_at, paused_at, paused_seconds, ended_at, duration_seconds, status, created_at'
 
+// Registra una sesión y convierte la duración planificada de minutos a segundos.
 export async function startFocusSession(userId, taskId, plannedDurationMinutes) {
   const payload = {
     user_id: userId,
@@ -17,6 +19,7 @@ export async function startFocusSession(userId, taskId, plannedDurationMinutes) 
   return { session: data, error }
 }
 
+// Cambia el estado de una sesión existente y devuelve su registro actualizado.
 export async function transitionFocusSession(sessionId, status) {
   const { data, error } = await supabase
     .from('focus_sessions')
@@ -28,6 +31,7 @@ export async function transitionFocusSession(sessionId, status) {
   return { session: data, error }
 }
 
+// Recupera la sesión activa más reciente del usuario, tanto si corre como si está pausada.
 export async function getActiveFocusSession(userId) {
   const { data, error } = await supabase
     .from('focus_sessions')

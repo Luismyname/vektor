@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabase'
 
+// Construye el nombre del usuario a partir de metadatos o datos de cuenta.
 function getUserName(user) {
   const metadata = user.user_metadata || {}
   const fullName = [metadata.first_name, metadata.middle_name, metadata.last_name]
@@ -12,6 +13,7 @@ function getUserName(user) {
   return fullName || metadata.full_name || user.email || 'Usuario'
 }
 
+// Resuelve avatar existente o genera uno con iniciales a partir del nombre.
 function getAvatarUrl(user, name) {
   const metadata = user.user_metadata || {}
   if (metadata.avatar_url || metadata.picture) return metadata.avatar_url || metadata.picture
@@ -19,12 +21,14 @@ function getAvatarUrl(user, name) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6c5ce7&color=ffffff&bold=true&format=svg`
 }
 
+// Navegación autenticada con enlaces de sección, avatar y cierre de sesión.
 export default function Navbar() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
+  // Finaliza la sesión de Supabase y vuelve a la portada al completarse.
   async function handleSignOut() {
     setIsSigningOut(true)
     const { error } = await supabase.auth.signOut()

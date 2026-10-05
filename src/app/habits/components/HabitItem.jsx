@@ -1,3 +1,4 @@
+// Fila controlada para activar/desactivar un hábito y, si aplica, eliminarlo.
 export default function HabitItem({ habit, onToggle, onRemove }) {
   return (
     <li className={`habit-item${habit.active ? '' : ' habit-item-inactive'}`}>

@@ -16,8 +16,10 @@ import { useTaskTimer } from '../../hooks/useTaskTimer'
 import { usePreferences } from '../../hooks/usePreferences'
 import WeeklyPreview from '../../components/dashboard/WeeklyPreview'
 
+// Duración de enfoque usada si las preferencias del usuario no ofrecen un valor.
 const DEFAULT_DURATION = 25
 
+// Coordina tareas, cuenta atrás, sesiones persistidas y paneles del usuario.
 export default function Dashboard() {
   const { preferences } = usePreferences()
   const defaultDuration = preferences.timerMinutes || DEFAULT_DURATION
@@ -45,6 +47,7 @@ export default function Dashboard() {
   const [isFinishingTask, setIsFinishingTask] = useState(false)
   const [finishError, setFinishError] = useState('')
 
+  // Sincroniza el estado de una sesión de enfoque en Supabase y en React.
   async function transitionActiveFocusSession(status) {
     if (!activeFocusSession) return { error: null }
     const { session, error } = await transitionFocusSession(activeFocusSession.id, status)
@@ -52,6 +55,7 @@ export default function Dashboard() {
     return { session, error }
   }
 
+  // Cierra la sesión al agotarse el contador y abre el flujo de finalización.
   async function handleTimerExpire() {
     setFinishError('')
     const { error } = await transitionActiveFocusSession('completed')
@@ -68,6 +72,7 @@ export default function Dashboard() {
   const taskPriority = activeTask?.priority || 'medium'
 
   // Handlers de tareas
+  // Prepara la tarea y duración iniciales antes de mostrar el modal de inicio.
   const openStartTaskModal = (task) => {
     if (!task) return
     setSelectedTask(task)
@@ -75,6 +80,7 @@ export default function Dashboard() {
     setShowStartModal(true)
   }
 
+  // Selecciona una tarea desde el dashboard y prepara su inicio cronometrado.
   const handleTaskSelection = (task) => {
     if (!task) return
     setActiveTask(task)
@@ -83,6 +89,7 @@ export default function Dashboard() {
     setShowStartModal(true)
   }
 
+  // Registra tarea y sesión, activa el temporizador y actualiza los datos visibles.
   const handleStartConfirm = async () => {
     if (!selectedTask || !user) return
 
@@ -112,6 +119,7 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
+  // Añade tiempo a la tarea y abre una nueva sesión de enfoque.
   const handleContinueTimer = async () => {
     if (!activeTask || !user) return
 
@@ -138,6 +146,7 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
+  // Persiste la pausa antes de detener la cuenta atrás local.
   const handlePauseTimer = async () => {
     const { session, error } = await transitionActiveFocusSession('paused')
     if (error) {
@@ -148,6 +157,7 @@ export default function Dashboard() {
     activeTimer.pause()
   }
 
+  // Persiste la reanudación antes de continuar la cuenta atrás local.
   const handleResumeTimer = async () => {
     const { session, error } = await transitionActiveFocusSession('running')
     if (error) {
@@ -158,6 +168,7 @@ export default function Dashboard() {
     activeTimer.resume()
   }
 
+  // Interrumpe la sesión, devuelve la tarea a pendiente y limpia el temporizador.
   const handleStopTimer = async () => {
     if (!activeTask || !user) return
 
@@ -176,6 +187,7 @@ export default function Dashboard() {
     await refreshDashboard(user.id)
   }
 
+  // Cierra sesión y tarea; evita duplicados y comunica fallos sin perder el estado.
   const handleFinishTask = async () => {
     if (isFinishingTask) return
     if (!activeTask) {
@@ -219,6 +231,7 @@ export default function Dashboard() {
   }
 
   // Handlers de respuestas
+  // Marca una respuesta del onboarding como oculta y persiste esa preferencia.
   const hideAnswer = async (questionKey) => {
     if (!user) return
     const nextHiddenAnswers = { ...hiddenAnswers, [questionKey]: true }
@@ -226,6 +239,7 @@ export default function Dashboard() {
     if (!error) setHiddenAnswers(nextHiddenAnswers)
   }
 
+  // Quita la marca de ocultación de una respuesta y persiste el conjunto resultante.
   const showAnswer = async (questionKey) => {
     if (!user) return
     const nextHiddenAnswers = { ...hiddenAnswers }

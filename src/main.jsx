@@ -5,6 +5,7 @@ import './styles/global.css'
 import './styles/components.css'
 import './styles/utilities.css'
 
+// Monta la SPA React en el nodo raíz definido por index.html.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

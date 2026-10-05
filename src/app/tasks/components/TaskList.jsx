@@ -1,5 +1,6 @@
 import TaskItem from './TaskItem'
 
+// Lista tareas y muestra acciones masivas cuando hay selección.
 export default function TaskList({ tasks, selectedTasks, onToggleSelection, onToggleSelectAll, onDeleteSelected, onDelete, onEdit }) {
   if (!tasks.length) return <p className="dashboard-empty">Todavía no tienes tareas.</p>
 

@@ -21,6 +21,7 @@ const Settings = lazy(() => import('./app/settings'))
 const WeeklyPlanner = lazy(() => import('./app/weekly-planner'))
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
 
+// Protege rutas según la sesión y el estado de finalización del onboarding.
 function ProfileGate({ children, requireCompleted = false, onboarding = false }) {
   const location = useLocation()
   const [state, setState] = useState({ loading: true, user: null, completed: false })
@@ -57,6 +58,7 @@ function ProfileGate({ children, requireCompleted = false, onboarding = false })
   return children
 }
 
+// Añade navegación y pie comunes a las pantallas que lo necesitan.
 function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
   return (
     <>
@@ -67,6 +69,7 @@ function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
   )
 }
 
+// Compone proveedores, carga diferida y rutas públicas y protegidas de la SPA.
 export default function App() {
   return (
     <BrowserRouter>

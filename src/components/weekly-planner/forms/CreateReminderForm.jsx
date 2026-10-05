@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 
+// Recoge el texto y la duración de un recordatorio sin vínculo a tarea/hábito.
 export default function CreateReminderForm({ onSubmit, onCancel, initialDuration = 30 }) {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState(30)
@@ -11,6 +12,7 @@ export default function CreateReminderForm({ onSubmit, onCancel, initialDuration
 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
+  // Valida el contenido y delega al padre la creación de la entrada semanal.
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) {

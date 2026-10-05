@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../services/supabase'
 import { formatDate } from '../../services/weekly-planner'
 
+// Preguntas que estructuran la revisión y sus claves almacenadas en notes.
 const QUESTIONS = [
   ['learned', '¿Qué aprendí esta semana?'],
   ['built', '¿Qué construí?'],
@@ -10,6 +11,7 @@ const QUESTIONS = [
   ['keptHabit', '¿Qué hábito mantuve?'],
 ]
 
+// Carga y guarda las respuestas de revisión semanal en una entrada del planificador.
 export function useWeeklyReview(userId, weekStart) {
   const [review, setReview] = useState({})
   const [saving, setSaving] = useState(false)

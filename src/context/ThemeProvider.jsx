@@ -2,9 +2,12 @@ import { createContext, useEffect, useRef, useState } from 'react'
 import { getAuthenticatedUser } from '../services/auth'
 import { getUserTheme, updateUserTheme } from '../services/theme'
 
+// Contexto público de tema usado por controles y componentes visuales.
 export const ThemeContext = createContext(null)
 
+// Clave local para cargar el tema antes de consultar la red.
 const THEME_KEY = 'vektor-theme'
+// Tema aplicado cuando no existe una preferencia guardada.
 const DEFAULT_THEME = 'dark'
 
 /**
@@ -113,6 +116,7 @@ export function ThemeProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
+  // Alterna entre los dos temas disponibles y deja que el efecto los persista.
   const toggleTheme = () => {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
   }

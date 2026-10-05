@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+// Clave y valores de respaldo para las preferencias locales de interfaz.
 const STORAGE_KEY = 'vektor-preferences'
 const DEFAULT_PREFERENCES = {
   theme: 'dark',
@@ -8,6 +9,7 @@ const DEFAULT_PREFERENCES = {
   showValues: true,
 }
 
+// Combina lo persistido con valores por defecto y tolera JSON corrupto.
 function readPreferences() {
   try {
     return { ...DEFAULT_PREFERENCES, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }
@@ -16,6 +18,7 @@ function readPreferences() {
   }
 }
 
+// Mantiene preferencias en React y las serializa en localStorage al cambiarlas.
 export function usePreferences() {
   const [preferences, setPreferences] = useState(readPreferences)
 

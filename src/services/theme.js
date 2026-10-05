@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 
+// Lee el tema persistido en el perfil de Supabase.
 /**
  * Obtiene la preferencia de tema del usuario desde Supabase
  * @param {string} userId - ID del usuario
@@ -15,6 +16,7 @@ export async function getUserTheme(userId) {
   return { theme: data?.theme, error }
 }
 
+// Actualiza el tema del perfil del usuario.
 /**
  * Actualiza la preferencia de tema del usuario en Supabase
  * @param {string} userId - ID del usuario

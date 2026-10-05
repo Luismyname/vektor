@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackgroundWords from "./BackgroundWords";
 
+// Layout público heredado con navegación, llamadas a autenticación y pie.
 export default function Layout({ children, onOpenLogin, onOpenRegister }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
+  // Delega apertura de registro al consumidor o navega a la ruta correspondiente.
   function handleRegistroClick() {
     if (onOpenRegister) {
       onOpenRegister();

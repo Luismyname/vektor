@@ -4,6 +4,7 @@ import { saveHabits } from '../../services/users'
 import { generateHabits, normalizeHabits } from '../../lib/habits'
 import HabitList from './components/HabitList'
 
+// Carga hábitos del perfil y permite editar recomendaciones y hábitos propios.
 export default function Habits() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -36,6 +37,7 @@ export default function Habits() {
     return () => { active = false }
   }, [])
 
+  // Actualiza una categoría de hábitos en estado local y limpia el aviso anterior.
   function updateHabits(section, updater) {
     setHabitState((current) => ({ ...current, [section]: updater(current[section]) }))
     setMessage('')
@@ -57,6 +59,7 @@ export default function Habits() {
     setNewHabit('')
   }
 
+  // Persiste de una vez el estado conjunto de hábitos del usuario.
   async function handleSave() {
     setIsSaving(true)
     setMessage('')

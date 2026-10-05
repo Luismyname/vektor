@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import WeeklyBlockModal from './WeeklyBlockModal'
 
+// Etiquetas presentadas para los estados persistidos del bloque.
 const STATUS_LABELS = { scheduled: 'Programado', completed: 'Completado', failed: 'Fallido', moved: 'Movido' }
 
+// Dibuja el bloque de hábito y expone controles de duración, estado y borrado.
 export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, onDurationChange, onDelete }) {
   const [showModal, setShowModal] = useState(false)
   if (!habit) return null

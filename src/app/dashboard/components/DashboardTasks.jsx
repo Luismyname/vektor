@@ -1,3 +1,4 @@
+// Muestra hasta cinco tareas abiertas y permite iniciar o modificar su sesión.
 export default function DashboardTasks({ tasks = [], onStart = () => {}, activeTaskId = null }) {
   const pendingTasks = tasks.filter((task) => task.status !== 'completed')
 

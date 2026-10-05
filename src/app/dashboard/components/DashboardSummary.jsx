@@ -1,3 +1,4 @@
+// Resume los valores dominantes del usuario obtenidos durante el onboarding.
 export default function DashboardSummary({ dominantValue, secondaryValue }) {
   return (
     <section className="dashboard-summary" aria-label="Resumen de valores">

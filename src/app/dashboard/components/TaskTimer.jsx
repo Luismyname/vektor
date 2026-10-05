@@ -1,3 +1,4 @@
+// Formatea segundos no negativos como mm:ss para la lectura del contador.
 function formatTime(totalSeconds) {
   const safeSeconds = Math.max(totalSeconds, 0)
   const minutes = Math.floor(safeSeconds / 60)
@@ -5,6 +6,7 @@ function formatTime(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
+// Presenta el estado del temporizador y expone controles recibidos del dashboard.
 export default function TaskTimer({ task, durationMinutes, remainingSeconds, isRunning, onClick, onPause, onResume, onStop }) {
   if (!task) {
     return (

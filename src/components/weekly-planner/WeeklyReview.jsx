@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+// Formulario de reflexión con borrador local y guardado delegado al hook.
 export default function WeeklyReview({ questions, review, onSave, saving, saved }) {
   const [draft, setDraft] = useState(review)
   return (

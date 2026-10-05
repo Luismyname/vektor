@@ -1,7 +1,9 @@
 import { supabase } from './supabase'
 
+// Estados de actividad que se muestran en los paneles del dashboard.
 const ACTIVITY_TYPES = ['pending', 'in_progress', 'completed']
 
+// Convierte filtros de calendario en un intervalo ISO exclusivo por el extremo final.
 function getDateRange(filters) {
   const now = new Date()
   const year = Number(filters.year) || now.getFullYear()
@@ -30,6 +32,7 @@ function getDateRange(filters) {
   return start && end ? { start: start.toISOString(), end: end.toISOString() } : null
 }
 
+// Carga la actividad reciente visible del usuario para sus paneles.
 export async function getRecentActivity(userId) {
   const { data, error } = await supabase
     .from('activity')
@@ -42,6 +45,7 @@ export async function getRecentActivity(userId) {
   return { activities: data || [], error }
 }
 
+// Oculta una entrada del dashboard sin borrarla del historial.
 export async function hideActivityFromDashboard(activityId) {
   const { data, error } = await supabase
     .from('activity')
@@ -53,6 +57,7 @@ export async function hideActivityFromDashboard(activityId) {
   return { activity: data, error }
 }
 
+// Busca la entrada de actividad abierta asociada a una tarea y usuario.
 export async function getInProgressActivity(taskId, userId) {
   const { data, error } = await supabase
     .from('activity')
@@ -65,6 +70,7 @@ export async function getInProgressActivity(taskId, userId) {
   return { activity: data, error }
 }
 
+// Obtiene el historial aplicando filtros opcionales por estado y fecha.
 export async function getActivityHistory(userId, filters = {}) {
   let query = supabase
     .from('activity')
@@ -83,6 +89,7 @@ export async function getActivityHistory(userId, filters = {}) {
   return { activities: data || [], error }
 }
 
+// Busca por texto del título o por una fecha interpretada como ISO.
 export async function searchActivity(userId, queryText) {
   const normalized = queryText.trim()
   if (!normalized) {
@@ -100,6 +107,7 @@ export async function searchActivity(userId, queryText) {
   return { activities: data || [], error }
 }
 
+// Recupera todas las entradas del usuario, ordenadas desde la más reciente.
 export async function getActivity(userId) {
   const { data, error } = await supabase
     .from('activity')
@@ -110,6 +118,7 @@ export async function getActivity(userId) {
   return { activities: data || [], error }
 }
 
+// Carga una entrada de actividad con los datos de tarea necesarios para el detalle.
 export async function getActivityById(activityId) {
   const { data, error } = await supabase
     .from('activity')
@@ -119,6 +128,7 @@ export async function getActivityById(activityId) {
   return { activity: data, error }
 }
 
+// Marca como completadas tanto la actividad como la tarea relacionada.
 export async function finalizeActivity(activityId, taskId) {
   const { error: activityError } = await supabase
     .from('activity')
@@ -133,6 +143,7 @@ export async function finalizeActivity(activityId, taskId) {
   return { error: taskError }
 }
 
+// Inserta una entrada y aplica valores por defecto para duración y visibilidad.
 export async function createActivityEntry(entry) {
   const { data, error } = await supabase
     .from('activity')

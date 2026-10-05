@@ -1,5 +1,6 @@
 import DayColumn from './DayColumn'
 
+// Compone cabeceras, eje horario y siete columnas conectadas a las acciones del padre.
 export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot }) {
   return (
     <div className="weekly-grid-wrap">
