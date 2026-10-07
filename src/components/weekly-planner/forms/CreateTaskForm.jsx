@@ -11,9 +11,9 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
   const [error, setError] = useState('')
 
   const priorities = [
-    { value: 'high', label: 'Alta', color: 'var(--color-danger)' },
-    { value: 'medium', label: 'Media', color: 'var(--accent)' },
-    { value: 'low', label: 'Baja', color: 'var(--color-success)' }
+    { value: 'high', label: 'Alta' },
+    { value: 'medium', label: 'Media' },
+    { value: 'low', label: 'Baja' }
   ]
 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
@@ -66,26 +66,19 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
       </div>
 
       <div className="form-group">
-        <label>Prioridad</label>
-        <div className="priority-options" role="radiogroup" aria-label="Prioridad">
+        <label htmlFor="task-priority">Prioridad</label>
+        <select
+          id="task-priority"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="form-select"
+        >
           {priorities.map((p) => (
-            <label
-              key={p.value}
-              className={`priority-option ${priority === p.value ? 'selected' : ''}`}
-              style={{ borderColor: priority === p.value ? p.color : 'transparent' }}
-            >
-              <input
-                type="radio"
-                name="priority"
-                value={p.value}
-                checked={priority === p.value}
-                onChange={() => setPriority(p.value)}
-                className="sr-only"
-              />
-              <span style={{ color: p.color }}>{p.label}</span>
-            </label>
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div className="form-group">
