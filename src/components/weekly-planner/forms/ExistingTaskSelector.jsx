@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useTheme } from '../../../hooks/useTheme'
 
 // Busca y ordena tareas abiertas para vincular una existente al intervalo.
 export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
-  const { theme } = useTheme()
   const [search, setSearch] = useState('')
 
   const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks])

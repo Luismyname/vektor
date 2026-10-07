@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { useTheme } from '../../../hooks/useTheme'
 
 // Filtra hábitos activos por nombre y devuelve el seleccionado al modal padre.
 export default function ExistingHabitSelector({ habits, onSelect, onClose }) {
-  const { theme } = useTheme()
   const [search, setSearch] = useState('')
 
   const filteredHabits = habits

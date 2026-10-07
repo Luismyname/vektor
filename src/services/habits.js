@@ -1,7 +1,5 @@
 import { supabase } from './supabase'
 
-const PROFILES_FIELDS = 'id, user_id, habits'
-
 /**
  * Obtiene los hábitos del usuario desde profiles.habits (JSON)
  */
@@ -43,18 +41,15 @@ export async function addHabit(userId, habit) {
     ...habit
   }
 
-  const currentHabitsData = profile?.habits || { recommended: [], custom: [] }
   const updatedHabits = {
-    recommended: currentHabitsData.recommended || [],
-    custom: [...(currentHabitsData.custom || []), newHabit]
+    recommended: currentHabits.recommended || [],
+    custom: [...(currentHabits.custom || []), newHabit]
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('profiles')
-    .update({ habits: { ...currentHabitsData, custom: [...(currentHabits.custom || []), newHabit] } })
+    .update({ habits: updatedHabits })
     .eq('user_id', userId)
-    .select('habits')
-    .single()
 
   if (error) return { habit: null, error }
 
@@ -81,19 +76,19 @@ export async function updateHabit(userId, habitId, updates) {
     return { habit: null, error: new Error('Hábito no encontrado') }
   }
 
+  const updatedCustom = customHabits.map((habit, index) => 
+    index === habitIndex ? { ...habit, ...updates } : habit
+  )
+
   const updatedHabits = {
     ...currentHabits,
-    custom: customHabits.map((habit, index) => 
-      index === habitIndex ? { ...habit, ...updates } : habit
-    )
+    custom: updatedCustom
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('profiles')
     .update({ habits: updatedHabits })
     .eq('user_id', userId)
-    .select('habits')
-    .single()
 
   if (error) return { habit: null, error }
 
@@ -124,7 +119,7 @@ export async function deleteHabit(userId, habitId) {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ habits: { recommended: currentHabits.recommended || [], custom: updatedCustom } })
+    .update({ habits: updatedHabits })
     .eq('user_id', userId)
 
   return { error }

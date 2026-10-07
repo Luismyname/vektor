@@ -469,6 +469,109 @@ body{
 .profile-action{ flex:0 0 auto; padding:11px 16px; border-radius:8px; background:var(--accent); color:var(--color-white); text-decoration:none; font-weight:700; }
 .profile-action:hover{ filter:brightness(1.1); }
 @media (max-width:600px){ .profile-setting{ align-items:flex-start; flex-direction:column; } }
+
+/* ============================================================
+   DASHBOARD HABITS PAGINATION
+   ============================================================ */
+
+.dashboard-habits {
+  position: relative; /* Para posicionar botón "Ver todos" */
+}
+
+.dashboard-habits-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-habits-page-indicator {
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dashboard-habits .primary-button.small-button,
+.dashboard-habits .secondary-button.small-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-height: 36px;
+  min-width: 44px;
+}
+
+.dashboard-habits .primary-button {
+  background: var(--accent);
+  color: var(--color-white);
+  border: 1px solid var(--color-accent-light);
+}
+
+.dashboard-habits .primary-button:hover {
+  filter: brightness(1.1);
+}
+
+.dashboard-habits .secondary-button {
+  background: transparent;
+  color: var(--color-white);
+  border: 1px solid var(--color-border);
+}
+
+.dashboard-habits .secondary-button:hover {
+  background: var(--color-white-10);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dashboard-habits .secondary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Tema claro - ajustes automáticos via variables CSS */
+:root[data-theme='light'] .dashboard-habits .primary-button {
+  background: var(--accent);
+  color: var(--color-white);
+  border-color: var(--color-accent-light);
+}
+
+:root[data-theme='light'] .dashboard-habits .secondary-button {
+  background: transparent;
+  color: var(--page-text);
+  border-color: var(--color-border);
+}
+
+:root[data-theme='light'] .dashboard-habits .secondary-button:hover {
+  background: var(--color-white-10);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .dashboard-habits {
+    padding: 20px 16px;
+    padding-bottom: 56px;
+  }
+
+  .dashboard-habits .primary-button.small-button,
+  .dashboard-habits .secondary-button.small-button {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 40px;
+    min-width: 48px;
+  }
+
+  .dashboard-habits-pagination {
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .dashboard-habits .primary-button.small-button,
+  .dashboard-habits .secondary-button.small-button {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+}
 @media (max-width:600px){ .profile-avatar-preview{ align-items:flex-start; } }
 
 /* Authentication forms */

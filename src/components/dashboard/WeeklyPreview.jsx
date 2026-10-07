@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth'
 import { getWeekDates, getWeekStart, getWeeklyPlanner } from '../../services/weekly-planner'
 
 // Etiquetas de estado usadas en la vista resumida del plan semanal.

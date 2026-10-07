@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import readline from 'node:readline/promises';
+import process from 'node:process';
 
 async function resolveCredentials() {
   const email = process.env.VECTOR_EMAIL || process.env.E2E_EMAIL;

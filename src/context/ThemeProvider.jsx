@@ -1,9 +1,7 @@
-import { createContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getAuthenticatedUser } from '../services/auth'
 import { getUserTheme, updateUserTheme } from '../services/theme'
-
-// Contexto público de tema usado por controles y componentes visuales.
-export const ThemeContext = createContext(null)
+import { ThemeContext } from './ThemeContext'
 
 // Clave local para cargar el tema antes de consultar la red.
 const THEME_KEY = 'vektor-theme'
@@ -38,6 +36,7 @@ export function ThemeProvider({ children }) {
     } catch (err) {
       console.error('[ThemeProvider] Error saving initial theme:', err)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Bandera para evitar guardar durante la carga inicial de Supabase

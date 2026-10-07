@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { useTheme } from '../../hooks/useTheme'
 import CreateTaskForm from './forms/CreateTaskForm'
 import CreateHabitForm from './forms/CreateHabitForm'
 import CreateReminderForm from './forms/CreateReminderForm'
@@ -10,17 +9,12 @@ import ExistingHabitSelector from './forms/ExistingHabitSelector'
 export default function WeeklyTimeSlotModal({
   isOpen,
   onClose,
-  date,
   startTime,
-  endTime,
   defaultDuration = 30,
   onSubmit,
-  onCancel,
   tasks = [],
   habits = [],
-  user
 }) {
-  const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState('existing-task')
   const modalRef = useRef(null)
 

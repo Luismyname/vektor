@@ -1,24 +1,14 @@
-import { useState, useEffect } from 'react'
-import { useTheme } from '../../../hooks/useTheme'
+import { useState } from 'react'
 import { getTimeRange } from '../../../services/weekly-planner'
 
 // Recoge datos de una tarea nueva y calcula el intervalo que ocupará en la agenda.
 export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }) {
-  const { theme } = useTheme()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [duration, setDuration] = useState(30)
+  const [duration, setDuration] = useState(initialDuration)
   const [startTime, setStartTime] = useState(initialStartTime)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    setDuration(initialDuration)
-  }, [initialDuration])
-
-  useEffect(() => {
-    setStartTime(initialStartTime)
-  }, [initialStartTime])
 
   const priorities = [
     { value: 'high', label: 'Alta', color: 'var(--color-danger)' },

@@ -1,11 +1,11 @@
 import { useContext } from 'react'
-import { ThemeContext } from '../context/ThemeProvider'
+import { ThemeContext } from '../context/ThemeContext'
 
 /**
  * Hook para acceder al contexto de tema.
  * 
  * Uso:
- *   const { theme, toggleTheme, isDark } = useTheme()
+ *   const { theme, setTheme, toggleTheme, isDark, isLight } = useTheme()
  */
 export function useTheme() {
   const context = useContext(ThemeContext)

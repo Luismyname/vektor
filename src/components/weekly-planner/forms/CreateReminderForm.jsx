@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Recoge el texto y la duración de un recordatorio sin vínculo a tarea/hábito.
 export default function CreateReminderForm({ onSubmit, onCancel, initialDuration = 30 }) {
   const [title, setTitle] = useState('')
-  const [duration, setDuration] = useState(30)
+  const [duration, setDuration] = useState(initialDuration)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    setDuration(initialDuration)
-  }, [initialDuration])
 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
