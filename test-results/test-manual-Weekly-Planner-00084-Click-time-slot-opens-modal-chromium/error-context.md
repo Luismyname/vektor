@@ -1,0 +1,615 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: test-manual.spec.js >> Weekly Planner - Manual Testing >> Mobile - Click time slot opens modal
+- Location: tests\e2e\test-manual.spec.js:97:3
+
+# Error details
+
+```
+Test timeout of 120000ms exceeded.
+```
+
+```
+Error: locator.click: Test timeout of 120000ms exceeded.
+Call log:
+  - waiting for locator('.weekly-hour-slot').first()
+    - locator resolved to <div tabindex="0" role="button" class="weekly-hour-slot" aria-label="2026-10-05 a las 5:00"></div>
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <article tabindex="0" role="button" draggable="true" aria-label="Abrir tarea Test Task E2E" class="weekly-block weekly-task-block priority-high status-scheduled">…</article> intercepts pointer events
+  - retrying click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <footer class="site-footer bg-neutral-900 text-white p-4 text-center mt-10 ">Vektor © 2026</footer> intercepts pointer events
+  - retrying click action
+    - waiting 20ms
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <article tabindex="0" role="button" draggable="true" aria-label="Abrir tarea Test Task E2E" class="weekly-block weekly-task-block priority-high status-scheduled">…</article> intercepts pointer events
+  2 × retrying click action
+      - waiting 100ms
+      - waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <button type="button" class="menu-toggle" aria-expanded="false" aria-controls="dashboard-menu">☰ Menu</button> from <header class="top-header" aria-label="barra superior">…</header> subtree intercepts pointer events
+  55 × retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <footer class="site-footer bg-neutral-900 text-white p-4 text-center mt-10 ">Vektor © 2026</footer> intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <article tabindex="0" role="button" draggable="true" aria-label="Abrir tarea Test Task E2E" class="weekly-block weekly-task-block priority-high status-scheduled">…</article> intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <button type="button" class="menu-toggle" aria-expanded="false" aria-controls="dashboard-menu">☰ Menu</button> from <header class="top-header" aria-label="barra superior">…</header> subtree intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <button type="button" class="menu-toggle" aria-expanded="false" aria-controls="dashboard-menu">☰ Menu</button> from <header class="top-header" aria-label="barra superior">…</header> subtree intercepts pointer events
+  - retrying click action
+    - waiting 500ms
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=f1e2]:
+  - banner "barra superior" [ref=f1e3]:
+    - button "☰ Menu" [ref=f1e5] [cursor=pointer]
+    - generic [ref=f1e6]:
+      - generic [ref=f1e7]:
+        - img "Avatar de Luis Rodriguez" [ref=f1e8]
+        - generic [ref=f1e9]:
+          - generic [ref=f1e10]: Tu espacio personal
+          - strong [ref=f1e11]: Luis Rodriguez
+      - button "Cerrar sesión" [ref=f1e12] [cursor=pointer]
+  - main [ref=f1e13]:
+    - generic [ref=f1e14]:
+      - generic [ref=f1e15]:
+        - generic [ref=f1e16]:
+          - paragraph [ref=f1e17]: VEKTOR / WEEKLY PLANNER
+          - heading "Tu semana, con espacio para lo importante" [level=1] [ref=f1e18]
+          - paragraph [ref=f1e19]: Planifica con precisión y deja que el calendario aprenda de tus decisiones.
+        - generic [ref=f1e20]:
+          - button "Anterior" [ref=f1e21] [cursor=pointer]
+          - button "Hoy" [ref=f1e22] [cursor=pointer]
+          - button "Siguiente" [ref=f1e23] [cursor=pointer]
+          - button "Limpiar semana" [ref=f1e24] [cursor=pointer]
+      - region "Resumen semanal" [ref=f1e25]:
+        - generic [ref=f1e26]:
+          - generic [ref=f1e27]: Completadas
+          - strong [ref=f1e28]: "0"
+        - generic [ref=f1e29]:
+          - generic [ref=f1e30]: Progreso
+          - strong [ref=f1e31]: 0%
+        - generic [ref=f1e32]:
+          - generic [ref=f1e33]: Enfoques
+          - strong [ref=f1e34]: "0"
+        - generic [ref=f1e35]:
+          - generic [ref=f1e36]: Hábitos activos
+          - strong [ref=f1e37]: "0"
+      - generic [ref=f1e38]:
+        - complementary [ref=f1e39]:
+          - region "Tareas por colocar" [ref=f1e40]:
+            - generic [ref=f1e41]:
+              - generic [ref=f1e42]:
+                - heading "Tareas por colocar" [level=2] [ref=f1e43]
+                - paragraph [ref=f1e44]: Arrastra una tarea a cualquier hora.
+              - navigation "Paginación del listado" [ref=f1e45]:
+                - generic [ref=f1e46]: Página 1/2
+                - button "Página siguiente" [ref=f1e47] [cursor=pointer]: Siguiente
+            - list [ref=f1e48]:
+              - listitem [ref=f1e49]:
+                - generic [ref=f1e50]:
+                  - strong [ref=f1e51]: prueba
+                  - generic [ref=f1e52]:
+                    - generic [ref=f1e53]: HIGH
+                    - generic [ref=f1e54]: —
+              - listitem [ref=f1e55]:
+                - generic [ref=f1e56]:
+                  - strong [ref=f1e57]: Test Task E2E
+                  - generic [ref=f1e58]:
+                    - generic [ref=f1e59]: HIGH
+                    - generic [ref=f1e60]: —
+              - listitem [ref=f1e61]:
+                - generic [ref=f1e62]:
+                  - strong [ref=f1e63]: Test Task E2E
+                  - generic [ref=f1e64]:
+                    - generic [ref=f1e65]: HIGH
+                    - generic [ref=f1e66]: —
+            - link "Ver todo" [ref=f1e68] [cursor=pointer]:
+              - /url: /tasks
+          - region "Hábitos por colocar" [ref=f1e69]:
+            - generic [ref=f1e70]:
+              - generic [ref=f1e71]:
+                - heading "Hábitos por colocar" [level=2] [ref=f1e72]
+                - paragraph [ref=f1e73]: Arrastra un hábito o prográmalo a las 07:00.
+              - navigation "Paginación del listado" [ref=f1e74]:
+                - generic [ref=f1e75]: Página 1/2
+                - button "Página siguiente" [ref=f1e76] [cursor=pointer]: Siguiente
+            - list [ref=f1e77]:
+              - listitem [ref=f1e78]:
+                - button "Dormir mínimo 7 horas MEDIUM — Arrastra o pulsa para +07:00" [ref=f1e79] [cursor=pointer]:
+                  - strong [ref=f1e80]: Dormir mínimo 7 horas
+                  - generic [ref=f1e81]:
+                    - generic [ref=f1e82]: MEDIUM
+                    - generic [ref=f1e83]: —
+                  - generic [ref=f1e84]: Arrastra o pulsa para +07:00
+              - listitem [ref=f1e85]:
+                - button "Caminar 20 minutos diarios MEDIUM — Arrastra o pulsa para +07:00" [ref=f1e86] [cursor=pointer]:
+                  - strong [ref=f1e87]: Caminar 20 minutos diarios
+                  - generic [ref=f1e88]:
+                    - generic [ref=f1e89]: MEDIUM
+                    - generic [ref=f1e90]: —
+                  - generic [ref=f1e91]: Arrastra o pulsa para +07:00
+              - listitem [ref=f1e92]:
+                - button "Beber 2 litros de agua MEDIUM — Arrastra o pulsa para +07:00" [ref=f1e93] [cursor=pointer]:
+                  - strong [ref=f1e94]: Beber 2 litros de agua
+                  - generic [ref=f1e95]:
+                    - generic [ref=f1e96]: MEDIUM
+                    - generic [ref=f1e97]: —
+                  - generic [ref=f1e98]: Arrastra o pulsa para +07:00
+            - link "Ver todo" [ref=f1e100] [cursor=pointer]:
+              - /url: /habits
+        - generic [ref=f1e102]:
+          - generic [ref=f1e104]:
+            - generic [ref=f1e105]:
+              - strong [ref=f1e106]: lun
+              - generic [ref=f1e107]: 05/10
+              - button "Limpiar día" [ref=f1e108] [cursor=pointer]
+            - generic [ref=f1e109]:
+              - strong [ref=f1e110]: mar
+              - generic [ref=f1e111]: 06/10
+              - button "Limpiar día" [ref=f1e112] [cursor=pointer]
+            - generic [ref=f1e113]:
+              - strong [ref=f1e114]: mié
+              - generic [ref=f1e115]: 07/10
+              - button "Limpiar día" [ref=f1e116] [cursor=pointer]
+            - generic [ref=f1e117]:
+              - strong [ref=f1e118]: jue
+              - generic [ref=f1e119]: 08/10
+              - button "Limpiar día" [ref=f1e120] [cursor=pointer]
+            - generic [ref=f1e121]:
+              - strong [ref=f1e122]: vie
+              - generic [ref=f1e123]: 09/10
+              - button "Limpiar día" [ref=f1e124] [cursor=pointer]
+            - generic [ref=f1e125]:
+              - strong [ref=f1e126]: sáb
+              - generic [ref=f1e127]: 10/10
+              - button "Limpiar día" [ref=f1e128] [cursor=pointer]
+            - generic [ref=f1e129]:
+              - strong [ref=f1e130]: dom
+              - generic [ref=f1e131]: 11/10
+              - button "Limpiar día" [ref=f1e132] [cursor=pointer]
+          - generic [aria-hidden] [ref=f1e133]:
+            - generic [ref=f1e134]: 05:00
+            - generic [ref=f1e135]: 06:00
+            - generic [ref=f1e136]: 07:00
+            - generic [ref=f1e137]: 08:00
+            - generic [ref=f1e138]: 09:00
+            - generic [ref=f1e139]: 10:00
+            - generic [ref=f1e140]: 11:00
+            - generic [ref=f1e141]: 12:00
+            - generic [ref=f1e142]: 13:00
+            - generic [ref=f1e143]: 14:00
+            - generic [ref=f1e144]: 15:00
+            - generic [ref=f1e145]: 16:00
+            - generic [ref=f1e146]: 17:00
+            - generic [ref=f1e147]: 18:00
+            - generic [ref=f1e148]: 19:00
+            - generic [ref=f1e149]: 20:00
+            - generic [ref=f1e150]: 21:00
+            - generic [ref=f1e151]: 22:00
+            - generic [ref=f1e152]: 23:00
+          - generic [ref=f1e153]:
+            - region "2026-10-05" [ref=f1e154]:
+              - generic [ref=f1e155]:
+                - button "2026-10-05 a las 5:00" [ref=f1e156]
+                - button "2026-10-05 a las 6:00" [ref=f1e157]
+                - button "2026-10-05 a las 7:00" [ref=f1e158]
+                - button "2026-10-05 a las 8:00" [ref=f1e159]
+                - button "2026-10-05 a las 9:00" [ref=f1e160]
+                - button "2026-10-05 a las 10:00" [ref=f1e161]
+                - button "2026-10-05 a las 11:00" [ref=f1e162]
+                - button "2026-10-05 a las 12:00" [ref=f1e163]
+                - button "2026-10-05 a las 13:00" [ref=f1e164]
+                - button "2026-10-05 a las 14:00" [ref=f1e165]
+                - button "2026-10-05 a las 15:00" [ref=f1e166]
+                - button "2026-10-05 a las 16:00" [ref=f1e167]
+                - button "2026-10-05 a las 17:00" [ref=f1e168]
+                - button "2026-10-05 a las 18:00" [ref=f1e169]
+                - button "2026-10-05 a las 19:00" [ref=f1e170]
+                - button "2026-10-05 a las 20:00" [ref=f1e171]
+                - button "2026-10-05 a las 21:00" [ref=f1e172]
+                - button "2026-10-05 a las 22:00" [ref=f1e173]
+                - button "Abrir tarea Test Task E2E" [ref=f1e174] [cursor=pointer]:
+                  - strong [ref=f1e175]: Test Task E2E
+                  - generic [ref=f1e176]: 05:00 - 05:30
+                - button "Abrir tarea Test Task E2E" [ref=f1e177] [cursor=pointer]:
+                  - strong [ref=f1e178]: Test Task E2E
+                  - generic [ref=f1e179]: 05:00 - 05:30
+            - region "2026-10-06" [ref=f1e180]:
+              - generic [ref=f1e181]:
+                - button "2026-10-06 a las 5:00" [ref=f1e182]
+                - button "2026-10-06 a las 6:00" [ref=f1e183]
+                - button "2026-10-06 a las 7:00" [ref=f1e184]
+                - button "2026-10-06 a las 8:00" [ref=f1e185]
+                - button "2026-10-06 a las 9:00" [ref=f1e186]
+                - button "2026-10-06 a las 10:00" [ref=f1e187]
+                - button "2026-10-06 a las 11:00" [ref=f1e188]
+                - button "2026-10-06 a las 12:00" [ref=f1e189]
+                - button "2026-10-06 a las 13:00" [ref=f1e190]
+                - button "2026-10-06 a las 14:00" [ref=f1e191]
+                - button "2026-10-06 a las 15:00" [ref=f1e192]
+                - button "2026-10-06 a las 16:00" [ref=f1e193]
+                - button "2026-10-06 a las 17:00" [ref=f1e194]
+                - button "2026-10-06 a las 18:00" [ref=f1e195]
+                - button "2026-10-06 a las 19:00" [ref=f1e196]
+                - button "2026-10-06 a las 20:00" [ref=f1e197]
+                - button "2026-10-06 a las 21:00" [ref=f1e198]
+                - button "2026-10-06 a las 22:00" [ref=f1e199]
+            - region "2026-10-07" [ref=f1e200]:
+              - generic [ref=f1e201]:
+                - button "2026-10-07 a las 5:00" [ref=f1e202]
+                - button "2026-10-07 a las 6:00" [ref=f1e203]
+                - button "2026-10-07 a las 7:00" [ref=f1e204]
+                - button "2026-10-07 a las 8:00" [ref=f1e205]
+                - button "2026-10-07 a las 9:00" [ref=f1e206]
+                - button "2026-10-07 a las 10:00" [ref=f1e207]
+                - button "2026-10-07 a las 11:00" [ref=f1e208]
+                - button "2026-10-07 a las 12:00" [ref=f1e209]
+                - button "2026-10-07 a las 13:00" [ref=f1e210]
+                - button "2026-10-07 a las 14:00" [ref=f1e211]
+                - button "2026-10-07 a las 15:00" [ref=f1e212]
+                - button "2026-10-07 a las 16:00" [ref=f1e213]
+                - button "2026-10-07 a las 17:00" [ref=f1e214]
+                - button "2026-10-07 a las 18:00" [ref=f1e215]
+                - button "2026-10-07 a las 19:00" [ref=f1e216]
+                - button "2026-10-07 a las 20:00" [ref=f1e217]
+                - button "2026-10-07 a las 21:00" [ref=f1e218]
+                - button "2026-10-07 a las 22:00" [ref=f1e219]
+            - region "2026-10-08" [ref=f1e220]:
+              - generic [ref=f1e221]:
+                - button "2026-10-08 a las 5:00" [ref=f1e222]
+                - button "2026-10-08 a las 6:00" [ref=f1e223]
+                - button "2026-10-08 a las 7:00" [ref=f1e224]
+                - button "2026-10-08 a las 8:00" [ref=f1e225]
+                - button "2026-10-08 a las 9:00" [ref=f1e226]
+                - button "2026-10-08 a las 10:00" [ref=f1e227]
+                - button "2026-10-08 a las 11:00" [ref=f1e228]
+                - button "2026-10-08 a las 12:00" [ref=f1e229]
+                - button "2026-10-08 a las 13:00" [ref=f1e230]
+                - button "2026-10-08 a las 14:00" [ref=f1e231]
+                - button "2026-10-08 a las 15:00" [ref=f1e232]
+                - button "2026-10-08 a las 16:00" [ref=f1e233]
+                - button "2026-10-08 a las 17:00" [ref=f1e234]
+                - button "2026-10-08 a las 18:00" [ref=f1e235]
+                - button "2026-10-08 a las 19:00" [ref=f1e236]
+                - button "2026-10-08 a las 20:00" [ref=f1e237]
+                - button "2026-10-08 a las 21:00" [ref=f1e238]
+                - button "2026-10-08 a las 22:00" [ref=f1e239]
+            - region "2026-10-09" [ref=f1e240]:
+              - generic [ref=f1e241]:
+                - button "2026-10-09 a las 5:00" [ref=f1e242]
+                - button "2026-10-09 a las 6:00" [ref=f1e243]
+                - button "2026-10-09 a las 7:00" [ref=f1e244]
+                - button "2026-10-09 a las 8:00" [ref=f1e245]
+                - button "2026-10-09 a las 9:00" [ref=f1e246]
+                - button "2026-10-09 a las 10:00" [ref=f1e247]
+                - button "2026-10-09 a las 11:00" [ref=f1e248]
+                - button "2026-10-09 a las 12:00" [ref=f1e249]
+                - button "2026-10-09 a las 13:00" [ref=f1e250]
+                - button "2026-10-09 a las 14:00" [ref=f1e251]
+                - button "2026-10-09 a las 15:00" [ref=f1e252]
+                - button "2026-10-09 a las 16:00" [ref=f1e253]
+                - button "2026-10-09 a las 17:00" [ref=f1e254]
+                - button "2026-10-09 a las 18:00" [ref=f1e255]
+                - button "2026-10-09 a las 19:00" [ref=f1e256]
+                - button "2026-10-09 a las 20:00" [ref=f1e257]
+                - button "2026-10-09 a las 21:00" [ref=f1e258]
+                - button "2026-10-09 a las 22:00" [ref=f1e259]
+            - region "2026-10-10" [ref=f1e260]:
+              - generic [ref=f1e261]:
+                - button "2026-10-10 a las 5:00" [ref=f1e262]
+                - button "2026-10-10 a las 6:00" [ref=f1e263]
+                - button "2026-10-10 a las 7:00" [ref=f1e264]
+                - button "2026-10-10 a las 8:00" [ref=f1e265]
+                - button "2026-10-10 a las 9:00" [ref=f1e266]
+                - button "2026-10-10 a las 10:00" [ref=f1e267]
+                - button "2026-10-10 a las 11:00" [ref=f1e268]
+                - button "2026-10-10 a las 12:00" [ref=f1e269]
+                - button "2026-10-10 a las 13:00" [ref=f1e270]
+                - button "2026-10-10 a las 14:00" [ref=f1e271]
+                - button "2026-10-10 a las 15:00" [ref=f1e272]
+                - button "2026-10-10 a las 16:00" [ref=f1e273]
+                - button "2026-10-10 a las 17:00" [ref=f1e274]
+                - button "2026-10-10 a las 18:00" [ref=f1e275]
+                - button "2026-10-10 a las 19:00" [ref=f1e276]
+                - button "2026-10-10 a las 20:00" [ref=f1e277]
+                - button "2026-10-10 a las 21:00" [ref=f1e278]
+                - button "2026-10-10 a las 22:00" [ref=f1e279]
+            - region "2026-10-11" [ref=f1e280]:
+              - generic [ref=f1e281]:
+                - button "2026-10-11 a las 5:00" [ref=f1e282]
+                - button "2026-10-11 a las 6:00" [ref=f1e283]
+                - button "2026-10-11 a las 7:00" [ref=f1e284]
+                - button "2026-10-11 a las 8:00" [ref=f1e285]
+                - button "2026-10-11 a las 9:00" [ref=f1e286]
+                - button "2026-10-11 a las 10:00" [ref=f1e287]
+                - button "2026-10-11 a las 11:00" [ref=f1e288]
+                - button "2026-10-11 a las 12:00" [ref=f1e289]
+                - button "2026-10-11 a las 13:00" [ref=f1e290]
+                - button "2026-10-11 a las 14:00" [ref=f1e291]
+                - button "2026-10-11 a las 15:00" [ref=f1e292]
+                - button "2026-10-11 a las 16:00" [ref=f1e293]
+                - button "2026-10-11 a las 17:00" [ref=f1e294]
+                - button "2026-10-11 a las 18:00" [ref=f1e295]
+                - button "2026-10-11 a las 19:00" [ref=f1e296]
+                - button "2026-10-11 a las 20:00" [ref=f1e297]
+                - button "2026-10-11 a las 21:00" [ref=f1e298]
+                - button "2026-10-11 a las 22:00" [ref=f1e299]
+      - generic [ref=f1e300]:
+        - region "Tareas sin completar" [ref=f1e301]:
+          - generic [ref=f1e302]:
+            - generic [ref=f1e303]:
+              - heading "Tareas sin completar" [level=2] [ref=f1e304]
+              - paragraph [ref=f1e305]: Bloques que todavía requieren seguimiento.
+            - navigation "Paginación del listado" [ref=f1e306]:
+              - generic [ref=f1e307]: Página 1/1
+          - list [ref=f1e308]:
+            - listitem [ref=f1e309]:
+              - generic [ref=f1e310]:
+                - strong [ref=f1e311]: Test Task E2E
+                - generic [ref=f1e312]: lun, 05/10 · 05:00
+              - generic [ref=f1e313]:
+                - button "Finalizada" [ref=f1e314] [cursor=pointer]
+                - button "No finalizada" [ref=f1e315] [cursor=pointer]
+            - listitem [ref=f1e316]:
+              - generic [ref=f1e317]:
+                - strong [ref=f1e318]: Test Task E2E
+                - generic [ref=f1e319]: lun, 05/10 · 05:00
+              - generic [ref=f1e320]:
+                - button "Finalizada" [ref=f1e321] [cursor=pointer]
+                - button "No finalizada" [ref=f1e322] [cursor=pointer]
+          - link "Ver todo" [ref=f1e324] [cursor=pointer]:
+            - /url: /tasks
+        - region "Hábitos sin completar" [ref=f1e325]:
+          - generic [ref=f1e327]:
+            - heading "Hábitos sin completar" [level=2] [ref=f1e328]
+            - paragraph [ref=f1e329]: Bloques que todavía requieren seguimiento.
+          - paragraph [ref=f1e330]: No hay elementos sin completar.
+          - link "Ver todo" [ref=f1e332] [cursor=pointer]:
+            - /url: /habits
+      - region [ref=f1e333]:
+        - generic [ref=f1e334]:
+          - paragraph [ref=f1e335]: CIERRE DE SEMANA
+          - heading "Mide lo que de verdad moviste" [level=2] [ref=f1e336]
+        - generic [ref=f1e337]:
+          - generic [ref=f1e338]:
+            - text: ¿Qué aprendí esta semana?
+            - textbox "¿Qué aprendí esta semana?" [ref=f1e339]:
+              - /placeholder: Escribe una nota breve...
+          - generic [ref=f1e340]:
+            - text: ¿Qué construí?
+            - textbox "¿Qué construí?" [ref=f1e341]:
+              - /placeholder: Escribe una nota breve...
+          - generic [ref=f1e342]:
+            - text: ¿Qué mejoré?
+            - textbox "¿Qué mejoré?" [ref=f1e343]:
+              - /placeholder: Escribe una nota breve...
+          - generic [ref=f1e344]:
+            - text: ¿Qué hábito falló?
+            - textbox "¿Qué hábito falló?" [ref=f1e345]:
+              - /placeholder: Escribe una nota breve...
+          - generic [ref=f1e346]:
+            - text: ¿Qué hábito mantuve?
+            - textbox "¿Qué hábito mantuve?" [ref=f1e347]:
+              - /placeholder: Escribe una nota breve...
+        - button "Guardar reflexión" [ref=f1e349] [cursor=pointer]
+  - contentinfo [ref=f1e350]: Vektor © 2026
+```
+
+# Test source
+
+```ts
+  6   | test.describe('Weekly Planner - Manual Testing', () => {
+  7   |   test.beforeEach(async ({ page }) => {
+  8   |     await page.goto('http://127.0.0.1:5173/login');
+  9   |     await page.fill('input[type="email"]', TEST_EMAIL);
+  10  |     await page.fill('input[type="password"]', TEST_PASSWORD);
+  11  |     await page.click('button[type="submit"]');
+  12  |     await page.waitForURL('**/dashboard', { timeout: 10000 });
+  13  |   });
+  14  | 
+  15  |   test('Desktop - Create task, complete task, check UI', async ({ page }) => {
+  16  |     await page.setViewportSize({ width: 1280, height: 720 });
+  17  |     await page.goto('http://127.0.0.1:5173/weekly-planner');
+  18  |     
+  19  |     // Wait for planner to load
+  20  |     await page.waitForSelector('.weekly-grid', { timeout: 10000 });
+  21  |     
+  22  |     // Take screenshot - Desktop
+  23  |     await page.screenshot({ path: 'test-results/weekly-planner-desktop.png', fullPage: true });
+  24  |     
+  25  |     // Click on a time slot (first column, 9am)
+  26  |     const slot = page.locator('.weekly-hour-slot').first();
+  27  |     await slot.click();
+  28  |     
+  29  |     // Modal should appear
+  30  |     await expect(page.locator('.weekly-time-slot-modal')).toBeVisible({ timeout: 5000 });
+  31  |     
+  32  |     // Take screenshot of modal
+  33  |     await page.screenshot({ path: 'test-results/weekly-planner-modal-desktop.png', fullPage: true });
+  34  |     
+  35  |     // Check all 5 tabs exist
+  36  |     await expect(page.locator('button[role="tab"]')).toHaveCount(5);
+  37  |     await expect(page.locator('button[role="tab"]:has-text("Tarea existente")')).toBeVisible();
+  38  |     await expect(page.locator('button[role="tab"]:has-text("Hábito existente")')).toBeVisible();
+  39  |     await expect(page.locator('button[role="tab"]:has-text("Nueva tarea")')).toBeVisible();
+  40  |     await expect(page.locator('button[role="tab"]:has-text("Nuevo hábito")')).toBeVisible();
+  41  |     await expect(page.locator('button[role="tab"]:has-text("Recordatorio")')).toBeVisible();
+  42  |     
+  43  |     // Create a new task
+  44  |     await page.click('button[role="tab"]:has-text("Nueva tarea")');
+  45  |     await page.fill('#task-title', 'Test Task E2E');
+  46  |     await page.fill('#task-description', 'Test description');
+  47  |     await page.selectOption('#task-priority', 'high');
+  48  |     await page.selectOption('#task-duration', '30');
+  49  |     await page.click('button[type="submit"]:has-text("Crear tarea y agendar")');
+  50  |     
+  51  |     // Wait for task to be created and modal to close
+  52  |     await expect(page.locator('.weekly-time-slot-modal')).not.toBeVisible({ timeout: 5000 });
+  53  |     
+  54  |     // Verify task appears in grid
+  55  |     await expect(page.locator('.weekly-block:has-text("Test Task E2E")')).toBeVisible({ timeout: 5000 });
+  56  |     
+  57  |     // Take screenshot after task creation
+  58  |     await page.screenshot({ path: 'test-results/weekly-planner-task-created.png', fullPage: true });
+  59  |     
+  60  |     // Complete the task - click on the task block
+  61  |     const taskBlock = page.locator('.weekly-block:has-text("Test Task E2E")');
+  62  |     await taskBlock.click();
+  63  |     
+  64  |     // Status change modal should appear - select "completed"
+  65  |     await page.click('button:has-text("Finalizada")');
+  66  |     
+  67  |     // Wait for status to update
+  68  |     await page.waitForTimeout(1000);
+  69  |     
+  70  |     // Take screenshot after completion
+  71  |     await page.screenshot({ path: 'test-results/weekly-planner-task-completed.png', fullPage: true });
+  72  |     
+  73  |     console.log('✅ Desktop test passed');
+  74  |   });
+  75  | 
+  76  |   test('Tablet - Click time slot opens modal', async ({ page }) => {
+  77  |     await page.setViewportSize({ width: 768, height: 1024 });
+  78  |     await page.goto('http://127.0.0.1:5173/weekly-planner');
+  79  |     
+  80  |     await page.waitForSelector('.weekly-grid', { timeout: 10000 });
+  81  |     
+  82  |     await page.screenshot({ path: 'test-results/weekly-planner-tablet.png', fullPage: true });
+  83  |     
+  84  |     const slot = page.locator('.weekly-hour-slot').first();
+  85  |     await slot.click();
+  86  |     
+  87  |     await expect(page.locator('.weekly-time-slot-modal')).toBeVisible({ timeout: 5000 });
+  88  |     await expect(page.locator('button[role="tab"]')).toHaveCount(5);
+  89  |     
+  90  |     await page.screenshot({ path: 'test-results/weekly-planner-modal-tablet.png', fullPage: true });
+  91  |     
+  92  |     await page.click('button:has-text("Cancelar")');
+  93  |     
+  94  |     console.log('✅ Tablet test passed');
+  95  |   });
+  96  | 
+  97  |   test('Mobile - Click time slot opens modal', async ({ page }) => {
+  98  |     await page.setViewportSize({ width: 375, height: 667 });
+  99  |     await page.goto('http://127.0.0.1:5173/weekly-planner');
+  100 |     
+  101 |     await page.waitForSelector('.weekly-grid', { timeout: 10000 });
+  102 |     
+  103 |     await page.screenshot({ path: 'test-results/weekly-planner-mobile.png', fullPage: true });
+  104 |     
+  105 |     const slot = page.locator('.weekly-hour-slot').first();
+> 106 |     await slot.click();
+      |                ^ Error: locator.click: Test timeout of 120000ms exceeded.
+  107 |     
+  108 |     await expect(page.locator('.weekly-time-slot-modal')).toBeVisible({ timeout: 5000 });
+  109 |     await expect(page.locator('button[role="tab"]')).toHaveCount(5);
+  110 |     
+  111 |     await page.screenshot({ path: 'test-results/weekly-planner-modal-mobile.png', fullPage: true });
+  112 |     
+  113 |     await page.click('button:has-text("Cancelar")');
+  114 |     
+  115 |     console.log('✅ Mobile test passed');
+  116 |   });
+  117 | 
+  118 |   test('Theme toggle - Switch to light mode', async ({ page }) => {
+  119 |     await page.setViewportSize({ width: 1280, height: 720 });
+  120 |     await page.goto('http://127.0.0.1:5173/settings');
+  121 |     
+  122 |     await page.waitForSelector('select', { timeout: 5000 });
+  123 |     
+  124 |     // Get current theme
+  125 |     const htmlTheme = await page.getAttribute('html', 'data-theme');
+  126 |     console.log('Initial theme:', htmlTheme);
+  127 |     
+  128 |     // Toggle theme
+  129 |     const themeSelect = page.locator('select');
+  130 |     await themeSelect.selectOption('light');
+  131 |     
+  132 |     const htmlThemeLight = await page.getAttribute('html', 'data-theme');
+  133 |     expect(htmlThemeLight).toBe('light');
+  134 |     console.log('Theme switched to:', htmlThemeLight);
+  135 |     
+  136 |     // Switch back to dark
+  137 |     await themeSelect.selectOption('dark');
+  138 |     const htmlThemeDark = await page.getAttribute('html', 'data-theme');
+  139 |     expect(htmlThemeDark).toBe('dark');
+  140 |     console.log('Theme switched back to:', htmlThemeDark);
+  141 |   });
+  142 | 
+  143 |   test('Console errors check', async ({ page }) => {
+  144 |     const errors = [];
+  145 |     page.on('console', msg => {
+  146 |       if (msg.type() === 'error') {
+  147 |         errors.push(msg.text());
+  148 |       }
+  149 |     });
+  150 |     
+  151 |     await page.setViewportSize({ width: 1280, height: 720 });
+  152 |     await page.goto('http://127.0.0.1:5173/weekly-planner');
+  153 |     await page.waitForSelector('.weekly-grid', { timeout: 10000 });
+  154 |     
+  155 |     // Click time slot
+  156 |     const slot = page.locator('.weekly-hour-slot').first();
+  157 |     await slot.click();
+  158 |     await expect(page.locator('.weekly-time-slot-modal')).toBeVisible({ timeout: 5000 });
+  159 |     await page.click('button:has-text("Cancelar")');
+  160 |     
+  161 |     // Filter out expected errors
+  162 |     const criticalErrors = errors.filter(e => 
+  163 |       !e.includes('401') && 
+  164 |       !e.includes('403') && 
+  165 |       !e.includes('favicon') &&
+  166 |       !e.includes('ERR_INSUFFICIENT_RESOURCES') &&
+  167 |       !e.includes('Maximum update depth')
+  168 |     );
+  169 |     
+  170 |     console.log('All console errors:', errors);
+  171 |     console.log('Critical errors:', criticalErrors);
+  172 |     
+  173 |     expect(criticalErrors.length).toBe(0);
+  174 |   });
+  175 | });
+```

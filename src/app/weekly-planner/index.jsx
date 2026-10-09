@@ -8,7 +8,12 @@ import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
 import WeeklyGrid from '../../components/weekly-planner/WeeklyGrid'
 import WeeklyReview from '../../components/weekly-planner/WeeklyReview'
 import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotModal'
+import PlannerBacklogSection from './components/PlannerBacklogSection'
+import PlannerIncompleteSection from './components/PlannerIncompleteSection'
+import { updateHabitStatus } from './services/updateHabitStatus'
+import { updateTaskStatus } from './services/updateTaskStatus'
 import '../../styles/weekly-planner.css'
+import './weeklyPlanner.css'
 
 // Une estado de agenda, métricas, revisión y edición por arrastrar o por modal.
 export default function WeeklyPlannerPage() {
@@ -19,6 +24,8 @@ export default function WeeklyPlannerPage() {
   const review = useWeeklyReview(user?.id, planner.weekStart)
   const [progress, setProgress] = useState(null)
   const [habitConsistency, setHabitConsistency] = useState([])
+  const [statusError, setStatusError] = useState('')
+  const [updatingEntryId, setUpdatingEntryId] = useState(null)
   const dates = useMemo(() => getWeekDates(planner.weekStart), [planner.weekStart])
 
   // Modal state
@@ -103,6 +110,27 @@ export default function WeeklyPlannerPage() {
     await autoReschedule(taskId)
   }
 
+  async function handleIncompleteStatusChange(entry, itemType, status) {
+    setUpdatingEntryId(entry.id)
+    setStatusError('')
+    try {
+      const { error } = itemType === 'task'
+        ? await updateTaskStatus(entry.id, status)
+        : await updateHabitStatus(entry.id, status)
+
+      if (error) {
+        setStatusError(error.message || 'No se pudo actualizar el estado.')
+        return
+      }
+
+      await planner.reload()
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'No se pudo actualizar el estado.')
+    } finally {
+      setUpdatingEntryId(null)
+    }
+  }
+
   // Agenda rápidamente un hábito para hoy en un intervalo matutino por defecto.
   async function scheduleHabit(habit) {
     const day = dates[Math.min(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1, 6)]
@@ -147,19 +175,89 @@ export default function WeeklyPlannerPage() {
     <main className="weekly-planner-page">
       <div className="weekly-planner-shell">
         <header className="weekly-planner-header">
-          <div><p className="auth-kicker">VEKTOR / WEEKLY PLANNER</p><h1>Tu semana, con espacio para lo importante</h1><p>Planifica con precisión y deja que el calendario aprenda de tus decisiones.</p></div>
-          <div className="weekly-week-controls"><button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, -1))}>Anterior</button><button type="button" onClick={() => planner.setWeekStart(getWeekStart())}>Hoy</button><button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, 1))}>Siguiente</button><button type="button" className="weekly-clear-week-button" onClick={planner.clearWeek}>Limpiar semana</button></div>
+          <div>
+            <p className="auth-kicker">VEKTOR / WEEKLY PLANNER</p>
+            <h1>Tu semana, con espacio para lo importante</h1>
+            <p>Planifica con precisión y deja que el calendario aprenda de tus decisiones.</p>
+          </div>
+          <div className="weekly-week-controls">
+            <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, -1))}>Anterior</button>
+            <button type="button" onClick={() => planner.setWeekStart(getWeekStart())}>Hoy</button>
+            <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, 1))}>Siguiente</button>
+            <button type="button" className="weekly-clear-week-button" onClick={planner.clearWeek}>Limpiar semana</button>
+          </div>
         </header>
         {planner.error && <p className="weekly-error" role="alert">{planner.error}</p>}
-        <section className="weekly-metrics" aria-label="Resumen semanal"><div><span>Completadas</span><strong>{progress?.completed || 0}</strong></div><div><span>Progreso</span><strong>{progress?.completionRate || 0}%</strong></div><div><span>Enfoques</span><strong>{progress?.focusSessions || 0}</strong></div><div><span>Hábitos activos</span><strong>{habitConsistency.filter((habit) => habit.completed > 0).length}</strong></div></section>
+        {statusError && <p className="weekly-error" role="alert">{statusError}</p>}
+        
+        <section className="weekly-metrics" aria-label="Resumen semanal">
+          <div><span>Completadas</span><strong>{progress?.completed || 0}</strong></div>
+          <div><span>Progreso</span><strong>{progress?.completionRate || 0}%</strong></div>
+          <div><span>Enfoques</span><strong>{progress?.focusSessions || 0}</strong></div>
+          <div><span>Hábitos activos</span><strong>{habitConsistency.filter((habit) => habit.completed > 0).length}</strong></div>
+        </section>
+        
         <div className="weekly-workspace">
+          {/* LEFT SIDEBAR - Backlog sections only */}
           <aside className="weekly-sidebar">
-            <section><h2>Por colocar</h2><p>Arrastra una tarea a cualquier hora.</p>{planner.tasks.filter((task) => task.status !== 'completed' && !planner.entries.some((entry) => entry.task_id === task.id)).map((task) => <div key={task.id} className={`weekly-backlog-task priority-${task.priority || 'medium'}`} draggable onDragStart={(event) => handleBacklogDragStart(event, task)}><strong>{task.title}</strong><span>{task.priority || 'medium'}</span></div>)}</section>
-            <section><h2>Hábitos</h2>{planner.habits.map((habit) => <button key={habit.id} type="button" draggable className="weekly-habit-picker" onDragStart={(event) => handleHabitDragStart(event, habit)} onClick={() => scheduleHabit(habit)}><span>{habit.title}</span><small>Arrastra o +07:00</small></button>)}</section>
+            <PlannerBacklogSection
+              itemType="task"
+              items={planner.tasks}
+              entries={planner.entries}
+              onDragStart={handleBacklogDragStart}
+            />
+            <PlannerBacklogSection
+              itemType="habit"
+              items={planner.habits}
+              entries={planner.entries}
+              onDragStart={handleHabitDragStart}
+              onHabitSchedule={scheduleHabit}
+            />
             {isRescheduling && <p className="weekly-muted">Buscando el siguiente hueco...</p>}
           </aside>
-          <WeeklyGrid dates={dates} currentTime={currentTime} today={formatDate(currentTime)} entries={planner.entries} taskById={planner.taskById} habitById={planner.habitById} focusSessions={planner.focusSessions} onDropTask={handleDropTask} onDragStart={handleDragStart} onStatusChange={handleStatusChange} onDurationChange={handleDurationChange} onAutoReschedule={handleAutoReschedule} onDelete={planner.removeEntry} onTaskUpdate={handleTaskUpdate} onClearDay={planner.clearDay} onClickSlot={handleClickSlot} />
+
+          {/* RIGHT SIDE - Calendar Grid */}
+          <div className="weekly-calendar-area">
+            <WeeklyGrid
+              dates={dates}
+              currentTime={currentTime}
+              today={formatDate(currentTime)}
+              entries={planner.entries}
+              taskById={planner.taskById}
+              habitById={planner.habitById}
+              focusSessions={planner.focusSessions}
+              onDropTask={handleDropTask}
+              onDragStart={handleDragStart}
+              onStatusChange={handleStatusChange}
+              onDurationChange={handleDurationChange}
+              onAutoReschedule={handleAutoReschedule}
+              onDelete={planner.removeEntry}
+              onTaskUpdate={handleTaskUpdate}
+              onClearDay={planner.clearDay}
+              onClickSlot={handleClickSlot}
+            />
+          </div>
         </div>
+
+        {/* INCOMPLETE SECTIONS - Side by side below calendar */}
+        <section className="weekly-incomplete-area">
+          <PlannerIncompleteSection
+            itemType="task"
+            entries={planner.entries}
+            items={planner.tasks}
+            onStatusChange={handleIncompleteStatusChange}
+            updatingEntryId={updatingEntryId}
+          />
+          <PlannerIncompleteSection
+            itemType="habit"
+            entries={planner.entries}
+            items={planner.habits}
+            onStatusChange={handleIncompleteStatusChange}
+            updatingEntryId={updatingEntryId}
+          />
+        </section>
+
+        {/* WEEKLY REVIEW - Bottom */}
         <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
       </div>
       
