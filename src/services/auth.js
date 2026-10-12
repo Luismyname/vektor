@@ -34,6 +34,18 @@ export async function getOnboardingDestination() {
   return { destination: profile?.completed_onboarding ? '/dashboard' : '/onboarding', error: null }
 }
 
+// Actualiza el perfil del usuario (onboarding, valores, cronotipo, hábitos)
+export async function updateProfile(userId, updates) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('user_id', userId)
+    .select()
+    .maybeSingle()
+
+  return { data, error }
+}
+
 // Crea una cuenta y guarda los datos personales como metadatos de autenticación.
 export async function registerUser({
   firstName,

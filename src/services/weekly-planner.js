@@ -1,22 +1,18 @@
 ﻿import { supabase } from './supabase';
 
-// Columnas usadas por las consultas y escrituras de bloques planificados.
-const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, status, notes, created_at';
-// Orden numérico de prioridades, usado para ordenar tareas sin mutar la lista original.
+const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, status, notes, created_at, energy_level, is_creative_block, focus_session_id';
+
 const PRIORITY_SCORE = { high: 0, medium: 1, low: 2 };
 
-// Normaliza fechas de entrada a mediodía para evitar desplazamientos por zona horaria.
 function toDate(value) {
   return value instanceof Date ? new Date(value) : new Date(`${value}T12:00:00`);
 }
 
-// Da formato YYYY-MM-DD para las fechas persistidas por el planificador.
 export function formatDate(value) {
   const date = toDate(value);
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
-// Calcula la hora final a partir de una hora inicial y una duración en minutos.
 export function getTimeRange(startTime, durationMinutes = 30) {
   const normalized = String(startTime || '00:00');
   const [hours, minutes] = normalized.split(':').map(Number);
@@ -36,7 +32,6 @@ export function getTimeRange(startTime, durationMinutes = 30) {
   };
 }
 
-// Devuelve los siete días consecutivos a partir de la fecha de inicio recibida.
 export function getWeekDates(weekStart) {
   const start = new Date(weekStart);
   const dates = [];
@@ -48,7 +43,6 @@ export function getWeekDates(weekStart) {
   return dates;
 }
 
-// Ajusta una fecha al lunes de su semana y limpia la parte horaria.
 export function getWeekStart(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay();
@@ -58,16 +52,14 @@ export function getWeekStart(date = new Date()) {
   return d;
 }
 
-// Desplaza la semana en bloques de siete días y vuelve a normalizar al lunes.
 export function shiftWeek(weekStart, amount) {
   const date = weekStart instanceof Date
     ? new Date(weekStart)
-    : new Date(`${weekStart}T12:00:00`)
-  date.setDate(date.getDate() + amount * 7)
-  return getWeekStart(date)
+    : new Date(`${weekStart}T12:00:00`);
+  date.setDate(date.getDate() + amount * 7);
+  return getWeekStart(date);
 }
 
-// Carga, ordenados por fecha y hora, los bloques del usuario para los siete días.
 export async function getWeeklyPlanner(userId, weekStart) {
   const dates = getWeekDates(weekStart);
   const { data, error } = await supabase
@@ -82,17 +74,21 @@ export async function getWeeklyPlanner(userId, weekStart) {
   return { entries: data || [], error };
 }
 
-// Carga en paralelo tareas y hábitos que la interfaz puede programar.
 export async function getPlannerContext(userId) {
-  const [{ data: tasks, error: tasksError }, { data: profile, error: profileError }] = await Promise.all([
+  const [{ data: tasks }, { data: habitsData }] = await Promise.all([
     supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('profiles').select('habits').eq('user_id', userId).maybeSingle(),
+    supabase.from('habits').select('*').eq('user_id', userId).eq('active', true).order('created_at', { ascending: false }),
   ]);
 
-  return { tasks: tasks || [], habits: profile?.habits || { recommended: [], custom: [] }, error: tasksError || profileError };
+  const habits = { recommended: [], custom: [] };
+  (habitsData || []).forEach(habit => {
+    if (habit.source === 'recommended') habits.recommended.push(habit);
+    else habits.custom.push(habit);
+  });
+
+  return { tasks: tasks || [], habits, error: null };
 }
 
-// Lee sesiones semanales y, si la tabla no está disponible, adapta actividad completada.
 export async function getFocusSessions(userId, weekStart) {
   const dates = getWeekDates(weekStart);
   const start = new Date(`${dates[0]}T00:00:00`).toISOString();
@@ -112,67 +108,82 @@ export async function getFocusSessions(userId, weekStart) {
   return { sessions: (data || []).map((session) => ({ ...session, started_at: session.created_at, ended_at: session.created_at, duration_minutes: session.duration || 0, status: 'completed' })), error };
 }
 
-// Crea un bloque semanal vinculado a una tarea existente.
-export async function scheduleTask(task, date, startTime, endTime, userId = task.user_id, notes = '') {
-  const payload = { user_id: userId, date: formatDate(date), start_time: startTime, end_time: endTime, task_id: task.id, habit_id: null, status: 'scheduled', notes };
+export async function scheduleTask(task, date, startTime, endTime, userId = task.user_id, notes = '', options = {}) {
+  const { energyLevel, isCreativeBlock, focusSessionId } = options;
+  const payload = {
+    user_id: userId,
+    date: formatDate(date),
+    start_time: startTime,
+    end_time: endTime,
+    task_id: task.id,
+    habit_id: null,
+    status: 'scheduled',
+    notes,
+    energy_level: energyLevel,
+    is_creative_block: isCreativeBlock || false,
+    focus_session_id: focusSessionId,
+  };
   const { data, error } = await supabase.from('weekly_planner').insert(payload).select(PLANNER_FIELDS).single();
   return { entry: data, error };
 }
 
-// Crea un bloque semanal vinculado a un hábito existente.
-export async function scheduleHabit(habit, date, startTime, endTime, userId, notes = '') {
-  const payload = { user_id: userId, date: formatDate(date), start_time: startTime, end_time: endTime, task_id: null, habit_id: habit.id || habit.title, status: 'scheduled', notes };
+export async function scheduleHabit(habit, date, startTime, endTime, userId, notes = '', options = {}) {
+  const { energyLevel, isCreativeBlock, focusSessionId } = options;
+  const payload = {
+    user_id: userId,
+    date: formatDate(date),
+    start_time: startTime,
+    end_time: endTime,
+    task_id: null,
+    habit_id: habit.id,
+    status: 'scheduled',
+    notes,
+    energy_level: energyLevel,
+    is_creative_block: isCreativeBlock || false,
+    focus_session_id: focusSessionId,
+  };
   const { data, error } = await supabase.from('weekly_planner').insert(payload).select(PLANNER_FIELDS).single();
   return { entry: data, error };
 }
 
-// Persiste cambios parciales en un bloque y devuelve su versión actualizada.
 export async function updatePlannerEntry(id, changes) {
   const { data, error } = await supabase.from('weekly_planner').update(changes).eq('id', id).select(PLANNER_FIELDS).single();
   return { entry: data, error };
 }
 
-// Cambia fecha y horario de una entrada y la marca como movida.
 export async function moveTask(entryId, taskId, newDate, newStart, newEnd) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, task_id: taskId, status: 'moved' });
 }
 
-// Mueve cualquier bloque conservando sus vínculos y actualizando su estado.
 export async function movePlannerEntry(entryId, newDate, newStart, newEnd) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, status: 'moved' });
 }
 
-// Cambia las horas de inicio y fin de un bloque sin alterar su fecha.
 export async function resizePlannerEntry(entryId, newStart, newEnd) {
   return updatePlannerEntry(entryId, { start_time: newStart, end_time: newEnd });
 }
 
-// Borra un bloque semanal concreto.
 export async function deletePlannerEntry(entryId) {
   const { error } = await supabase.from('weekly_planner').delete().eq('id', entryId);
   return { error };
 }
 
-// Borra todos los bloques de un usuario para una fecha normalizada.
 export async function deletePlannerDay(userId, date) {
   const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).eq('date', formatDate(date));
   return { error };
 }
 
-// Borra los bloques del usuario cuyo día cae dentro de la semana indicada.
 export async function deletePlannerWeek(userId, weekStart) {
   const dates = getWeekDates(weekStart);
   const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).gte('date', dates[0]).lte('date', dates[dates.length - 1]);
   return { error };
 }
 
-// Lista tareas que aún no se han completado para ofrecerlas al planificador.
 export async function getOpenTasks(userId) {
   const { data, error } = await supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at').eq('user_id', userId).neq('status', 'completed').order('created_at');
   return { tasks: data || [], error };
 }
 
-// Busca un día libre posterior al lunes y asigna un horario según prioridad.
 export async function autoReschedule(taskId, userId, weekStart = getWeekStart()) {
   const { tasks, error: tasksError } = await getOpenTasks(userId);
   if (tasksError) return { entry: null, error: tasksError };
@@ -191,7 +202,6 @@ export async function autoReschedule(taskId, userId, weekStart = getWeekStart())
   return scheduleTask(task, targetDate, startTime, endTime, userId, `Reprogramada automáticamente por prioridad ${task.priority || 'medium'}.`);
 }
 
-// Inserta una tarea pendiente y crea el bloque que la agenda en la misma operación de flujo.
 export async function createTaskAndSchedule(taskData, date, startTime, endTime, userId) {
   const { data: task, error: taskError } = await supabase.from('tasks').insert({
     user_id: userId,
@@ -207,43 +217,27 @@ export async function createTaskAndSchedule(taskData, date, startTime, endTime, 
   return scheduleTask(task, date, startTime, endTime, userId, taskData.notes || '');
 }
 
-// Añade un hábito personalizado al JSON del perfil y lo agenda en la semana.
 export async function createHabitAndSchedule(habitData, date, startTime, endTime, userId) {
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('habits')
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data: habit, error: habitError } = await supabase
+    .from('habits')
+    .insert({
+      user_id: userId,
+      title: habitData.title,
+      description: habitData.description || '',
+      duration_minutes: habitData.duration || 30,
+      color: habitData.color || '#6366f1',
+      frequency: habitData.frequency || 'daily',
+      active: true,
+      source: 'custom',
+    })
+    .select()
+    .single();
 
-  if (profileError) return { entry: null, error: profileError };
+  if (habitError) return { entry: null, error: habitError };
 
-  const currentHabits = profile?.habits || { recommended: [], custom: [] };
-  const newHabit = {
-    id: `habit-${Date.now()}`,
-    title: habitData.title,
-    description: habitData.description || '',
-    color: habitData.color || '#6366f1',
-    frequency: habitData.frequency || 'daily',
-    duration: habitData.duration || 30,
-    active: true,
-    created_at: new Date().toISOString(),
-  };
-
-  const updatedHabits = {
-    recommended: currentHabits.recommended || [],
-    custom: [...(currentHabits.custom || []), newHabit],
-  };
-
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .upsert({ user_id: userId, habits: updatedHabits }, { onConflict: 'user_id' });
-
-  if (updateError) return { entry: null, error: updateError };
-
-  return { ...await scheduleHabit(newHabit, date, startTime, endTime, userId, habitData.notes || ''), habit: newHabit };
+  return { ...await scheduleHabit(habit, date, startTime, endTime, userId, habitData.notes || ''), habit };
 }
 
-// Crea un bloque de recordatorio independiente, sin tarea ni hábito asociado.
 export async function createReminder(reminderData, date, startTime, endTime, userId) {
   const payload = {
     user_id: userId,
@@ -259,24 +253,42 @@ export async function createReminder(reminderData, date, startTime, endTime, use
   return { entry: data, error };
 }
 
-// Resume cuántos bloques hay por estado y cuántas sesiones de enfoque hubo.
+export async function scheduleCreativeBlock(blockData, date, startTime, endTime, userId) {
+  const payload = {
+    user_id: userId,
+    date: formatDate(date),
+    start_time: startTime,
+    end_time: endTime,
+    task_id: blockData.plannedTaskId || null,
+    habit_id: null,
+    status: 'scheduled',
+    notes: blockData.notes || '',
+    energy_level: blockData.energyLevel || null,
+    is_creative_block: true,
+    focus_session_id: null,
+    block_type: blockData.blockType,
+    quality_score: blockData.qualityScore,
+    interruptions: blockData.interruptions,
+  };
+  const { data, error } = await supabase.from('weekly_planner').insert(payload).select(PLANNER_FIELDS).single();
+  return { entry: data, error };
+}
+
 export async function getWeeklySummary(userId, weekStart) {
   const [{ entries, error }, { sessions }] = await Promise.all([getWeeklyPlanner(userId, weekStart), getFocusSessions(userId, weekStart)]);
   const plannedEntries = entries.filter((entry) => entry.task_id || entry.habit_id);
   return { summary: { scheduled: plannedEntries.filter((entry) => entry.status === 'scheduled').length, completed: plannedEntries.filter((entry) => entry.status === 'completed').length, failed: plannedEntries.filter((entry) => entry.status === 'failed').length, moved: plannedEntries.filter((entry) => entry.status === 'moved').length, focusSessions: sessions.length }, error };
 }
 
-// Añade al resumen semanal la tasa porcentual de bloques completados.
 export async function getWeeklyProgress(userId, weekStart) {
   const { summary, error } = await getWeeklySummary(userId, weekStart);
   const total = summary.completed + summary.failed + summary.moved + summary.scheduled;
   return { progress: { ...summary, completionRate: total ? Math.round((summary.completed / total) * 100) : 0 }, error };
 }
 
-// Calcula por hábito cuántos bloques se programaron, completaron o fallaron.
 export async function getHabitConsistency(userId, weekStart) {
-  const [{ entries, error }, { habits }] = await Promise.all([getWeeklyPlanner(userId, weekStart), getPlannerContext(userId)]);
-  const habitList = [...(habits?.recommended || []), ...(habits?.custom || [])].filter((habit) => habit.active !== false);
+  const [{ entries, error }, { data: habits }] = await Promise.all([getWeeklyPlanner(userId, weekStart), supabase.from('habits').select('*').eq('user_id', userId).eq('active', true).order('created_at', { ascending: false })]);
+  const habitList = (habits || []).filter((habit) => habit.active !== false);
   const consistency = habitList.map((habit) => {
     const scheduled = entries.filter((entry) => entry.habit_id === habit.id || entry.habit_id === habit.title);
     return { ...habit, scheduled: scheduled.length, completed: scheduled.filter((entry) => entry.status === 'completed').length, failed: scheduled.filter((entry) => entry.status === 'failed').length };
@@ -284,7 +296,6 @@ export async function getHabitConsistency(userId, weekStart) {
   return { consistency, error };
 }
 
-// Recupera el historial de cambios de estado de hábitos dentro de un intervalo.
 export async function getHabitStatusHistory(userId, startDate, endDate) {
   const { data, error } = await supabase
     .from('habit_status_history')
@@ -297,7 +308,6 @@ export async function getHabitStatusHistory(userId, startDate, endDate) {
   return { events: data || [], error };
 }
 
-// Ordena por prioridad en una copia para no modificar la colección recibida.
 export function sortTasksByPriority(tasks) {
   return [...tasks].sort((left, right) => (PRIORITY_SCORE[left.priority] ?? 1) - (PRIORITY_SCORE[right.priority] ?? 1));
 }

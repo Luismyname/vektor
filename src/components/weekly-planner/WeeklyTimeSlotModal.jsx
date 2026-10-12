@@ -4,6 +4,7 @@ import CreateHabitForm from './forms/CreateHabitForm'
 import CreateReminderForm from './forms/CreateReminderForm'
 import ExistingTaskSelector from './forms/ExistingTaskSelector'
 import ExistingHabitSelector from './forms/ExistingHabitSelector'
+import CreativeBlockModal from './forms/CreativeBlockModal'
 
 // Selector por pestañas para añadir tareas, hábitos o recordatorios a una franja.
 export default function WeeklyTimeSlotModal({
@@ -130,6 +131,16 @@ export default function WeeklyTimeSlotModal({
           >
             Recordatorio
           </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'creative-block'}
+            aria-controls="panel-creative-block"
+            id="tab-creative-block"
+            className={`modal-tab ${activeTab === 'creative-block' ? 'active' : ''}`}
+            onClick={() => setActiveTab('creative-block')}
+          >
+            🧠 Bloque Creativo
+          </button>
         </div>
 
         <div className="tab-panels">
@@ -184,6 +195,26 @@ export default function WeeklyTimeSlotModal({
               onCancel={onClose}
               initialDuration={defaultDuration}
               initialStartTime={startTime || '09:00'}
+            />
+          </div>
+
+          <div
+            role="tabpanel"
+            id="panel-creative-block"
+            aria-labelledby="tab-creative-block"
+            hidden={activeTab !== 'creative-block'}
+          >
+            <CreativeBlockModal
+              isOpen={activeTab === 'creative-block'}
+              onClose={() => setActiveTab('existing-task')}
+              startTime={startTime || '09:00'}
+              defaultDuration={defaultDuration}
+              onSubmit={(action) => {
+                if (action.type === 'creative-block') {
+                  onSubmit({ type: 'creative-block', ...action })
+                }
+              }}
+              tasks={tasks}
             />
           </div>
 

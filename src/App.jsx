@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, useContext } from 'react'
 import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from './context/AuthProvider'
+import { AuthContext } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeProvider'
 const Dashboard = lazy(() => import('./app/dashboard'))
-const Survey = lazy(() => import('./app/survey'))
+// const Survey = lazy(() => import('./app/survey')) // Replaced by OnboardingWizard
 const Login = lazy(() => import('./app/auth/login'))
 const Register = lazy(() => import('./app/auth/register'))
 const Demo = lazy(() => import('./app/demo'))
@@ -20,10 +21,12 @@ const ActivityDetail = lazy(() => import('./app/activity/components/ActivityDeta
 const Settings = lazy(() => import('./app/settings'))
 const WeeklyPlanner = lazy(() => import('./app/weekly-planner'))
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
+const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWizard'))
 
 // Protege rutas según la sesión y el estado de finalización del onboarding.
 function ProfileGate({ children, requireCompleted = false, onboarding = false }) {
   const location = useLocation()
+  const auth = useContext(AuthContext)
   const [state, setState] = useState({ loading: true, user: null, completed: false })
 
   useEffect(() => {
@@ -45,8 +48,11 @@ function ProfileGate({ children, requireCompleted = false, onboarding = false })
     return () => { active = false }
   }, [])
 
-  if (state.loading) return <div className="route-loading">Comprobando tu perfil...</div>
-  if (!state.user) return <Navigate to="/" replace />
+  // Usar needsOnboarding del contexto si está disponible
+  const needsOnboarding = auth.needsOnboarding === true || (requireCompleted && !state.completed)
+
+  if (state.loading || auth.loading) return <div className="route-loading">Comprobando tu perfil...</div>
+  if (!state.user && !auth.user) return <Navigate to="/" replace />
   if (onboarding) {
     const mode = new URLSearchParams(location.search).get('mode')
     if (mode !== null && mode !== 'login' && mode !== 'edit') return <Navigate to="/" replace />
@@ -54,7 +60,7 @@ function ProfileGate({ children, requireCompleted = false, onboarding = false })
     if (mode === 'edit' && !state.completed) return <Navigate to="/onboarding" replace />
     return children
   }
-  if (requireCompleted && !state.completed) return <Navigate to="/onboarding" replace />
+  if (needsOnboarding) return <Navigate to="/onboarding" replace />
   return children
 }
 
@@ -82,8 +88,8 @@ export default function App() {
               <Route path="/" element={<Portada />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
-              <Route path="/onboarding" element={<ProfileGate onboarding><PageLayout showNavbar={false}><Survey /></PageLayout></ProfileGate>} />
-              <Route path="/survey" element={<Navigate to="/" replace />} />
+              <Route path="/onboarding" element={<ProfileGate><PageLayout showNavbar={false}><OnboardingWizard /></PageLayout></ProfileGate>} />
+              <Route path="/survey" element={<Navigate to="/onboarding" replace />} />
               <Route path="/profile" element={<ProfileGate requireCompleted><PageLayout><Profile /></PageLayout></ProfileGate>} />
               <Route path="/habits" element={<ProfileGate requireCompleted><PageLayout><Habits /></PageLayout></ProfileGate>} />
               <Route path="/tasks" element={<ProfileGate requireCompleted><PageLayout><Tasks /></PageLayout></ProfileGate>} />

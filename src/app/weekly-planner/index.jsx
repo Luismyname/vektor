@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
+import { startFocusSession, updateFocusSessionQuality } from '../../services/focus-sessions'
 import { formatDate, getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress, shiftWeek } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
+import { useWeeklyAnalytics } from '../../hooks/weekly-planner/useWeeklyAnalytics'
 import WeeklyGrid from '../../components/weekly-planner/WeeklyGrid'
 import WeeklyReview from '../../components/weekly-planner/WeeklyReview'
 import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotModal'
+import FocusQualityModal from '../../components/weekly-planner/forms/FocusQualityModal'
+import EnergyHeatmap from '../../components/weekly-planner/EnergyHeatmap'
+import CreativeBlocksSummary from '../../components/weekly-planner/CreativeBlocksSummary'
+import WeeklyPatterns from '../../components/weekly-planner/WeeklyPatterns'
+import CorrelationPanel from '../../components/weekly-planner/CorrelationPanel'
 import PlannerBacklogSection from './components/PlannerBacklogSection'
 import PlannerIncompleteSection from './components/PlannerIncompleteSection'
 import { updateHabitStatus } from './services/updateHabitStatus'
@@ -22,6 +29,7 @@ export default function WeeklyPlannerPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const planner = useWeeklyPlanner(user?.id)
   const review = useWeeklyReview(user?.id, planner.weekStart)
+  const analytics = useWeeklyAnalytics(user?.id, planner.weekStart)
   const [progress, setProgress] = useState(null)
   const [habitConsistency, setHabitConsistency] = useState([])
   const [statusError, setStatusError] = useState('')
@@ -30,6 +38,7 @@ export default function WeeklyPlannerPage() {
 
   // Modal state
   const [modalSlot, setModalSlot] = useState(null)
+  const [focusQualityModal, setFocusQualityModal] = useState(null)
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -159,6 +168,17 @@ export default function WeeklyPlannerPage() {
       await planner.createHabitAndSchedule(action, date, selectedStartTime, selectedEndTime)
     } else if (action.type === 'reminder') {
       await planner.createReminder(action, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'creative-block') {
+      const blockEntry = await planner.createCreativeBlock(action, date, selectedStartTime, selectedEndTime)
+      // Auto-start focus session for creative blocks (deep work)
+      if (user && blockEntry) {
+        const durationMinutes = action.duration || 60
+        const { session, error } = await startFocusSession(user.id, action.plannedTaskId || blockEntry.id, durationMinutes)
+        if (!error && session) {
+          // Store the focus session ID in the creative block entry for later quality scoring
+          blockEntry.focusSessionId = session.id
+        }
+      }
     }
     setModalSlot(null)
   }
@@ -166,6 +186,17 @@ export default function WeeklyPlannerPage() {
   // Cierra el modal y descarta el intervalo seleccionado.
   function handleModalClose() {
     setModalSlot(null)
+  }
+
+  // Maneja la finalización de una sesión de enfoque y muestra el modal de calidad.
+  // eslint-disable-next-line no-unused-vars
+  function handleFocusSessionComplete(sessionData) {
+    setFocusQualityModal({
+      sessionId: sessionData.sessionId,
+      durationMinutes: sessionData.durationMinutes,
+      taskTitle: sessionData.taskTitle,
+      taskId: sessionData.taskId,
+    })
   }
 
   if (authError) return <div className="route-loading">{authError}</div>
@@ -198,7 +229,7 @@ export default function WeeklyPlannerPage() {
         </section>
         
         <div className="weekly-workspace">
-          {/* LEFT SIDEBAR - Backlog sections only */}
+          {/* LEFT SIDEBAR - Backlog sections */}
           <aside className="weekly-sidebar">
             <PlannerBacklogSection
               itemType="task"
@@ -216,7 +247,7 @@ export default function WeeklyPlannerPage() {
             {isRescheduling && <p className="weekly-muted">Buscando el siguiente hueco...</p>}
           </aside>
 
-          {/* RIGHT SIDE - Calendar Grid */}
+          {/* MIDDLE - Calendar Grid */}
           <div className="weekly-calendar-area">
             <WeeklyGrid
               dates={dates}
@@ -237,6 +268,35 @@ export default function WeeklyPlannerPage() {
               onClickSlot={handleClickSlot}
             />
           </div>
+
+          {/* RIGHT SIDEBAR - Analytics */}
+          <aside className="weekly-analytics-sidebar">
+            <EnergyHeatmap 
+              energyByDayHour={analytics.energyByDayHour} 
+              peakHours={analytics.detectedPeakHours}
+            />
+            <CreativeBlocksSummary 
+              stats={analytics.creativeStats}
+              weeklyBlocks={analytics.creativeBlocks}
+              creativeBlocksByDay={analytics.creativeBlocksByDay}
+              avgQuality={analytics.avgQuality}
+              formatDuration={analytics.formatDuration}
+            />
+            <WeeklyPatterns 
+              insights={analytics.insights}
+              bestDeepWorkDays={analytics.bestDeepWorkDays}
+              detectedPeakHours={analytics.detectedPeakHours}
+              chronotype={analytics.chronotype}
+            />
+            <CorrelationPanel 
+              energyQualityCorrelation={analytics.energyQualityCorrelation}
+              blocksWithEnergy={analytics.blocksWithEnergy}
+              progress={progress}
+              habitConsistency={habitConsistency}
+              creativeStats={analytics.creativeStats}
+              avgEnergyByHour={analytics.avgEnergyByHour}
+            />
+          </aside>
         </div>
 
         {/* INCOMPLETE SECTIONS - Side by side below calendar */}
@@ -272,6 +332,20 @@ export default function WeeklyPlannerPage() {
         tasks={planner.tasks}
         habits={planner.habits}
         user={user}
+      />
+      
+      <FocusQualityModal
+        isOpen={!!focusQualityModal}
+        onClose={() => setFocusQualityModal(null)}
+        onSubmit={async (qualityData) => {
+          if (focusQualityModal?.sessionId) {
+            // Update focus session with quality score
+            await updateFocusSessionQuality(focusQualityModal.sessionId, qualityData.qualityScore, qualityData.interruptions, qualityData.notes)
+          }
+        }}
+        durationMinutes={focusQualityModal?.durationMinutes || 0}
+        taskTitle={focusQualityModal?.taskTitle || 'Sesión de enfoque'}
+        taskId={focusQualityModal?.taskId}
       />
     </main>
   )

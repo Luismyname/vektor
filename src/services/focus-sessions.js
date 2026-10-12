@@ -44,3 +44,22 @@ export async function getActiveFocusSession(userId) {
 
   return { session: data, error }
 }
+
+// Actualiza la calidad de una sesión de enfoque completada.
+export async function updateFocusSessionQuality(sessionId, qualityScore, interruptions, notes) {
+  const payload = {
+    quality_score: qualityScore,
+    interruptions: interruptions,
+    notes: notes,
+    status: 'completed',
+    ended_at: new Date().toISOString(),
+  }
+  const { data, error } = await supabase
+    .from('focus_sessions')
+    .update(payload)
+    .eq('id', sessionId)
+    .select(FOCUS_SESSION_FIELDS)
+    .single()
+
+  return { session: data, error }
+}

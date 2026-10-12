@@ -54,6 +54,7 @@ describe('completeTask', () => {
     expect(taskUpdateMock).toHaveBeenCalledWith({
       status: 'completed',
       completed_at: expect.any(String),
+      actual_duration: 50,
     })
     expect(createActivityEntryMock).toHaveBeenCalledWith({
       user_id: 'user-1',

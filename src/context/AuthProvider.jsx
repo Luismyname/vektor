@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getAuthenticatedUser } from '../services/auth'
 import { supabase } from '../services/supabase'
 import { AuthContext } from './AuthContext'
@@ -10,6 +10,22 @@ import { AuthContext } from './AuthContext'
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
+
+  const checkOnboarding = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('completed_onboarding')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!error && data) {
+        setNeedsOnboarding(!data.completed_onboarding)
+      }
+    } catch (err) {
+      console.error('Error checking onboarding:', err)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -18,6 +34,9 @@ export function AuthProvider({ children }) {
       const { user: authenticatedUser } = await getAuthenticatedUser()
       if (active) {
         setUser(authenticatedUser)
+        if (authenticatedUser) {
+          await checkOnboarding(authenticatedUser.id)
+        }
         setLoading(false)
       }
     }
@@ -28,6 +47,11 @@ export function AuthProvider({ children }) {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (active) {
         setUser(session?.user || null)
+        if (session?.user) {
+          checkOnboarding(session.user.id)
+        } else {
+          setNeedsOnboarding(false)
+        }
         setLoading(false)
       }
     })
@@ -36,12 +60,18 @@ export function AuthProvider({ children }) {
       active = false
       authListener.subscription.unsubscribe()
     }
+  }, [checkOnboarding])
+
+  const completeOnboarding = useCallback(() => {
+    setNeedsOnboarding(false)
   }, [])
 
   const value = {
     user,
     loading,
     isAuthenticated: !!user,
+    needsOnboarding,
+    completeOnboarding,
   }
 
   return (

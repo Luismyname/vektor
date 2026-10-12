@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { usePreferences } from '../../hooks/usePreferences'
 import { useTheme } from '../../hooks/useTheme'
+import NotificationSettings from '../../components/settings/NotificationSettings'
 
 // Presenta preferencias locales de interfaz y el tema sincronizado del usuario.
 export default function Settings() {
@@ -26,6 +27,8 @@ export default function Settings() {
           </div>
           <Link className="profile-action" to="/profile">Abrir perfil</Link>
         </div>
+        
+        <NotificationSettings />
       </section>
     </main>
   )

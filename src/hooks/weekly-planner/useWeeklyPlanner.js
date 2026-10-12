@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder } from '../../services/weekly-planner'
+import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder, scheduleCreativeBlock } from '../../services/weekly-planner'
 
 // Coordina datos, mutaciones y operaciones de agenda que consume la vista semanal.
 export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
@@ -102,6 +102,16 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return result.entry
   }
 
+  const createCreativeBlockWrapper = async (blockData, date, startTime, endTime) => {
+    const result = await scheduleCreativeBlock(blockData, date, startTime, endTime, userId)
+    if (result.error) {
+      setError(result.error.message || 'No se pudo crear el bloque creativo.')
+      return null
+    }
+    await load()
+    return result.entry
+  }
+
   const taskById = useMemo(() => Object.fromEntries(tasks.map((task) => [task.id, task])), [tasks])
   const habitById = useMemo(() => Object.fromEntries(habits.map((habit) => [habit.id, habit])), [habits])
 
@@ -132,5 +142,6 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     createTaskAndSchedule: createTaskAndScheduleWrapper,
     createHabitAndSchedule: createHabitAndScheduleWrapper,
     createReminder: createReminderWrapper,
+    createCreativeBlock: createCreativeBlockWrapper,
   }
 }

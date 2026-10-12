@@ -32,7 +32,7 @@ async function insertActivityEntry(entry) {
 export async function getTasks(userId) {
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at')
+    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at, energy_cost, cognitive_load, work_type, estimated_duration, actual_duration')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
@@ -48,8 +48,13 @@ export async function createTask(data) {
       status: data.status || 'pending',
       priority: data.priority || 'medium',
       related_value: data.related_value || null,
+      energy_cost: data.energy_cost ?? 3,
+      cognitive_load: data.cognitive_load || 'medium',
+      work_type: data.work_type || 'shallow',
+      estimated_duration: data.estimated_duration ?? 30,
+      actual_duration: null,
     })
-    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at')
+    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at, energy_cost, cognitive_load, work_type, estimated_duration, actual_duration')
     .single()
 
   if (error) return { task, error }
@@ -71,7 +76,7 @@ export async function updateTask(id, data) {
     .from('tasks')
     .update(data)
     .eq('id', id)
-    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at')
+    .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at, energy_cost, cognitive_load, work_type, estimated_duration, actual_duration')
     .single()
 
   return { task, error }
@@ -133,7 +138,7 @@ export async function completeTask(task, userId, fallbackDuration = 0) {
   const recordedDuration = Number(activeActivity?.duration ?? fallbackDuration)
   const duration = Math.max(0, Math.round(Number.isFinite(recordedDuration) ? recordedDuration : 0))
   const completedAt = new Date().toISOString()
-  const { task: completedTask, error: taskError } = await updateTask(taskId, { status: 'completed', completed_at: completedAt })
+  const { task: completedTask, error: taskError } = await updateTask(taskId, { status: 'completed', completed_at: completedAt, actual_duration: duration })
   if (taskError) return { task: null, error: taskError }
 
   const { error: activityError } = await createActivityEntry({
