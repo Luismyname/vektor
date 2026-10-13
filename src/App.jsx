@@ -20,6 +20,7 @@ const Activity = lazy(() => import('./app/activity'))
 const ActivityDetail = lazy(() => import('./app/activity/components/ActivityDetail'))
 const Settings = lazy(() => import('./app/settings'))
 const WeeklyPlanner = lazy(() => import('./app/weekly-planner'))
+const DashboardV2 = lazy(() => import('./app/dashboard-v2'))
 import { getAuthenticatedUser, getCurrentProfile } from './services/auth'
 const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWizard'))
 
@@ -88,6 +89,7 @@ export default function App() {
               <Route path="/" element={<Portada />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
+              <Route path="/dashboard-v2" element={<ProfileGate requireCompleted><PageLayout><DashboardV2 /></PageLayout></ProfileGate>} />
               <Route path="/onboarding" element={<ProfileGate><PageLayout showNavbar={false}><OnboardingWizard /></PageLayout></ProfileGate>} />
               <Route path="/survey" element={<Navigate to="/onboarding" replace />} />
               <Route path="/profile" element={<ProfileGate requireCompleted><PageLayout><Profile /></PageLayout></ProfileGate>} />
