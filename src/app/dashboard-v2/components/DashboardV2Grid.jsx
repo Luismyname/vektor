@@ -16,6 +16,7 @@ export function DashboardV2Grid({
   weeklyEntries,
   currentEnergy,
   onStartNextSession,
+  onCreateTask,
 }) {
   const nextAction = pendingTasks[0] || null;
 
@@ -36,6 +37,7 @@ export function DashboardV2Grid({
           currentEnergy={currentEnergy}
           energyColor={currentEnergy >= 8 ? 'var(--color-success)' : currentEnergy >= 5 ? 'var(--color-warning)' : 'var(--color-danger)'}
           onStartNext={onStartNextSession}
+          onCreateTask={onCreateTask}
         />
         <TodayPlanCard
           activeTask={activeTask}

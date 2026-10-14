@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDashboardV2Data } from './hooks/useDashboardV2Data';
 import { useTaskTimer } from '@/hooks/useTaskTimer';
 import { usePreferences } from '@/hooks/usePreferences';
@@ -49,6 +49,20 @@ export default function DashboardV2() {
     isActive: Boolean(activeTask),
     onExpire: handleTimerExpire,
   });
+
+  // Refresh profile on mount and when window regains focus
+  useEffect(() => {
+    if (user) {
+      refreshDashboard(user.id);
+    }
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        refreshDashboard(user.id);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, refreshDashboard]);
 
   const taskPriority = activeTask?.priority || 'medium';
 
@@ -173,7 +187,7 @@ export default function DashboardV2() {
   if (error) return <div className="dashboard-v2-error">{error}</div>;
   if (loading || !user || !profile) return <div className="dashboard-v2-loading">Cargando dashboard...</div>;
 
-  // Normalize habits: ensure it's an array (handle JSONB object, string, or null)
+  // Normalize habits - handle JSONB object, string, or null from Supabase
   const normalizeHabits = (habits) => {
     if (!habits) return [];
     if (Array.isArray(habits)) return habits;
@@ -219,6 +233,7 @@ export default function DashboardV2() {
           energyColor={energyColor}
           onTaskSelection={handleTaskSelection}
           onStartNextSession={() => pendingTasks.length && handleTaskSelection(pendingTasks[0])}
+          onCreateTask={() => window.location.href = '/tasks'}
         />
 
         <DashboardV2Modals

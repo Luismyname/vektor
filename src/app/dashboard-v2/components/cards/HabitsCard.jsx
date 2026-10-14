@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,42 +34,54 @@ export function HabitsCard({ habits }) {
         <h2 id="habits-title" className="card-title">Hábitos</h2>
       </header>
 
-      <ul className="habits-list" role="list">
-        {currentHabits.map(habit => {
-          const isDone = completedHabits.has(habit.id);
-          return (
-            <li key={habit.id} className={`habit-item ${isDone ? 'completed' : ''}`}>
-              <button
-                className="habit-checkbox"
-                onClick={() => toggleHabit(habit)}
-                aria-pressed={isDone}
-                aria-label={isDone ? `Desmarcar ${habit.title}` : `Marcar ${habit.title}`}
-              >
-                <Check className="check-icon" aria-hidden="true" />
-              </button>
-              <span className={`habit-text ${isDone ? 'completed' : ''}`}>{habit.title}</span>
-            </li>
-          );
-        })}
-      </ul>
-
-      {habits.length > 3 && (
-        <div className="habits-pagination">
-          <button className="page-btn" onClick={goPrev} disabled={currentPage === 1} aria-label="Anterior">
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <span className="page-indicator" aria-label={`Página ${currentPage} de ${totalPagesCalc}`}>
-            {currentPage} / {totalPagesCalc}
-          </span>
-          <button className="page-btn" onClick={goNext} disabled={currentPage === totalPagesCalc} aria-label="Siguiente">
-            <ChevronRight aria-hidden="true" />
+      {habits.length === 0 ? (
+        <div className="habits-empty">
+          <p>No hay hábitos activos</p>
+          <button className="primary-button" onClick={() => navigate('/habits')}>
+            <Plus className="btn-icon" aria-hidden="true" />
+            Añadir hábitos
           </button>
         </div>
-      )}
+      ) : (
+        <>
+          <ul className="habits-list" role="list">
+            {currentHabits.map(habit => {
+              const isDone = completedHabits.has(habit.id);
+              return (
+                <li key={habit.id} className={`habit-item ${isDone ? 'completed' : ''}`}>
+                  <button
+                    className="habit-checkbox"
+                    onClick={() => toggleHabit(habit)}
+                    aria-pressed={isDone}
+                    aria-label={isDone ? `Desmarcar ${habit.title}` : `Marcar ${habit.title}`}
+                  >
+                    <Check className="check-icon" aria-hidden="true" />
+                  </button>
+                  <span className={`habit-text ${isDone ? 'completed' : ''}`}>{habit.title}</span>
+                </li>
+              );
+            })}
+          </ul>
 
-      <button className="view-all-btn" onClick={() => navigate('/habits')}>
-        Ver todos
-      </button>
+          {habits.length > 3 && (
+            <div className="habits-pagination">
+              <button className="page-btn" onClick={goPrev} disabled={currentPage === 1} aria-label="Anterior">
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <span className="page-indicator" aria-label={`Página ${currentPage} de ${totalPagesCalc}`}>
+                {currentPage} / {totalPagesCalc}
+              </span>
+              <button className="page-btn" onClick={goNext} disabled={currentPage === totalPagesCalc} aria-label="Siguiente">
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          <button className="view-all-btn" onClick={() => navigate('/habits')}>
+            Ver todos
+          </button>
+        </>
+      )}
     </section>
   );
 }

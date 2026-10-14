@@ -70,7 +70,8 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
       if (combined.length === 0) {
         Object.values(DEFAULT_HABITS).forEach(arr => combined.push(...arr))
       }
-      setAllHabits(combined)
+      // Add active: true to all habits
+      setAllHabits(combined.map(h => ({ ...h, active: true })))
       setLoading(false)
     }
   }, [data.values])
@@ -78,7 +79,7 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
   const toggleHabit = (habit) => {
     const next = selected.some(h => h.id === habit.id)
       ? selected.filter(h => h.id !== habit.id)
-      : [...selected, habit]
+      : [...selected, { ...habit, active: true }]
     setSelected(next)
     onUpdate('selectedHabits', next)
   }

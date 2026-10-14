@@ -23,14 +23,16 @@ export function useDashboardV2Data(defaultDuration = DEFAULT_DURATION) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
+
     async function loadDashboard() {
+      if (!mounted) return;
       setLoading(true);
       setError('');
 
       const { user: authenticatedUser, error: userError } = await getAuthenticatedUser();
       if (userError || !authenticatedUser) {
-        if (active) setError('No se pudo cargar la sesión.');
+        if (mounted) setError('No se pudo cargar la sesión.');
         return;
       }
 
@@ -43,7 +45,7 @@ export function useDashboardV2Data(defaultDuration = DEFAULT_DURATION) {
         getUserChronotype(authenticatedUser.id),
       ]);
 
-      if (!active) return;
+      if (!mounted) return;
 
       const { profile: currentProfile, error: profileError } = await getCurrentProfile(authenticatedUser.id);
       if (profileError || !currentProfile) {
@@ -67,12 +69,20 @@ export function useDashboardV2Data(defaultDuration = DEFAULT_DURATION) {
         setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || defaultDuration });
       }
       setActiveFocusSession(currentFocusSession);
-      setLoading(false);
+      if (mounted) setLoading(false);
     }
 
     loadDashboard();
-    return () => { active = false; };
+    return () => { mounted = false; };
   }, [defaultDuration]);
+
+  const refreshProfile = useCallback(async (userId) => {
+    const { profile: currentProfile, error: profileError } = await getCurrentProfile(userId);
+    if (!profileError && currentProfile) {
+      setProfile(currentProfile);
+    }
+    return { profile: currentProfile, error: profileError };
+  }, []);
 
   const refreshDashboard = useCallback(async (userId) => {
     const [{ tasks: currentTasks }, { activities: currentActivities }] = await Promise.all([
@@ -81,7 +91,9 @@ export function useDashboardV2Data(defaultDuration = DEFAULT_DURATION) {
     ]);
     setTasks(currentTasks);
     setActivities(currentActivities);
-  }, []);
+    // Also refresh profile to get updated habits
+    await refreshProfile(userId);
+  }, [refreshProfile]);
 
   const pendingTasks = tasks.filter(t => t.status !== 'completed');
   const weeklyPlannerEntries = weeklyEntries.filter(e => e.task_id || e.habit_id);
@@ -113,5 +125,6 @@ export function useDashboardV2Data(defaultDuration = DEFAULT_DURATION) {
     setActivities,
     setHiddenAnswers,
     refreshDashboard,
+    refreshProfile,
   };
 }

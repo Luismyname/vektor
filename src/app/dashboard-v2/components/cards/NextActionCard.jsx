@@ -1,6 +1,6 @@
-import { Zap, Clock, Sparkles, Play, ArrowRight } from 'lucide-react';
+import { Zap, Clock, Sparkles, Play, ArrowRight, Plus } from 'lucide-react';
 
-export function NextActionCard({ nextAction, currentEnergy, energyColor, onStartNext }) {
+export function NextActionCard({ nextAction, currentEnergy, energyColor, onStartNext, onCreateTask }) {
   const action = nextAction;
   const isHighFocus = currentEnergy >= 8;
 
@@ -37,8 +37,9 @@ export function NextActionCard({ nextAction, currentEnergy, energyColor, onStart
       ) : (
         <div className="empty-state">
           <p>No hay tareas pendientes</p>
-          <button className="secondary-btn" onClick={() => window.location.href = '/tasks'}>
-            Crear tarea
+          <button className="primary-btn" onClick={onCreateTask}>
+            <Plus className="btn-icon" aria-hidden="true" />
+            Crear primera tarea
           </button>
         </div>
       )}
