@@ -232,3 +232,234 @@
     min-height: 38px;
   }
 }
+
+.weekly-planner-page .weekly-workspace {
+  grid-template-columns: minmax(0, 2.33fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.weekly-planner-page .weekly-calendar-area {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.weekly-planner-page .weekly-grid-wrap {
+  width: 100%;
+}
+
+.weekly-planner-page .weekly-analytics-sidebar {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 0;
+  position: static;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.weekly-planner-page .weekly-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding-bottom: 14px;
+}
+
+.weekly-planner-page .weekly-metrics div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-main);
+}
+
+.weekly-planner-page .weekly-metrics span {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.weekly-planner-page .weekly-metrics strong {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekly-planner-page .weekly-analytics-sidebar > * {
+  padding: 14px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  animation: none;
+}
+
+.weekly-planner-page .weekly-analytics-sidebar > * + * {
+  border-top: 1px solid var(--color-border) !important;
+}
+
+.weekly-planner-page .weekly-analytics-sidebar > .weekly-patterns {
+  padding-top: 0 !important;
+}
+
+.weekly-insights-details {
+  min-width: 0;
+}
+
+.weekly-insights-details > summary {
+  padding: 14px 24px 14px 0;
+  color: var(--muted-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.weekly-insights-details > summary:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.weekly-insights-details > .weekly-metrics {
+  padding-bottom: 12px;
+}
+
+.weekly-insights-details > * + *:not(.weekly-metrics) {
+  margin-top: 12px;
+}
+
+.weekly-secondary-area {
+  display: grid;
+  gap: 0;
+  margin-top: 26px;
+}
+
+.weekly-disclosure {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.weekly-disclosure > summary {
+  position: relative;
+  padding: 17px 32px 17px 2px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.weekly-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.weekly-disclosure > summary::after {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--muted-text);
+  border-bottom: 1.5px solid var(--muted-text);
+  content: '';
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.weekly-disclosure[open] > summary::after {
+  transform: translateY(-30%) rotate(225deg);
+}
+
+.weekly-disclosure > summary:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.weekly-disclosure-content {
+  padding: 2px 0 20px;
+}
+
+.weekly-backlog-area {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.weekly-disclosure-content .weekly-list-section {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.weekly-disclosure-content .weekly-incomplete-area {
+  margin-top: 0;
+}
+
+.weekly-incomplete-area .weekly-list-section {
+  max-height: none;
+  overflow: visible;
+}
+
+.weekly-disclosure > .weekly-review {
+  margin: 0;
+  padding: 2px 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 1100px) {
+  .weekly-planner-page .weekly-workspace {
+    grid-template-columns: minmax(0, 2.33fr) minmax(250px, 1fr);
+    gap: 16px;
+  }
+
+  .weekly-planner-page .weekly-analytics-sidebar {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .weekly-planner-page .weekly-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .weekly-planner-page .weekly-calendar-area,
+  .weekly-planner-page .weekly-analytics-sidebar {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .weekly-planner-page .weekly-analytics-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .weekly-backlog-area,
+  .weekly-incomplete-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .weekly-planner-page .weekly-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-planner-page .weekly-analytics-sidebar {
+    padding: 14px;
+  }
+
+  .weekly-planner-page .weekly-review-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

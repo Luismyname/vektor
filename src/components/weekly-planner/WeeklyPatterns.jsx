@@ -41,7 +41,7 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
   return (
     <div className="weekly-patterns">
       <div className="patterns-header">
-        <h3>Patrones de la Semana</h3>
+        <h3>Vektor recomienda</h3>
         {chronotype && (
           <span className="chronotype-badge" style={{ '--badge-color': colorForType('creative_type') }}>
             Cronotipo: {chronotype.charAt(0).toUpperCase() + chronotype.slice(1)}

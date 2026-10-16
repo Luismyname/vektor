@@ -220,34 +220,7 @@ export default function WeeklyPlannerPage() {
         </header>
         {planner.error && <p className="weekly-error" role="alert">{planner.error}</p>}
         {statusError && <p className="weekly-error" role="alert">{statusError}</p>}
-        
-        <section className="weekly-metrics" aria-label="Resumen semanal">
-          <div><span>Completadas</span><strong>{progress?.completed || 0}</strong></div>
-          <div><span>Progreso</span><strong>{progress?.completionRate || 0}%</strong></div>
-          <div><span>Enfoques</span><strong>{progress?.focusSessions || 0}</strong></div>
-          <div><span>Hábitos activos</span><strong>{habitConsistency.filter((habit) => habit.completed > 0).length}</strong></div>
-        </section>
-        
         <div className="weekly-workspace">
-          {/* LEFT SIDEBAR - Backlog sections */}
-          <aside className="weekly-sidebar">
-            <PlannerBacklogSection
-              itemType="task"
-              items={planner.tasks}
-              entries={planner.entries}
-              onDragStart={handleBacklogDragStart}
-            />
-            <PlannerBacklogSection
-              itemType="habit"
-              items={planner.habits}
-              entries={planner.entries}
-              onDragStart={handleHabitDragStart}
-              onHabitSchedule={scheduleHabit}
-            />
-            {isRescheduling && <p className="weekly-muted">Buscando el siguiente hueco...</p>}
-          </aside>
-
-          {/* MIDDLE - Calendar Grid */}
           <div className="weekly-calendar-area">
             <WeeklyGrid
               dates={dates}
@@ -269,56 +242,91 @@ export default function WeeklyPlannerPage() {
             />
           </div>
 
-          {/* RIGHT SIDEBAR - Analytics */}
-          <aside className="weekly-analytics-sidebar">
-            <EnergyHeatmap 
-              energyByDayHour={analytics.energyByDayHour} 
-              peakHours={analytics.detectedPeakHours}
-            />
-            <CreativeBlocksSummary 
-              stats={analytics.creativeStats}
-              weeklyBlocks={analytics.creativeBlocks}
-              creativeBlocksByDay={analytics.creativeBlocksByDay}
-              avgQuality={analytics.avgQuality}
-              formatDuration={analytics.formatDuration}
-            />
-            <WeeklyPatterns 
+          <aside className="weekly-analytics-sidebar" aria-label="Insights de la semana">
+            <WeeklyPatterns
               insights={analytics.insights}
               bestDeepWorkDays={analytics.bestDeepWorkDays}
               detectedPeakHours={analytics.detectedPeakHours}
               chronotype={analytics.chronotype}
             />
-            <CorrelationPanel 
-              energyQualityCorrelation={analytics.energyQualityCorrelation}
-              blocksWithEnergy={analytics.blocksWithEnergy}
-              progress={progress}
-              habitConsistency={habitConsistency}
-              creativeStats={analytics.creativeStats}
-              avgEnergyByHour={analytics.avgEnergyByHour}
+            <EnergyHeatmap
+              energyByDayHour={analytics.energyByDayHour}
+              peakHours={analytics.detectedPeakHours}
             />
+            <details className="weekly-insights-details">
+              <summary>Más señales de la semana</summary>
+              <section className="weekly-metrics" aria-label="Resumen semanal">
+                <div><span>Completadas</span><strong>{progress?.completed || 0}</strong></div>
+                <div><span>Progreso</span><strong>{progress?.completionRate || 0}%</strong></div>
+                <div><span>Enfoques</span><strong>{progress?.focusSessions || 0}</strong></div>
+                <div><span>Hábitos activos</span><strong>{habitConsistency.filter((habit) => habit.completed > 0).length}</strong></div>
+              </section>
+              <CreativeBlocksSummary
+                stats={analytics.creativeStats}
+                weeklyBlocks={analytics.creativeBlocks}
+                creativeBlocksByDay={analytics.creativeBlocksByDay}
+                avgQuality={analytics.avgQuality}
+                formatDuration={analytics.formatDuration}
+              />
+              <CorrelationPanel
+                energyQualityCorrelation={analytics.energyQualityCorrelation}
+                blocksWithEnergy={analytics.blocksWithEnergy}
+                progress={progress}
+                habitConsistency={habitConsistency}
+                creativeStats={analytics.creativeStats}
+                avgEnergyByHour={analytics.avgEnergyByHour}
+              />
+            </details>
           </aside>
         </div>
 
-        {/* INCOMPLETE SECTIONS - Side by side below calendar */}
-        <section className="weekly-incomplete-area">
-          <PlannerIncompleteSection
-            itemType="task"
-            entries={planner.entries}
-            items={planner.tasks}
-            onStatusChange={handleIncompleteStatusChange}
-            updatingEntryId={updatingEntryId}
-          />
-          <PlannerIncompleteSection
-            itemType="habit"
-            entries={planner.entries}
-            items={planner.habits}
-            onStatusChange={handleIncompleteStatusChange}
-            updatingEntryId={updatingEntryId}
-          />
-        </section>
+        <section className="weekly-secondary-area" aria-label="Información secundaria de la semana">
+          <details className="weekly-disclosure">
+            <summary>Pendientes por planificar{isRescheduling ? ' · Buscando el siguiente hueco...' : ''}</summary>
+            <div className="weekly-disclosure-content weekly-backlog-area">
+              <PlannerBacklogSection
+                itemType="task"
+                items={planner.tasks}
+                entries={planner.entries}
+                onDragStart={handleBacklogDragStart}
+              />
+              <PlannerBacklogSection
+                itemType="habit"
+                items={planner.habits}
+                entries={planner.entries}
+                onDragStart={handleHabitDragStart}
+                onHabitSchedule={scheduleHabit}
+              />
+            </div>
+          </details>
 
-        {/* WEEKLY REVIEW - Bottom */}
-        <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
+          <details className="weekly-disclosure">
+            <summary>Tareas y hábitos sin completar</summary>
+            <div className="weekly-disclosure-content">
+              <section className="weekly-incomplete-area">
+                <PlannerIncompleteSection
+                  itemType="task"
+                  entries={planner.entries}
+                  items={planner.tasks}
+                  onStatusChange={handleIncompleteStatusChange}
+                  updatingEntryId={updatingEntryId}
+                />
+                <PlannerIncompleteSection
+                  itemType="habit"
+                  entries={planner.entries}
+                  items={planner.habits}
+                  onStatusChange={handleIncompleteStatusChange}
+                  updatingEntryId={updatingEntryId}
+                />
+              </section>
+            </div>
+          </details>
+
+          <details className="weekly-disclosure">
+            <summary>Reflexión semanal</summary>
+            <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
+          </details>
+        </section>
       </div>
       
       <WeeklyTimeSlotModal
