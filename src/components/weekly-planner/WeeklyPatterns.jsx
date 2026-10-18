@@ -29,11 +29,11 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
   const colorForType = (type) => {
     const colors = {
       energy_peak: 'var(--accent)',
-      energy_low: '#f97316',
-      creative_type: '#8b5cf6',
-      quality: '#22c55e',
-      correlation: '#06b6d4',
-      completion: '#22c55e'
+      energy_low: 'var(--color-warning)',
+      creative_type: 'var(--color-accent-light)',
+      quality: 'var(--color-success)',
+      correlation: 'var(--color-accent-light)',
+      completion: 'var(--color-success)'
     }
     return colors[type] || 'var(--text-primary)'
   }
@@ -74,7 +74,7 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
                 <span className="day-name">
                   {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
                 </span>
-                <span className="day-score" style={{ color: day.avgScore >= 7 ? '#22c55e' : day.avgScore >= 5 ? '#eab308' : '#ef4444' }}>
+                <span className="day-score" style={{ color: day.avgScore >= 7 ? 'var(--color-success)' : day.avgScore >= 5 ? 'var(--color-warning)' : 'var(--color-danger)' }}>
                   {day.avgScore}/10
                 </span>
                 <span className="day-sessions">{day.sessions} sesiones</span>

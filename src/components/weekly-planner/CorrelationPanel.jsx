@@ -23,10 +23,10 @@ export default function CorrelationPanel({
   const completionByDay = useMemo(() => {
     if (!progress) return []
     return [
-      { label: 'Completadas', value: progress.completed || 0, color: '#22c55e' },
-      { label: 'Programadas', value: progress.scheduled || 0, color: '#6366f1' },
-      { label: 'Fallidas', value: progress.failed || 0, color: '#ef4444' },
-      { label: 'Movidas', value: progress.moved || 0, color: '#f97316' }
+      { label: 'Completadas', value: progress.completed || 0, color: 'var(--color-success)' },
+      { label: 'Programadas', value: progress.scheduled || 0, color: 'var(--accent)' },
+      { label: 'Fallidas', value: progress.failed || 0, color: 'var(--color-danger)' },
+      { label: 'Movidas', value: progress.moved || 0, color: 'var(--color-warning)' }
     ].filter(d => d.value > 0)
   }, [progress])
 
@@ -240,9 +240,9 @@ export default function CorrelationPanel({
           padding: 2px 8px;
           border-radius: 999px;
         }
-        .correlation-badge.positive { background: #dcfce7; color: #166534; }
-        .correlation-badge.negative { background: #fee2e2; color: #991b1b; }
-        .correlation-badge.neutral { background: #fef3c7; color: #92400e; }
+        .correlation-badge.positive { background: var(--color-success); color: var(--color-success); opacity: 0.15; }
+        .correlation-badge.negative { background: var(--color-danger); color: var(--color-danger); opacity: 0.15; }
+        .correlation-badge.neutral { background: var(--color-warning); color: var(--color-warning); opacity: 0.15; }
         .correlation-desc {
           margin: 0 0 8px;
           font-size: 13px;
@@ -265,7 +265,7 @@ export default function CorrelationPanel({
         }
         .chart-bar {
           flex: 1;
-          background: linear-gradient(180deg, var(--accent), #7a61ff);
+          background: linear-gradient(180deg, var(--accent), var(--color-accent-light));
           border-radius: 3px 3px 0 0;
           min-height: 5%;
           transition: height 0.5s ease-out;
