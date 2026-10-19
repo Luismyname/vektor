@@ -30,10 +30,10 @@ function getEntryType(entry) {
 }
 
 export function VektorPanel({ analytics, entries, taskById, habitById, currentTime }) {
-  const insights = (analytics.insights || [])
+  const availableInsights = (analytics.insights || [])
     .filter((insight) => ['energy_peak', 'energy_low', 'creative_type', 'quality', 'correlation'].includes(insight.type))
-    .slice(0, 3)
-  const recommendation = insights.find((insight) => ['energy_peak', 'quality', 'creative_type'].includes(insight.type))
+  const recommendation = availableInsights.find((insight) => ['energy_peak', 'quality', 'creative_type'].includes(insight.type))
+  const insights = availableInsights.filter((insight) => insight !== recommendation).slice(0, 3)
   const nextEntry = getUpcomingEntry(entries, currentTime)
   const energyDays = Object.entries(analytics.energyByDayHour || {}).map(([date, hours]) => {
     const values = Object.values(hours).filter(Number.isFinite)
@@ -119,7 +119,7 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
       </section>
 
       <section className="vektor-reflection" aria-labelledby="vektor-reflection-title">
-        <h2 id="vektor-reflection-title">Reflexión de Vektor</h2>
+        <h2 id="vektor-reflection-title">Vektor observa</h2>
         {totalActivities ? (
           <p>
             Has completado <strong>{progress.completed}</strong> de <strong>{totalActivities}</strong> actividades esta semana.
@@ -127,7 +127,7 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
               ? 'La constancia está creando resultados.'
               : progress.completionRate >= 50
                 ? 'Vas avanzando; mantén un ritmo sostenible.'
-                : 'Cada paso cuenta.'}
+                : 'Cada avance cuenta.'}
           </p>
         ) : (
           <p>Aún no hay actividad registrada esta semana. Puedes empezar con un solo bloque.</p>

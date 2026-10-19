@@ -39,11 +39,37 @@ export default function WeeklyPlannerPage() {
     const values = analytics.energyData.map((entry) => entry.energy_level).filter(Number.isFinite)
     return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) : null
   }, [analytics.energyData])
-  const bestEnergyHour = useMemo(() => {
-    const entries = Object.entries(analytics.avgEnergyByHour || {})
-    if (!entries.length) return null
-    return entries.reduce((best, current) => Number(current[1]) > Number(best[1]) ? current : best)[0]
+  const bestEnergyWindow = useMemo(() => {
+    const energyByHour = analytics.avgEnergyByHour || {}
+    let bestWindow = null
+
+    for (let start = 0; start <= 20; start += 1) {
+      const hours = Array.from({ length: 4 }, (_, index) => start + index)
+      const availableValues = hours.map((hour) => energyByHour[hour])
+
+      if (availableValues.some((value) => !Number.isFinite(value))) continue
+      const average = availableValues.reduce((sum, value) => sum + value, 0) / availableValues.length
+      if (!bestWindow || average > bestWindow.average) {
+        bestWindow = { start, end: start + 4, average }
+      }
+    }
+
+    return bestWindow
   }, [analytics.avgEnergyByHour])
+  const weeklyProgress = useMemo(() => {
+    const plannedTasks = planner.entries.filter((entry) => entry.task_id)
+    const plannedHabits = planner.entries.filter((entry) => entry.habit_id)
+    return {
+      tasks: {
+        completed: plannedTasks.filter((entry) => entry.status === 'completed').length,
+        total: plannedTasks.length,
+      },
+      habits: {
+        completed: plannedHabits.filter((entry) => entry.status === 'completed').length,
+        total: plannedHabits.length,
+      },
+    }
+  }, [planner.entries])
 
   // Modal state
   const [modalSlot, setModalSlot] = useState(null)
@@ -209,22 +235,33 @@ export default function WeeklyPlannerPage() {
         <header className="weekly-intro">
           <div className="weekly-intro-copy">
             <h1>Hola {firstName} 👋</h1>
-            <p className="weekly-intro-lead">Tu semana, con espacio para lo importante.</p>
             <p>Planifica con precisión y deja que Vektor aprenda de tus decisiones.</p>
           </div>
-          <div className="weekly-energy-overview" aria-label="Resumen de energía">
-            <div>
-              <span>⚡ Energía prevista</span>
-              <strong>{averageEnergy === null ? '—' : `${averageEnergy}%`}</strong>
-              <small>{averageEnergy === null ? 'Sin registros esta semana' : 'Media de tus registros'}</small>
-            </div>
-            <div>
-              <span>Mejor franja</span>
-              <strong>{bestEnergyHour ? `${String(bestEnergyHour).padStart(2, '0')}:00` : '—'}</strong>
-              <small>{bestEnergyHour ? 'Según tu energía registrada' : 'Por descubrir'}</small>
-            </div>
+          <div className="weekly-hero-signals" aria-label="Señales de energía">
+            <p><span>⚡ Energía prevista</span><strong>{averageEnergy === null ? '—' : `${averageEnergy}%`}</strong></p>
+            <p>
+              <span>🕘 Mejor franja</span>
+              <strong>{bestEnergyWindow
+                ? `${String(bestEnergyWindow.start).padStart(2, '0')}:00 – ${String(bestEnergyWindow.end).padStart(2, '0')}:00`
+                : 'Por descubrir'}</strong>
+            </p>
           </div>
         </header>
+        <section className="weekly-progress-strip" aria-label="Progreso de la semana">
+          <h2>Semana actual</h2>
+          {weeklyProgress.tasks.total || weeklyProgress.habits.total ? (
+            <div className="weekly-progress-values">
+              {weeklyProgress.tasks.total > 0 && (
+                <p><span aria-hidden="true">✓</span><strong>{weeklyProgress.tasks.completed}/{weeklyProgress.tasks.total}</strong> tareas completadas</p>
+              )}
+              {weeklyProgress.habits.total > 0 && (
+                <p><span aria-hidden="true">✓</span><strong>{weeklyProgress.habits.completed}/{weeklyProgress.habits.total}</strong> hábitos completados</p>
+              )}
+            </div>
+          ) : (
+            <p className="weekly-progress-empty">Aún no hay tareas ni hábitos planificados esta semana.</p>
+          )}
+        </section>
         {planner.error && <p className="weekly-error" role="alert">{planner.error}</p>}
         {statusError && <p className="weekly-error" role="alert">{statusError}</p>}
         <div className="weekly-workspace">
@@ -275,7 +312,7 @@ export default function WeeklyPlannerPage() {
           <section className="weekly-bottom-section weekly-pending-section">
             <header className="weekly-bottom-heading">
               <div>
-                <h2>Pendientes por planificar</h2>
+                <h2><span aria-hidden="true">📅</span> Pendientes por planificar</h2>
                 <p>{isRescheduling ? 'Buscando el siguiente hueco…' : 'Coloca en la agenda lo que importa.'}</p>
               </div>
             </header>
@@ -299,7 +336,7 @@ export default function WeeklyPlannerPage() {
           <section className="weekly-bottom-section weekly-unfinished-section">
             <header className="weekly-bottom-heading">
               <div>
-                <h2>Por completar</h2>
+                <h2><span aria-hidden="true">✅</span> Por completar</h2>
                 <p>Retoma lo que todavía requiere atención.</p>
               </div>
             </header>
