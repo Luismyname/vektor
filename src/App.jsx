@@ -66,12 +66,12 @@ function ProfileGate({ children, requireCompleted = false, onboarding = false })
 }
 
 // Añade navegación y pie comunes a las pantallas que lo necesitan.
-function PageLayout({ children, showNavbar = true, footerClassName = '' }) {
+function PageLayout({ children, showNavbar = true, showFooter = true, footerClassName = '' }) {
   return (
     <>
       {showNavbar && <Navbar />}
       {children}
-      <Footer className={footerClassName} />
+      {showFooter && <Footer className={footerClassName} />}
     </>
   )
 }
@@ -98,7 +98,7 @@ export default function App() {
               <Route path="/activity" element={<ProfileGate requireCompleted><PageLayout><Activity /></PageLayout></ProfileGate>} />
               <Route path="/activity/:activityId" element={<ProfileGate requireCompleted><PageLayout><ActivityDetail /></PageLayout></ProfileGate>} />
               <Route path="/settings" element={<ProfileGate requireCompleted><PageLayout><Settings /></PageLayout></ProfileGate>} />
-              <Route path="/weekly-planner" element={<ProfileGate requireCompleted><PageLayout><WeeklyPlanner /></PageLayout></ProfileGate>} />
+              <Route path="/weekly-planner" element={<ProfileGate requireCompleted><PageLayout showFooter={false}><WeeklyPlanner /></PageLayout></ProfileGate>} />
               <Route path="/login" element={<PageLayout showNavbar={false}><Login /></PageLayout>} />
               <Route path="/register" element={<PageLayout showNavbar={false}><Register /></PageLayout>} />
               </Routes>

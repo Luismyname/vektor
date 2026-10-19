@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { supabaseMock, state } = vi.hoisted(() => {
-  const state = { calls: [], result: { data: [], error: null } }
+  const state = { calls: [], inserted: [], result: { data: [], error: null } }
   const supabaseMock = {
     from: vi.fn((table) => {
       state.table = table
@@ -12,6 +12,11 @@ const { supabaseMock, state } = vi.hoisted(() => {
           return query
         })
       }
+      query.insert = vi.fn((...args) => {
+        state.inserted.push(...args)
+        return query
+      })
+      query.single = vi.fn(() => Promise.resolve(state.result))
       query.then = (resolve, reject) => Promise.resolve(state.result).then(resolve, reject)
       return query
     }),
@@ -21,12 +26,13 @@ const { supabaseMock, state } = vi.hoisted(() => {
 
 vi.mock('../src/services/supabase', () => ({ supabase: supabaseMock }))
 
-import { getHabitStatusHistory, getWeeklyPlanner } from '../src/services/weekly-planner'
+import { createReminder, getHabitStatusHistory, getWeeklyPlanner } from '../src/services/weekly-planner'
 
 describe('consultas del planificador semanal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     state.calls = []
+    state.inserted = []
     state.table = null
     state.result = { data: [], error: null }
   })
@@ -49,6 +55,32 @@ describe('consultas del planificador semanal', () => {
     expect(state.calls).toContainEqual(['gte', 'planned_date', '2026-09-28'])
     expect(state.calls).toContainEqual(['lte', 'planned_date', '2026-10-04'])
     expect(events).toEqual([])
+    expect(error).toBeNull()
+  })
+
+  it('persiste el título de un recordatorio en el campo de notas existente', async () => {
+    state.result = { data: { id: 'reminder-1', notes: 'Llamar al equipo' }, error: null }
+
+    const { entry, error } = await createReminder(
+      { title: 'Llamar al equipo' },
+      '2026-10-19',
+      '23:00',
+      '23:59',
+      'user-1',
+    )
+
+    expect(state.table).toBe('weekly_planner')
+    expect(state.inserted[0]).toMatchObject({
+      user_id: 'user-1',
+      date: '2026-10-19',
+      start_time: '23:00',
+      end_time: '23:59',
+      task_id: null,
+      habit_id: null,
+      status: 'scheduled',
+      notes: 'Llamar al equipo',
+    })
+    expect(entry.notes).toBe('Llamar al equipo')
     expect(error).toBeNull()
   })
 })

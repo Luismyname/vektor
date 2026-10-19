@@ -1,5 +1,8 @@
 // Franja horaria que recibe elementos arrastrados y permite abrir el modal de agenda.
 export default function HourSlot({ date, hour, onDropTask, onClick }) {
+  const startTime = `${String(hour).padStart(2, '0')}:00`
+  const endTime = hour === 23 ? '23:59' : `${String(hour + 1).padStart(2, '0')}:00`
+
   // Interpreta el elemento arrastrado y lo agenda en el intervalo de una hora.
   function handleDrop(event) {
     event.preventDefault()
@@ -7,13 +10,13 @@ export default function HourSlot({ date, hour, onDropTask, onClick }) {
     const habitId = event.dataTransfer.getData('text/habit')
     const entryId = event.dataTransfer.getData('text/planner-entry')
     const itemId = taskId || habitId
-    if (itemId) onDropTask(itemId, entryId, taskId ? 'task' : 'habit', date, `${String(hour).padStart(2, '0')}:00`, `${String(hour + 1).padStart(2, '0')}:00`)
+    if (entryId || itemId) onDropTask(itemId, entryId, taskId ? 'task' : 'habit', date, startTime, endTime)
   }
 
   // Solicita al padre crear un bloque en la franja seleccionada.
   function handleClick() {
     if (onClick) {
-      onClick(date, `${String(hour).padStart(2, '0')}:00`, `${String(hour + 1).padStart(2, '0')}:00`)
+      onClick(date, startTime, endTime)
     }
   }
 

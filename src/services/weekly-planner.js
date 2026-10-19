@@ -247,7 +247,7 @@ export async function createReminder(reminderData, date, startTime, endTime, use
     task_id: null,
     habit_id: null,
     status: 'scheduled',
-    notes: reminderData.notes || '',
+    notes: reminderData.title || reminderData.notes || '',
   };
   const { data, error } = await supabase.from('weekly_planner').insert(payload).select(PLANNER_FIELDS).single();
   return { entry: data, error };

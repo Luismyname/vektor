@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
 import { startFocusSession, updateFocusSessionQuality } from '../../services/focus-sessions'
-import { formatDate, getHabitConsistency, getWeekDates, getWeekStart, getWeeklyProgress, shiftWeek } from '../../services/weekly-planner'
+import { formatDate, getWeekDates, getWeekStart, shiftWeek } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
@@ -11,10 +11,7 @@ import WeeklyGrid from '../../components/weekly-planner/WeeklyGrid'
 import WeeklyReview from '../../components/weekly-planner/WeeklyReview'
 import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotModal'
 import FocusQualityModal from '../../components/weekly-planner/forms/FocusQualityModal'
-import EnergyHeatmap from '../../components/weekly-planner/EnergyHeatmap'
-import CreativeBlocksSummary from '../../components/weekly-planner/CreativeBlocksSummary'
-import WeeklyPatterns from '../../components/weekly-planner/WeeklyPatterns'
-import CorrelationPanel from '../../components/weekly-planner/CorrelationPanel'
+import { VektorPanel } from './VektorPanel'
 import PlannerBacklogSection from './components/PlannerBacklogSection'
 import PlannerIncompleteSection from './components/PlannerIncompleteSection'
 import { updateHabitStatus } from './services/updateHabitStatus'
@@ -30,11 +27,23 @@ export default function WeeklyPlannerPage() {
   const planner = useWeeklyPlanner(user?.id)
   const review = useWeeklyReview(user?.id, planner.weekStart)
   const analytics = useWeeklyAnalytics(user?.id, planner.weekStart)
-  const [progress, setProgress] = useState(null)
-  const [habitConsistency, setHabitConsistency] = useState([])
   const [statusError, setStatusError] = useState('')
   const [updatingEntryId, setUpdatingEntryId] = useState(null)
   const dates = useMemo(() => getWeekDates(planner.weekStart), [planner.weekStart])
+  const firstName = user?.user_metadata?.first_name
+    || user?.user_metadata?.full_name?.split(' ')[0]
+    || user?.email?.split('@')[0]
+    || 'Luis'
+  const weekRange = `${new Date(`${dates[0]}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} – ${new Date(`${dates[6]}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`
+  const averageEnergy = useMemo(() => {
+    const values = analytics.energyData.map((entry) => entry.energy_level).filter(Number.isFinite)
+    return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) : null
+  }, [analytics.energyData])
+  const bestEnergyHour = useMemo(() => {
+    const entries = Object.entries(analytics.avgEnergyByHour || {})
+    if (!entries.length) return null
+    return entries.reduce((best, current) => Number(current[1]) > Number(best[1]) ? current : best)[0]
+  }, [analytics.avgEnergyByHour])
 
   // Modal state
   const [modalSlot, setModalSlot] = useState(null)
@@ -54,14 +63,6 @@ export default function WeeklyPlannerPage() {
     })
     return () => { active = false }
   }, [])
-
-  useEffect(() => {
-    if (!user) return
-    Promise.all([getWeeklyProgress(user.id, planner.weekStart), getHabitConsistency(user.id, planner.weekStart)]).then(([nextProgress, nextConsistency]) => {
-      setProgress(nextProgress.progress)
-      setHabitConsistency(nextConsistency.consistency)
-    })
-  }, [user, planner.weekStart, planner.entries.length])
 
   const { autoReschedule, isRescheduling } = useTaskAutoReschedule(user?.id, planner.weekStart, planner.reload)
 
@@ -93,7 +94,7 @@ export default function WeeklyPlannerPage() {
   // Suma minutos a una hora sin permitir que el resultado supere el final del día.
   function addMinutes(time, amount) {
     const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
-    const total = Math.min(hours * 60 + minutes + amount, 23 * 60)
+    const total = Math.min(hours * 60 + minutes + amount, 23 * 60 + 59)
     return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
   }
 
@@ -205,23 +206,41 @@ export default function WeeklyPlannerPage() {
   return (
     <main className="weekly-planner-page">
       <div className="weekly-planner-shell">
-        <header className="weekly-planner-header">
-          <div>
-            <p className="auth-kicker">VEKTOR / WEEKLY PLANNER</p>
-            <h1>Tu semana, con espacio para lo importante</h1>
-            <p>Planifica con precisión y deja que el calendario aprenda de tus decisiones.</p>
+        <header className="weekly-intro">
+          <div className="weekly-intro-copy">
+            <h1>Hola {firstName} 👋</h1>
+            <p className="weekly-intro-lead">Tu semana, con espacio para lo importante.</p>
+            <p>Planifica con precisión y deja que Vektor aprenda de tus decisiones.</p>
           </div>
-          <div className="weekly-week-controls">
-            <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, -1))}>Anterior</button>
-            <button type="button" onClick={() => planner.setWeekStart(getWeekStart())}>Hoy</button>
-            <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, 1))}>Siguiente</button>
-            <button type="button" className="weekly-clear-week-button" onClick={planner.clearWeek}>Limpiar semana</button>
+          <div className="weekly-energy-overview" aria-label="Resumen de energía">
+            <div>
+              <span>⚡ Energía prevista</span>
+              <strong>{averageEnergy === null ? '—' : `${averageEnergy}%`}</strong>
+              <small>{averageEnergy === null ? 'Sin registros esta semana' : 'Media de tus registros'}</small>
+            </div>
+            <div>
+              <span>Mejor franja</span>
+              <strong>{bestEnergyHour ? `${String(bestEnergyHour).padStart(2, '0')}:00` : '—'}</strong>
+              <small>{bestEnergyHour ? 'Según tu energía registrada' : 'Por descubrir'}</small>
+            </div>
           </div>
         </header>
         {planner.error && <p className="weekly-error" role="alert">{planner.error}</p>}
         {statusError && <p className="weekly-error" role="alert">{statusError}</p>}
         <div className="weekly-workspace">
           <div className="weekly-calendar-area">
+            <header className="weekly-calendar-heading">
+              <div>
+                <h2>Agenda</h2>
+                <p>{weekRange}</p>
+              </div>
+              <div className="weekly-week-controls" aria-label="Navegación semanal">
+                <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, -1))} aria-label="Semana anterior">‹</button>
+                <button type="button" onClick={() => planner.setWeekStart(getWeekStart())}>Hoy</button>
+                <button type="button" onClick={() => planner.setWeekStart(shiftWeek(planner.weekStart, 1))} aria-label="Semana siguiente">›</button>
+                <button type="button" className="weekly-clear-week-button" onClick={planner.clearWeek}>Limpiar semana</button>
+              </div>
+            </header>
             <WeeklyGrid
               dates={dates}
               currentTime={currentTime}
@@ -230,6 +249,7 @@ export default function WeeklyPlannerPage() {
               taskById={planner.taskById}
               habitById={planner.habitById}
               focusSessions={planner.focusSessions}
+              energyByDayHour={analytics.energyByDayHour}
               onDropTask={handleDropTask}
               onDragStart={handleDragStart}
               onStatusChange={handleStatusChange}
@@ -241,49 +261,25 @@ export default function WeeklyPlannerPage() {
               onClickSlot={handleClickSlot}
             />
           </div>
-
-          <aside className="weekly-analytics-sidebar" aria-label="Insights de la semana">
-            <WeeklyPatterns
-              insights={analytics.insights}
-              bestDeepWorkDays={analytics.bestDeepWorkDays}
-              detectedPeakHours={analytics.detectedPeakHours}
-              chronotype={analytics.chronotype}
-            />
-            <EnergyHeatmap
-              energyByDayHour={analytics.energyByDayHour}
-              peakHours={analytics.detectedPeakHours}
-            />
-            <details className="weekly-insights-details">
-              <summary>Más señales de la semana</summary>
-              <section className="weekly-metrics" aria-label="Resumen semanal">
-                <div><span>Completadas</span><strong>{progress?.completed || 0}</strong></div>
-                <div><span>Progreso</span><strong>{progress?.completionRate || 0}%</strong></div>
-                <div><span>Enfoques</span><strong>{progress?.focusSessions || 0}</strong></div>
-                <div><span>Hábitos activos</span><strong>{habitConsistency.filter((habit) => habit.completed > 0).length}</strong></div>
-              </section>
-              <CreativeBlocksSummary
-                stats={analytics.creativeStats}
-                weeklyBlocks={analytics.creativeBlocks}
-                creativeBlocksByDay={analytics.creativeBlocksByDay}
-                avgQuality={analytics.avgQuality}
-                formatDuration={analytics.formatDuration}
-              />
-              <CorrelationPanel
-                energyQualityCorrelation={analytics.energyQualityCorrelation}
-                blocksWithEnergy={analytics.blocksWithEnergy}
-                progress={progress}
-                habitConsistency={habitConsistency}
-                creativeStats={analytics.creativeStats}
-                avgEnergyByHour={analytics.avgEnergyByHour}
-              />
-            </details>
-          </aside>
+          <VektorPanel
+            key={formatDate(planner.weekStart)}
+            analytics={analytics}
+            entries={planner.entries}
+            taskById={planner.taskById}
+            habitById={planner.habitById}
+            currentTime={currentTime}
+          />
         </div>
 
-        <section className="weekly-secondary-area" aria-label="Información secundaria de la semana">
-          <details className="weekly-disclosure">
-            <summary>Pendientes por planificar{isRescheduling ? ' · Buscando el siguiente hueco...' : ''}</summary>
-            <div className="weekly-disclosure-content weekly-backlog-area">
+        <section className="weekly-secondary-area" aria-label="Pendientes y reflexión semanal">
+          <section className="weekly-bottom-section weekly-pending-section">
+            <header className="weekly-bottom-heading">
+              <div>
+                <h2>Pendientes por planificar</h2>
+                <p>{isRescheduling ? 'Buscando el siguiente hueco…' : 'Coloca en la agenda lo que importa.'}</p>
+              </div>
+            </header>
+            <div className="weekly-backlog-area">
               <PlannerBacklogSection
                 itemType="task"
                 items={planner.tasks}
@@ -298,11 +294,15 @@ export default function WeeklyPlannerPage() {
                 onHabitSchedule={scheduleHabit}
               />
             </div>
-          </details>
+          </section>
 
-          <details className="weekly-disclosure">
-            <summary>Tareas y hábitos sin completar</summary>
-            <div className="weekly-disclosure-content">
+          <section className="weekly-bottom-section weekly-unfinished-section">
+            <header className="weekly-bottom-heading">
+              <div>
+                <h2>Por completar</h2>
+                <p>Retoma lo que todavía requiere atención.</p>
+              </div>
+            </header>
               <section className="weekly-incomplete-area">
                 <PlannerIncompleteSection
                   itemType="task"
@@ -319,13 +319,11 @@ export default function WeeklyPlannerPage() {
                   updatingEntryId={updatingEntryId}
                 />
               </section>
-            </div>
-          </details>
+          </section>
 
-          <details className="weekly-disclosure">
-            <summary>Reflexión semanal</summary>
+          <section className="weekly-bottom-section weekly-reflection-section">
             <WeeklyReview key={planner.weekStart} questions={review.questions} review={review.review} onSave={review.saveReview} saving={review.saving} saved={review.saved} />
-          </details>
+          </section>
         </section>
       </div>
       

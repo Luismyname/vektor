@@ -1,9 +1,10 @@
 import HourSlot from './HourSlot'
 import TaskBlock from './TaskBlock'
 import HabitBlock from './HabitBlock'
+import ReminderBlock from './ReminderBlock'
 
-// Horas visibles de cada columna, desde las 05:00 hasta las 22:00.
-const HOURS = Array.from({ length: 18 }, (_, index) => index + 5)
+// Horas visibles de cada columna, desde las 00:00 hasta las 23:00.
+const HOURS = Array.from({ length: 24 }, (_, index) => index)
 
 // Traduce el estado de una sesión enfocada al rótulo del marcador semanal.
 function getFocusLabel(session) {
@@ -15,8 +16,8 @@ function getFocusLabel(session) {
 
 // Renderiza slots y bloques de un día junto al indicador de hora actual.
 export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot }) {
-  const startHour = 5
-  const endHour = 23
+  const startHour = 0
+  const endHour = 24
   const totalHours = endHour - startHour
   const hours = currentTime.getHours() + currentTime.getMinutes() / 60
   const relative = Math.max(0, Math.min(hours - startHour, totalHours))
@@ -29,6 +30,7 @@ export default function DayColumn({ date, today, currentTime, entries, taskById,
         {date === today && <div className="current-time-line" style={{ top: `${percent}%` }} />}
         {entries.filter((entry) => entry.task_id).map((entry) => <TaskBlock key={entry.id} entry={entry} task={taskById[entry.task_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} />)}
         {entries.filter((entry) => entry.habit_id).map((entry) => <HabitBlock key={entry.id} entry={entry} habit={habitById[entry.habit_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
+        {entries.filter((entry) => !entry.task_id && !entry.habit_id && !entry.is_creative_block).map((entry) => <ReminderBlock key={entry.id} entry={entry} reminder={{ title: entry.notes?.trim() || 'Evento fijo' }} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
         {sessions.map((session) => <div key={`focus-${session.id}`} className="weekly-focus-marker" title={getFocusLabel(session)}>{getFocusLabel(session)}</div>)}
       </div>
     </section>

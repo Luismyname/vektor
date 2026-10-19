@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../services/supabase'
 
@@ -24,9 +24,11 @@ function getAvatarUrl(user, name) {
 // Navegación autenticada con enlaces de sección, avatar y cierre de sesión.
 export default function Navbar() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const isWeeklyPlanner = pathname === '/weekly-planner'
 
   // Finaliza la sesión de Supabase y vuelve a la portada al completarse.
   async function handleSignOut() {
@@ -44,7 +46,7 @@ export default function Navbar() {
   const name = user ? getUserName(user) : ''
 
   return (
-    <header className="top-header" aria-label="barra superior">
+    <header className={`top-header${isWeeklyPlanner ? ' weekly-planner-top-header' : ''}`} aria-label="barra superior">
       <div className="header-left">
         <button
           type="button"
@@ -53,7 +55,7 @@ export default function Navbar() {
           aria-expanded={menuOpen}
           aria-controls="dashboard-menu"
         >
-          ☰ Menu
+          {isWeeklyPlanner ? '☰ Menú' : '☰ Menu'}
         </button>
         {menuOpen && (
           <nav id="dashboard-menu" className="menu-dropdown" aria-label="navegación del dashboard">
@@ -70,6 +72,7 @@ export default function Navbar() {
           </nav>
         )}
       </div>
+      {isWeeklyPlanner && <strong className="weekly-planner-nav-title">Weekly Planner</strong>}
       {user && (
         <div className="header-right">
           <div className="onboarding-user">

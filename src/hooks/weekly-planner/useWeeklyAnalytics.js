@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { getWeeklyEnergyLevels, detectChronotype, getUserPeakHours } from '../../services/energy'
 import { getWeeklyCreativeBlocks, getCreativeBlocksStats } from '../../services/creative'
 import { getWeeklyProgress, getHabitConsistency, getWeekDates } from '../../services/weekly-planner'
@@ -15,8 +15,6 @@ export function useWeeklyAnalytics(userId, weekStart) {
   const [habitConsistency, setHabitConsistency] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
-  const isInitialLoad = useRef(true)
 
   const loadAll = useCallback(async () => {
     if (!userId) return
@@ -57,10 +55,8 @@ export function useWeeklyAnalytics(userId, weekStart) {
   }, [userId, weekStart])
 
   useEffect(() => {
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false
-      loadAll()
-    }
+    const timer = setTimeout(loadAll, 0)
+    return () => clearTimeout(timer)
   }, [loadAll])
 
   // Energy heatmap data: array of { date, hour, energy_level }
@@ -83,7 +79,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
     const dates = getWeekDates(weekStart)
     dates.forEach(date => {
       grid[date] = {}
-      for (let h = 5; h <= 23; h++) {
+      for (let h = 0; h <= 23; h++) {
         const entry = energyData.find(e => e.date === date && e.hour === h)
         grid[date][h] = entry ? entry.energy_level : null
       }
@@ -94,7 +90,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
   // Average energy by hour across the week
   const avgEnergyByHour = useMemo(() => {
     const byHour = {}
-    for (let h = 5; h <= 23; h++) {
+    for (let h = 0; h <= 23; h++) {
       const values = energyData.filter(e => e.hour === h).map(e => e.energy_level)
       if (values.length) {
         byHour[h] = Math.round(values.reduce((a, b) => a + b, 0) / values.length)
