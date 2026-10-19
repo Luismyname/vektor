@@ -56,6 +56,7 @@ export default function PlannerBacklogSection({
   itemType,
   items,
   entries,
+  plannedTaskIds = new Set(),
   onDragStart,
   onHabitSchedule,
 }) {
@@ -64,10 +65,10 @@ export default function PlannerBacklogSection({
     isTask
       ? items.filter((task) => (
         task.status !== 'completed'
-        && !entries.some((entry) => entry.task_id === task.id)
+        && !plannedTaskIds.has(task.id)
       ))
-      : items.filter((habit) => habit.active !== false)
-  ), [entries, isTask, items])
+      : items.filter((habit) => habit.active === true)
+  ), [isTask, items, plannedTaskIds])
   const sortedItems = useSortedByNextStartTime(availableItems, entries, itemType)
   const pagination = usePagination(sortedItems, {
     baseItemsPerPage: 2,
@@ -75,7 +76,7 @@ export default function PlannerBacklogSection({
     maxItemsPerPage: 2,
     adaptive: false,
   })
-  const title = isTask ? 'Tareas por colocar' : 'Hábitos por colocar'
+  const title = isTask ? 'Tareas pendientes' : 'Hábitos por colocar'
   const target = isTask ? '/tasks' : '/habits'
 
   return (
@@ -101,7 +102,7 @@ export default function PlannerBacklogSection({
           ))}
         </ul>
       ) : (
-        <p className="weekly-list-empty">{isTask ? 'No hay tareas pendientes por colocar.' : 'No hay hábitos activos.'}</p>
+        <p className="weekly-list-empty">{isTask ? 'No hay tareas pendientes de planificar.' : 'No hay hábitos activos.'}</p>
       )}
       <div className="weekly-list-footer">
         <Link to={target}>Ver todo</Link>

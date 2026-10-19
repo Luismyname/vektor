@@ -6,8 +6,8 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [duration, setDuration] = useState(initialDuration)
   const [startTime, setStartTime] = useState(initialStartTime)
+  const [endTime, setEndTime] = useState(getTimeRange(initialStartTime, initialDuration).endTime)
   const [error, setError] = useState('')
 
   const priorities = [
@@ -16,23 +16,34 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
     { value: 'low', label: 'Baja' }
   ]
 
-  const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
+  const intervalError = startTime && endTime
+    ? endTime < startTime
+      ? 'Las tareas deben finalizar dentro del mismo día.'
+      : endTime <= startTime
+        ? 'La hora de fin debe ser posterior a la hora de inicio.'
+        : ''
+    : ''
+  const durationMinutes = startTime && endTime && !intervalError
+    ? (Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3, 5)))
+      - (Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3, 5)))
+    : null
 
-  // Valida el título y devuelve tarea, prioridad, duración y horario al padre.
+  // Valida el título y el intervalo antes de devolver el horario al padre.
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) {
       setError('El título es obligatorio')
       return
     }
-
-    const { endTime } = getTimeRange(startTime, Number(duration))
+    if (intervalError || !startTime || !endTime) {
+      setError(intervalError || 'Selecciona una hora de inicio y una hora de fin.')
+      return
+    }
 
     onSubmit({
       title: title.trim(),
       description: description.trim(),
       priority,
-      duration: Number(duration),
       startTime,
       endTime
     })
@@ -46,7 +57,10 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
           id="task-title"
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            setError('')
+          }}
           placeholder="¿Qué necesitas hacer?"
           autoFocus
           className="form-input"
@@ -89,36 +103,36 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
           value={startTime}
           onChange={(e) => setStartTime(e.target.value)}
           className="form-input"
+          required
           min="00:00"
           max="23:59"
         />
       </div>
 
       <div className="form-group">
-        <label htmlFor="task-duration">Duración (minutos)</label>
-        <select
-          id="task-duration"
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-          className="form-select"
-        >
-          {durations.map((d) => (
-            <option key={d} value={d}>
-              {d === 60 ? '1 hora' : d < 60 ? `${d} min` : `${d / 60}h`}
-            </option>
-          ))}
-        </select>
+        <label htmlFor="task-end-time">Hora de fin</label>
+        <input
+          id="task-end-time"
+          type="time"
+          value={endTime}
+          onChange={(e) => setEndTime(e.target.value)}
+          className="form-input"
+          required
+          aria-invalid={Boolean(intervalError)}
+        />
       </div>
 
-      {startTime && <p className="form-note">Rango estimado: {startTime} - {getTimeRange(startTime, Number(duration)).endTime}</p>}
+      <p className="form-note">
+        Duración estimada: {durationMinutes === null ? '—' : `${durationMinutes} minutos`}
+      </p>
 
-      {error && <p className="form-error">{error}</p>}
+      {(intervalError || error) && <p className="form-error" role="alert">{intervalError || error}</p>}
 
       <div className="form-actions">
         <button type="button" className="secondary-button" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="primary-button" disabled={!title.trim()}>
+        <button type="submit" className="primary-button" disabled={!title.trim() || !durationMinutes}>
           Crear tarea y agendar
         </button>
       </div>

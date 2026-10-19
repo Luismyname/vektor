@@ -32,20 +32,21 @@ test.describe('Weekly Planner - Manual Testing', () => {
     // Take screenshot of modal
     await page.screenshot({ path: 'test-results/weekly-planner-modal-desktop.png', fullPage: true });
     
-    // Check all 5 tabs exist
-    await expect(page.locator('button[role="tab"]')).toHaveCount(5);
-    await expect(page.locator('button[role="tab"]:has-text("Tarea existente")')).toBeVisible();
+    // Check all planner tabs exist
+    await expect(page.locator('button[role="tab"]')).toHaveCount(6);
+    await expect(page.locator('button[role="tab"]:has-text("Tareas pendientes")')).toBeVisible();
     await expect(page.locator('button[role="tab"]:has-text("Hábito existente")')).toBeVisible();
     await expect(page.locator('button[role="tab"]:has-text("Nueva tarea")')).toBeVisible();
     await expect(page.locator('button[role="tab"]:has-text("Nuevo hábito")')).toBeVisible();
     await expect(page.locator('button[role="tab"]:has-text("Recordatorio")')).toBeVisible();
+    await expect(page.locator('button[role="tab"]:has-text("Bloque Creativo")')).toBeVisible();
     
     // Create a new task
     await page.click('button[role="tab"]:has-text("Nueva tarea")');
     await page.fill('#task-title', 'Test Task E2E');
     await page.fill('#task-description', 'Test description');
     await page.selectOption('#task-priority', 'high');
-    await page.selectOption('#task-duration', '30');
+    await page.fill('#task-end-time', '00:30');
     await page.click('button[type="submit"]:has-text("Crear tarea y agendar")');
     
     // Wait for task to be created and modal to close

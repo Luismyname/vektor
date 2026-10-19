@@ -7,22 +7,30 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   const [entries, setEntries] = useState([])
   const [tasks, setTasks] = useState([])
   const [habits, setHabits] = useState([])
+  const [selectedHabits, setSelectedHabits] = useState([])
+  const [plannedTaskIds, setPlannedTaskIds] = useState(() => new Set())
   const [focusSessions, setFocusSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     if (!userId) return
-    const [{ entries: plannerEntries, error: plannerError }, { tasks: currentTasks, habits: currentHabits, error: contextError }, { sessions }] = await Promise.all([
+    const [
+      { entries: plannerEntries, error: plannerError },
+      { tasks: currentTasks, habits: currentHabits, selectedHabits: currentSelectedHabits, plannedTaskIds: currentPlannedTaskIds, error: contextError },
+      { sessions },
+    ] = await Promise.all([
       getWeeklyPlanner(userId, weekStart),
       getPlannerContext(userId),
       getFocusSessions(userId, weekStart),
     ])
     setEntries(plannerEntries)
-    setTasks(currentTasks)
-    setHabits([...(currentHabits?.recommended || []), ...(currentHabits?.custom || [])].filter((habit) => habit.active !== false))
+    setTasks(currentPlannedTaskIds === null ? [] : currentTasks)
+    setHabits([...(currentHabits?.recommended || []), ...(currentHabits?.custom || [])].filter((habit) => habit.active === true))
+    setSelectedHabits(currentSelectedHabits || [])
+    setPlannedTaskIds(new Set(currentPlannedTaskIds || []))
     setFocusSessions(sessions)
-    setError(plannerError || contextError ? 'No se pudo cargar el planificador. Revisa que hayas aplicado supabase/weekly_planner.sql.' : '')
+    setError(plannerError || contextError ? 'No se pudo cargar el planificador. Revisa tu conexión y los permisos de acceso.' : '')
     setLoading(false)
   }, [userId, weekStart])
 
@@ -41,6 +49,9 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
       const exists = current.some((item) => item.id === entry.id)
       return exists ? current.map((item) => item.id === entry.id ? entry : item) : [...current, entry]
     })
+    if (entry.task_id) {
+      setPlannedTaskIds((current) => new Set(current).add(entry.task_id))
+    }
     return entry
   }
 
@@ -56,19 +67,19 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   async function removeEntry(entryId) {
     const { error: operationError } = await deletePlannerEntry(entryId)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el bloque.')
-    setEntries((current) => current.filter((entry) => entry.id !== entryId))
+    await load()
   }
 
   async function clearDay(date) {
     const { error: operationError } = await deletePlannerDay(userId, date)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el día.')
-    setEntries((current) => current.filter((entry) => entry.date !== date))
+    await load()
   }
 
   async function clearWeek() {
     const { error: operationError } = await deletePlannerWeek(userId, weekStart)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar la semana.')
-    setEntries([])
+    await load()
   }
 
   // Wrapper functions for new modal operations
@@ -113,7 +124,9 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   }
 
   const taskById = useMemo(() => Object.fromEntries(tasks.map((task) => [task.id, task])), [tasks])
-  const habitById = useMemo(() => Object.fromEntries(habits.map((habit) => [habit.id, habit])), [habits])
+  const habitById = useMemo(() => Object.fromEntries(
+    [...habits, ...selectedHabits].map((habit) => [habit.id, habit]),
+  ), [habits, selectedHabits])
 
   return {
     weekStart,
@@ -121,6 +134,8 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     entries,
     tasks,
     habits,
+    selectedHabits,
+    plannedTaskIds,
     focusSessions,
     loading,
     error,

@@ -1,4 +1,6 @@
 ﻿import { supabase } from './supabase';
+import { getCurrentProfile } from './auth';
+import { normalizeHabits } from '../lib/habits';
 
 const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, status, notes, created_at, energy_level, is_creative_block, focus_session_id';
 
@@ -75,9 +77,16 @@ export async function getWeeklyPlanner(userId, weekStart) {
 }
 
 export async function getPlannerContext(userId) {
-  const [{ data: tasks }, { data: habitsData }] = await Promise.all([
+  const [
+    { data: tasks, error: tasksError },
+    { data: habitsData, error: habitsError },
+    { data: plannerLinks, error: plannerError },
+    { profile, error: profileError },
+  ] = await Promise.all([
     supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
     supabase.from('habits').select('*').eq('user_id', userId).eq('active', true).order('created_at', { ascending: false }),
+    supabase.from('weekly_planner').select('task_id').eq('user_id', userId).not('task_id', 'is', null),
+    getCurrentProfile(userId),
   ]);
 
   const habits = { recommended: [], custom: [] };
@@ -85,8 +94,17 @@ export async function getPlannerContext(userId) {
     if (habit.source === 'recommended') habits.recommended.push(habit);
     else habits.custom.push(habit);
   });
+  const selectedHabits = normalizeHabits(profile?.habits);
+  const selectedHabitsList = [...selectedHabits.recommended, ...selectedHabits.custom]
+    .filter((habit) => habit.active === true);
 
-  return { tasks: tasks || [], habits, error: null };
+  return {
+    tasks: tasks || [],
+    habits,
+    selectedHabits: selectedHabitsList,
+    plannedTaskIds: plannerError ? null : (plannerLinks || []).map(({ task_id }) => task_id),
+    error: tasksError || habitsError || plannerError || profileError,
+  };
 }
 
 export async function getFocusSessions(userId, weekStart) {

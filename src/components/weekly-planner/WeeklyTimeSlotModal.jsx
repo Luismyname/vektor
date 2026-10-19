@@ -15,6 +15,7 @@ export default function WeeklyTimeSlotModal({
   onSubmit,
   tasks = [],
   habits = [],
+  plannedTaskIds = new Set(),
 }) {
   const [activeTab, setActiveTab] = useState('existing-task')
   const modalRef = useRef(null)
@@ -89,7 +90,7 @@ export default function WeeklyTimeSlotModal({
             className={`modal-tab ${activeTab === 'existing-task' ? 'active' : ''}`}
             onClick={() => setActiveTab('existing-task')}
           >
-            Tarea existente
+            Tareas pendientes
           </button>
           <button
             role="tab"
@@ -152,6 +153,7 @@ export default function WeeklyTimeSlotModal({
           >
             <ExistingTaskSelector
               tasks={tasks}
+              plannedTaskIds={plannedTaskIds}
               onSelect={(task) => onSubmit({ type: 'task', task })}
               onClose={onClose}
             />

@@ -321,6 +321,7 @@ export default function WeeklyPlannerPage() {
                 itemType="task"
                 items={planner.tasks}
                 entries={planner.entries}
+                plannedTaskIds={planner.plannedTaskIds}
                 onDragStart={handleBacklogDragStart}
               />
               <PlannerBacklogSection
@@ -373,7 +374,8 @@ export default function WeeklyPlannerPage() {
         onSubmit={handleModalSubmit}
         onCancel={handleModalClose}
         tasks={planner.tasks}
-        habits={planner.habits}
+        habits={planner.selectedHabits}
+        plannedTaskIds={planner.plannedTaskIds}
         user={user}
       />
       

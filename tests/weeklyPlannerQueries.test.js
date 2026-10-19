@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { supabaseMock, state } = vi.hoisted(() => {
-  const state = { calls: [], inserted: [], result: { data: [], error: null } }
+const { supabaseMock, getCurrentProfileMock, state } = vi.hoisted(() => {
+  const state = {
+    calls: [],
+    tableCalls: [],
+    inserted: [],
+    result: { data: [], error: null },
+    profile: { habits: { recommended: [], custom: [] } },
+  }
+  const getCurrentProfileMock = vi.fn(async () => ({ profile: state.profile, error: null }))
   const supabaseMock = {
     from: vi.fn((table) => {
       state.table = table
       const query = {}
-      for (const method of ['select', 'eq', 'gte', 'lte', 'order']) {
+      for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'not']) {
         query[method] = vi.fn((...args) => {
           state.calls.push([method, ...args])
+          state.tableCalls.push([table, method, ...args])
           return query
         })
       }
@@ -21,20 +29,56 @@ const { supabaseMock, state } = vi.hoisted(() => {
       return query
     }),
   }
-  return { supabaseMock, state }
+  return { supabaseMock, getCurrentProfileMock, state }
 })
 
 vi.mock('../src/services/supabase', () => ({ supabase: supabaseMock }))
+vi.mock('../src/services/auth', () => ({ getCurrentProfile: getCurrentProfileMock }))
 
-import { createReminder, getHabitStatusHistory, getWeeklyPlanner } from '../src/services/weekly-planner'
+import { createReminder, getHabitStatusHistory, getPlannerContext, getWeeklyPlanner } from '../src/services/weekly-planner'
 
 describe('consultas del planificador semanal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     state.calls = []
+    state.tableCalls = []
     state.inserted = []
     state.table = null
     state.result = { data: [], error: null }
+    state.profile = { habits: { recommended: [], custom: [] } }
+  })
+
+  it('consulta IDs de tareas planificadas en cualquier semana', async () => {
+    state.result = { data: [{ task_id: 'task-15' }], error: null }
+    const { plannedTaskIds, error } = await getPlannerContext('user-1')
+
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'select', 'task_id'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'eq', 'user_id', 'user-1'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'not', 'task_id', 'is', null])
+    expect(state.tableCalls).not.toContainEqual(['weekly_planner', 'gte', 'date', expect.any(String)])
+    expect(state.tableCalls).not.toContainEqual(['weekly_planner', 'lte', 'date', expect.any(String)])
+    expect(plannedTaskIds).toEqual(['task-15'])
+    expect(error).toBeNull()
+  })
+
+  it('devuelve únicamente los hábitos activos seleccionados en el perfil', async () => {
+    state.profile = {
+      habits: {
+        recommended: [
+          { id: 'chosen-recommended', title: 'Aprender 10 minutos al día', active: true },
+          { id: 'unchosen-recommended', title: 'Leer 10 páginas', active: false },
+        ],
+        custom: [
+          { id: 'chosen-custom', title: 'Estudiar', active: true },
+        ],
+      },
+    }
+
+    const { selectedHabits, error } = await getPlannerContext('user-1')
+
+    expect(getCurrentProfileMock).toHaveBeenCalledWith('user-1')
+    expect(selectedHabits.map(({ id }) => id)).toEqual(['chosen-recommended', 'chosen-custom'])
+    expect(error).toBeNull()
   })
 
   it('consulta el rango completo usando fechas ISO válidas', async () => {

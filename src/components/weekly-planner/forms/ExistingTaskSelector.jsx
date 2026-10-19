@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
 
 // Busca y ordena tareas abiertas para vincular una existente al intervalo.
-export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
+export default function ExistingTaskSelector({ tasks, plannedTaskIds = new Set(), onSelect, onClose }) {
   const [search, setSearch] = useState('')
 
-  const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks])
+  const visibleTasks = useMemo(() => tasks.filter((task) => (
+    task.status !== 'completed' && !plannedTaskIds.has(task.id)
+  )), [plannedTaskIds, tasks])
 
   const filteredTasks = useMemo(() => {
     return visibleTasks
@@ -26,7 +28,7 @@ export default function ExistingTaskSelector({ tasks, onSelect, onClose }) {
   return (
     <div className="selector-modal">
       <div className="selector-header">
-        <h3>Seleccionar tarea existente</h3>
+        <h3>Tareas pendientes de planificar</h3>
         <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
       </div>
 

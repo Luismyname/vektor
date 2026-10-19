@@ -5,7 +5,7 @@ export default function ExistingHabitSelector({ habits, onSelect, onClose }) {
   const [search, setSearch] = useState('')
 
   const filteredHabits = habits
-    .filter((habit) => habit.active !== false)
+    .filter((habit) => habit.active === true)
     .filter((habit) =>
       habit.title.toLowerCase().includes(search.toLowerCase())
     )
