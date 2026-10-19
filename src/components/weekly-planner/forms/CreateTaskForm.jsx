@@ -89,8 +89,8 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
           value={startTime}
           onChange={(e) => setStartTime(e.target.value)}
           className="form-input"
-          min="05:00"
-          max="23:00"
+          min="00:00"
+          max="23:59"
         />
       </div>
 

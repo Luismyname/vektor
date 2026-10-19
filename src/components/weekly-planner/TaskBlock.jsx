@@ -24,7 +24,7 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
 
   return (
     <>
-      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 48)}px` }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
+      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 70)}px` }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
         <strong>{task.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
       </article>

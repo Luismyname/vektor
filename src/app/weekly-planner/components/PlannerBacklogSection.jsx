@@ -69,7 +69,12 @@ export default function PlannerBacklogSection({
       : items.filter((habit) => habit.active !== false)
   ), [entries, isTask, items])
   const sortedItems = useSortedByNextStartTime(availableItems, entries, itemType)
-  const pagination = usePagination(sortedItems)
+  const pagination = usePagination(sortedItems, {
+    baseItemsPerPage: 2,
+    minItemsPerPage: 2,
+    maxItemsPerPage: 2,
+    adaptive: false,
+  })
   const title = isTask ? 'Tareas por colocar' : 'Hábitos por colocar'
   const target = isTask ? '/tasks' : '/habits'
 

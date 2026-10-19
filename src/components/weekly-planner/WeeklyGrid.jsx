@@ -1,9 +1,22 @@
+import { useEffect, useRef } from 'react'
 import DayColumn from './DayColumn'
 
 // Compone las 24 horas y siete columnas conectadas a las acciones del padre.
 export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot }) {
+  const gridRef = useRef(null)
+  const currentHour = currentTime.getHours()
+  const weekStart = dates[0]
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (gridRef.current) gridRef.current.scrollTop = Math.max(currentHour - 1, 0) * 70
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [currentHour, weekStart])
+
   return (
-    <div className="weekly-grid-wrap">
+    <div className="weekly-grid-wrap" ref={gridRef} aria-label="Agenda semanal, desplázate para ver todas las horas">
       <div className="weekly-grid-spacer" aria-hidden="true" />
       <div className="weekly-header">
         {dates.map((date) => {

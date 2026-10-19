@@ -13,7 +13,10 @@ const dates = [
   '2026-10-25',
 ]
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 function renderGrid(energyByDayHour = {}) {
   return render(
@@ -58,6 +61,17 @@ describe('WeeklyGrid', () => {
     const energyLabels = [...container.querySelectorAll('.weekly-day-energy > span:last-child')]
       .map((label) => label.textContent)
     expect(energyLabels).toEqual(['70%', '50%', '85%', '—', '—', '—', '—'])
+  })
+
+  it('starts the internal calendar scroll at the current hour', () => {
+    vi.stubGlobal('requestAnimationFrame', (callback) => {
+      callback()
+      return 1
+    })
+
+    const { container } = renderGrid()
+
+    expect(container.querySelector('.weekly-grid-wrap').scrollTop).toBe(7 * 70)
   })
 })
 

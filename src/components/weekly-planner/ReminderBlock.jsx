@@ -18,7 +18,7 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
       <article 
         style={{ 
           '--start-hour': startMinutes / 60, 
-          '--block-height': `${Math.round(duration / 60 * 48)}px` 
+          '--block-height': `${Math.round(duration / 60 * 70)}px`
         }} 
         className={`weekly-block weekly-reminder-block status-${entry.status}`}
         draggable 

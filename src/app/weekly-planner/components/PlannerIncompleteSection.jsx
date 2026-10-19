@@ -41,7 +41,12 @@ export default function PlannerIncompleteSection({
     .sort((left, right) => (
       `${left.date}T${left.start_time}`.localeCompare(`${right.date}T${right.start_time}`)
     )), [entries, itemType, items])
-  const pagination = usePagination(itemEntries)
+  const pagination = usePagination(itemEntries, {
+    baseItemsPerPage: 2,
+    minItemsPerPage: 2,
+    maxItemsPerPage: 2,
+    adaptive: false,
+  })
   const title = isTask ? 'Tareas sin completar' : 'Hábitos sin completar'
   const target = isTask ? '/tasks' : '/habits'
 
