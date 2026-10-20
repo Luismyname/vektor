@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getAuthenticatedUser } from '../services/auth'
+import { supabase } from '../services/supabase'
 import { getUserTheme, updateUserTheme } from '../services/theme'
 import { ThemeContext } from './ThemeContext'
 
@@ -39,33 +39,68 @@ export function ThemeProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Bandera para evitar guardar durante la carga inicial de Supabase
+  // Evita guardar el tema local o anterior mientras se resuelve la sesión actual.
   const isInitialLoad = useRef(true)
+  const authenticatedUserId = useRef(undefined)
 
-  // Cargar tema de Supabase al iniciar
+  // Carga el tema correcto tras el inicio, login, logout o cambio de cuenta.
   useEffect(() => {
     let active = true
+    let requestId = 0
 
-    async function loadTheme() {
+    async function loadTheme(userId, currentRequestId) {
       try {
-        const { user } = await getAuthenticatedUser()
-        if (user && active) {
-          const { theme: savedTheme, error } = await getUserTheme(user.id)
-          if (!error && savedTheme) {
-            setTheme(savedTheme)
-          }
+        const { theme: savedTheme, error } = await getUserTheme(userId)
+        if (!active || currentRequestId !== requestId) return
+        if (error) {
+          console.error('Error loading theme:', error)
+        }
+
+        const resolvedTheme = !error && (savedTheme === 'dark' || savedTheme === 'light')
+          ? savedTheme
+          : DEFAULT_THEME
+        setTheme(resolvedTheme)
+        try {
+          localStorage.setItem(THEME_KEY, resolvedTheme)
+        } catch (storageError) {
+          console.error('[ThemeProvider] Error saving theme to localStorage:', storageError)
         }
       } catch (err) {
-        console.error('Error loading theme:', err)
+        if (active && currentRequestId === requestId) {
+          console.error('Error loading theme:', err)
+        }
       } finally {
-        if (active) {
+        if (active && currentRequestId === requestId) {
           isInitialLoad.current = false
         }
       }
     }
 
-    loadTheme()
-    return () => { active = false }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user?.id || null
+      if (authenticatedUserId.current === userId) return
+
+      authenticatedUserId.current = userId
+      const currentRequestId = ++requestId
+      isInitialLoad.current = true
+
+      if (!userId) {
+        isInitialLoad.current = false
+        return
+      }
+
+      setTheme(DEFAULT_THEME)
+      window.setTimeout(() => {
+        if (active && currentRequestId === requestId) {
+          loadTheme(userId, currentRequestId)
+        }
+      }, 0)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Aplicar tema y guardar cuando cambia
@@ -86,17 +121,18 @@ export function ThemeProvider({ children }) {
       console.error('[ThemeProvider] Error saving to localStorage:', err)
     }
 
-    // Guardar en Supabase (persistencia entre dispositivos)
+    // Guardar en el perfil asociado a la sesión vigente.
     let cancelled = false
     async function saveTheme() {
+      const userId = authenticatedUserId.current
+      if (!userId) return
+
       try {
-        const { user } = await getAuthenticatedUser()
-        if (user && !cancelled) {
-          await updateUserTheme(user.id, theme)
-          console.log('[ThemeProvider] Saved to Supabase:', theme)
-        }
+        const { error } = await updateUserTheme(userId, theme)
+        if (error && !cancelled) console.error('[ThemeProvider] Error saving theme:', error)
+        else if (!cancelled) console.log('[ThemeProvider] Saved to Supabase:', theme)
       } catch (err) {
-        console.error('[ThemeProvider] Error saving theme:', err)
+        if (!cancelled) console.error('[ThemeProvider] Error saving theme:', err)
       }
     }
 

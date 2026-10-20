@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import BackgroundWords from "./BackgroundWords";
 
 // Layout público heredado con navegación, llamadas a autenticación y pie.
 export default function Layout({ children, onOpenLogin, onOpenRegister }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
 
   // Delega apertura de registro al consumidor o navega a la ruta correspondiente.
   function handleRegistroClick() {
@@ -22,46 +22,46 @@ export default function Layout({ children, onOpenLogin, onOpenRegister }) {
       <header className="top-header" aria-label="barra superior">
         <div className="header-left">
           <button
+            type="button"
             className="menu-toggle"
             onClick={() => setMenuOpen((s) => !s)}
             aria-expanded={menuOpen}
+            aria-controls="public-menu"
           >
             ☰ Menu
           </button>
           {menuOpen && (
-            <nav className="menu-dropdown">
+            <nav id="public-menu" className="menu-dropdown" aria-label="Navegación pública">
               <ul>
-                <li>Perfil</li>
-                <li>Configuración</li>
-                <li>Ayuda</li>
+                <li><Link to="/demo" onClick={() => setMenuOpen(false)}>Demo</Link></li>
+                <li><Link to="/preferences" onClick={() => setMenuOpen(false)}>Configuración</Link></li>
+                <li><Link to="/help" onClick={() => setMenuOpen(false)}>Ayuda</Link></li>
               </ul>
             </nav>
           )}
         </div>
 
         <div className="header-right">
-          {loginOpen ? (
-            <div className="login-actions">
-              <button type="button" onClick={() => navigate("/login")}>Continuar al inicio</button>
-              <button type="button" onClick={() => setLoginOpen(false)}>Cancelar</button>
-            </div>
-          ) : (
-            <div id="botones-inicio" className="login-cta">
-              <button id="inicio" onClick={() => (onOpenLogin ? onOpenLogin() : setLoginOpen(true))}>
-                Inicio de sesión
-              </button>
-              <button id="registro" onClick={handleRegistroClick}>
-                Registro
-              </button>
-            </div>
-          )}
+          <div id="botones-inicio" className="login-cta">
+            <button id="inicio" onClick={() => (onOpenLogin ? onOpenLogin() : navigate("/login"))}>
+              Inicio de sesión
+            </button>
+            <button id="registro" onClick={handleRegistroClick}>
+              Registro
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="main-content">
+      <div className="main-content">
         <BackgroundWords />
+        {pathname !== "/" && (
+          <Link className="public-home-link" to="/" onClick={() => setMenuOpen(false)}>
+            ← Volver al inicio
+          </Link>
+        )}
         {children}
-      </main>
+      </div>
 
       <footer className="site-footer">
         <div className="footer-inner">

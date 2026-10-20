@@ -4,11 +4,14 @@ import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from './context/AuthProvider'
 import { AuthContext } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeProvider'
+import Layout from './components/Layout'
 const Dashboard = lazy(() => import('./app/dashboard'))
 // const Survey = lazy(() => import('./app/survey')) // Replaced by OnboardingWizard
 const Login = lazy(() => import('./app/auth/login'))
 const Register = lazy(() => import('./app/auth/register'))
 const Demo = lazy(() => import('./app/demo'))
+const Preferences = lazy(() => import('./app/preferences'))
+const Help = lazy(() => import('./app/help'))
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Portada from './components/Portada'
@@ -86,8 +89,10 @@ export default function App() {
           <ErrorBoundary>
             <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
               <Routes>
-              <Route path="/" element={<Portada />} />
-              <Route path="/demo" element={<Demo />} />
+              <Route path="/" element={<Layout><Portada /></Layout>} />
+              <Route path="/demo" element={<Layout><Demo /></Layout>} />
+              <Route path="/preferences" element={<Layout><Preferences /></Layout>} />
+              <Route path="/help" element={<Layout><Help /></Layout>} />
               <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
               <Route path="/dashboard-v2" element={<ProfileGate requireCompleted><PageLayout><DashboardV2 /></PageLayout></ProfileGate>} />
               <Route path="/onboarding" element={<ProfileGate><PageLayout showNavbar={false}><OnboardingWizard /></PageLayout></ProfileGate>} />

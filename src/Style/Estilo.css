@@ -189,6 +189,21 @@ body{
   align-items:center;
   justify-content:center;
 }
+.main-content > main{ width:100%; }
+.main-content > .auth-page{
+  margin-top:0;
+  min-height:calc(100vh - var(--vektor-header-height) - 50px);
+}
+.public-home-link{
+  position:absolute;
+  top:12px;
+  left:20px;
+  z-index:2;
+  color:var(--color-accent-light);
+  text-decoration:none;
+}
+.public-home-link:hover{ color:var(--color-white); text-decoration:underline; }
+.public-home-link:focus-visible{ outline:2px solid var(--color-accent-light); outline-offset:4px; }
 
 .hero{
   text-align:center;

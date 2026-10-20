@@ -37,6 +37,12 @@ body { background: var(--page-bg); color: var(--page-text); }
 :root[data-theme='light'] .settings-row select { color-scheme: light; background-color: transparent; color: inherit; }
 :root[data-theme='light'] .settings-row select option { background-color: transparent; color: inherit; }
 .settings-row input { width: 64px; margin-right: 6px; }
+.theme-options { min-width: 0; padding: 0; }
+.theme-options legend { padding: 0 16px; color: var(--page-text); font-weight: 600; }
+.theme-option { cursor: pointer; }
+.theme-option input[type="radio"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.public-page-copy { color: var(--muted-text); line-height: 1.65; }
+.public-page-copy p { margin: 16px 0; }
 .settings-toggle { min-width: 100px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .settings-toggle.is-on { border-color: var(--accent); color: var(--accent); }
 .demo-page { min-height: 100vh; padding: 56px 20px; background: radial-gradient(circle at top right, rgba(108,92,231,.2), transparent 35%), var(--page-bg); box-sizing: border-box; }
