@@ -4,8 +4,8 @@ import { useTaskTimer } from '@/hooks/useTaskTimer';
 import { usePreferences } from '@/hooks/usePreferences';
 import { startTask, stopTask, completeTask } from '@/services/tasks';
 import { getCompletedFocusDurationSeconds, startFocusSession, transitionFocusSession } from '@/services/focus-sessions';
+import { normalizeHabits } from '@/lib/habits';
 import {
-  DashboardV2Header,
   DashboardV2Hero,
   DashboardV2Grid,
   DashboardV2Modals,
@@ -37,6 +37,8 @@ function DashboardV2Content({ dashboardData }) {
     pendingTasks,
     activities,
     weeklyEntries,
+    habitDefinitions,
+    habitDefinitionsError,
     currentEnergy,
     energyLabel,
     energyColor,
@@ -46,6 +48,7 @@ function DashboardV2Content({ dashboardData }) {
     setActiveFocusSession,
     setTasks,
     refreshDashboard,
+    completeHabit,
   } = dashboardData;
 
   const [selectedTask, setSelectedTask] = useState(null);
@@ -243,23 +246,11 @@ function DashboardV2Content({ dashboardData }) {
     setShowStartModal(true);
   }, [defaultDuration, setShowStartModal]);
 
-  // Normalize habits - handle JSONB object, string, or null from Supabase
-  const normalizeHabits = (habits) => {
-    if (!habits) return [];
-    if (Array.isArray(habits)) return habits;
-    if (typeof habits === 'object') return Object.values(habits);
-    if (typeof habits === 'string') {
-      try { return JSON.parse(habits); } catch { return []; }
-    }
-    return [];
-  };
-
-  const activeHabits = normalizeHabits(profile.habits).filter(h => h.active);
+  const profileHabits = normalizeHabits(profile.habits);
+  const activeHabits = [...profileHabits.recommended, ...profileHabits.custom].filter(habit => habit.active);
 
   return (
     <main className="dashboard-v2-page">
-      <DashboardV2Header user={user} profile={profile} />
-
       <div className="dashboard-v2-shell">
         <DashboardV2Hero
           user={user}
@@ -295,6 +286,9 @@ function DashboardV2Content({ dashboardData }) {
           profile={profile}
           activeTask={activeTask}
           activeHabits={activeHabits}
+          habitDefinitions={habitDefinitions}
+          habitDefinitionsError={habitDefinitionsError}
+          onCompleteHabit={completeHabit}
           tasks={tasks}
           pendingTasks={pendingTasks}
           activities={activities}

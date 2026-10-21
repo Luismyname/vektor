@@ -12,6 +12,9 @@ export function DashboardV2Grid({
   profile,
   activeTask,
   activeHabits,
+  habitDefinitions,
+  habitDefinitionsError,
+  onCompleteHabit,
   tasks,
   pendingTasks,
   activities,
@@ -28,6 +31,9 @@ export function DashboardV2Grid({
   const scheduledTime = nextActionEntry?.start_time && nextActionEntry?.end_time
     ? `${nextActionEntry.start_time.slice(0, 5)} – ${nextActionEntry.end_time.slice(0, 5)}`
     : null;
+  const todayHabitEntries = weeklyEntries.filter(
+    entry => entry.date === today && typeof entry.habit_id === 'string' && entry.habit_id.length > 0,
+  );
 
   return (
     <div className="dashboard-v2-grid" role="region" aria-label="Panel principal">
@@ -41,7 +47,12 @@ export function DashboardV2Grid({
         onStartNext={onStartNextSession}
         onCreateTask={onCreateTask}
       />
-      <HabitsCard habits={activeHabits} />
+      <HabitsCard
+        entries={todayHabitEntries}
+        habitDefinitions={habitDefinitions}
+        definitionsError={habitDefinitionsError}
+        onComplete={onCompleteHabit}
+      />
       <TodayPlanCard
         activeTask={activeTask}
         tasks={tasks}

@@ -13,7 +13,7 @@ const { supabaseMock, getCurrentProfileMock, state } = vi.hoisted(() => {
     from: vi.fn((table) => {
       state.table = table
       const query = {}
-      for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'not']) {
+      for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'not', 'neq', 'update']) {
         query[method] = vi.fn((...args) => {
           state.calls.push([method, ...args])
           state.tableCalls.push([table, method, ...args])
@@ -35,7 +35,13 @@ const { supabaseMock, getCurrentProfileMock, state } = vi.hoisted(() => {
 vi.mock('../src/services/supabase', () => ({ supabase: supabaseMock }))
 vi.mock('../src/services/auth', () => ({ getCurrentProfile: getCurrentProfileMock }))
 
-import { createReminder, getHabitStatusHistory, getPlannerContext, getWeeklyPlanner } from '../src/services/weekly-planner'
+import {
+  completeHabitOccurrence,
+  createReminder,
+  getHabitStatusHistory,
+  getPlannerContext,
+  getWeeklyPlanner,
+} from '../src/services/weekly-planner'
 
 describe('consultas del planificador semanal', () => {
   beforeEach(() => {
@@ -126,5 +132,32 @@ describe('consultas del planificador semanal', () => {
     })
     expect(entry.notes).toBe('Llamar al equipo')
     expect(error).toBeNull()
+  })
+
+  it('completa una ocurrencia de hábito del usuario en weekly_planner', async () => {
+    const completedEntry = {
+      id: 'planner-habit-1',
+      user_id: 'user-1',
+      habit_id: 'habit-1',
+      status: 'completed',
+    }
+    state.result = { data: completedEntry, error: null }
+
+    const result = await completeHabitOccurrence('planner-habit-1', 'user-1')
+
+    expect(state.table).toBe('weekly_planner')
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'eq', 'id', 'planner-habit-1'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'eq', 'user_id', 'user-1'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'not', 'habit_id', 'is', null])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'neq', 'status', 'completed'])
+    expect(result).toEqual({ entry: completedEntry, error: null })
+  })
+
+  it('no intenta completar una ocurrencia sin entrada o usuario', async () => {
+    const result = await completeHabitOccurrence(null, 'user-1')
+
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+    expect(result.entry).toBeNull()
+    expect(result.error).toBeInstanceOf(Error)
   })
 })

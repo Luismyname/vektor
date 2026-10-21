@@ -14,6 +14,8 @@ const { state, mocks } = vi.hoisted(() => ({
     getTasks: vi.fn(),
     getActiveFocusSession: vi.fn(),
     getWeeklyPlanner: vi.fn(),
+    completeHabitOccurrence: vi.fn(),
+    getPlannerHabits: vi.fn(),
     getWeekStart: vi.fn(() => '2026-10-19'),
     getWeeklyEnergyLevels: vi.fn(),
     getUserChronotype: vi.fn(),
@@ -35,6 +37,7 @@ vi.mock('../src/services/focus-sessions', () => ({
   getActiveFocusSession: mocks.getActiveFocusSession,
 }))
 vi.mock('../src/services/weekly-planner', () => ({
+  completeHabitOccurrence: mocks.completeHabitOccurrence,
   formatDate: mocks.formatDate,
   getWeeklyPlanner: mocks.getWeeklyPlanner,
   getWeekStart: mocks.getWeekStart,
@@ -42,6 +45,15 @@ vi.mock('../src/services/weekly-planner', () => ({
 vi.mock('../src/services/energy', () => ({
   getUserChronotype: mocks.getUserChronotype,
   getWeeklyEnergyLevels: mocks.getWeeklyEnergyLevels,
+}))
+vi.mock('../src/services/habits', () => ({
+  getPlannerHabits: mocks.getPlannerHabits,
+}))
+vi.mock('../src/lib/habits', () => ({
+  normalizeHabits: vi.fn(habits => ({
+    recommended: Array.isArray(habits?.recommended) ? habits.recommended : [],
+    custom: Array.isArray(habits?.custom) ? habits.custom : [],
+  })),
 }))
 vi.mock('../src/services/supabase', () => ({
   supabase: {
@@ -106,6 +118,8 @@ describe('useDashboardV2Data focus session recovery', () => {
       error: null,
     }))
     mocks.getWeeklyPlanner.mockResolvedValue({ entries: [], error: null })
+    mocks.completeHabitOccurrence.mockReset()
+    mocks.getPlannerHabits.mockResolvedValue({ habits: { recommended: [], custom: [] }, error: null })
     mocks.getWeeklyEnergyLevels.mockResolvedValue({ data: [], error: null })
     mocks.getUserChronotype.mockResolvedValue({ data: null, error: null })
   })
@@ -137,5 +151,47 @@ describe('useDashboardV2Data focus session recovery', () => {
 
     expect(result.current.activeTask.id).toBe('task-user-b')
     expect(result.current.activeTask.id).not.toBe('task-user-a')
+  })
+
+  it('actualiza la ocurrencia solo tras confirmar y la recupera en una nueva carga', async () => {
+    const occurrence = {
+      id: 'planner-entry-1',
+      user_id: 'user-a',
+      habit_id: 'habit-1',
+      date: '2026-10-21',
+      status: 'scheduled',
+    }
+    mocks.getWeeklyPlanner.mockResolvedValue({ entries: [occurrence], error: null })
+
+    let resolveCompletion
+    mocks.completeHabitOccurrence.mockImplementation(() => new Promise(resolve => {
+      resolveCompletion = resolve
+    }))
+
+    const { result, unmount } = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let completion
+    act(() => {
+      completion = result.current.completeHabit(occurrence.id)
+    })
+    expect(result.current.weeklyEntries[0].status).toBe('scheduled')
+
+    await act(async () => {
+      resolveCompletion({ entry: { ...occurrence, status: 'completed' }, error: null })
+      await completion
+    })
+    expect(result.current.weeklyEntries[0].status).toBe('completed')
+    expect(mocks.completeHabitOccurrence).toHaveBeenCalledWith(occurrence.id, 'user-a')
+
+    unmount()
+    mocks.getWeeklyPlanner.mockResolvedValue({
+      entries: [{ ...occurrence, status: 'completed' }],
+      error: null,
+    })
+    const reloaded = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(reloaded.result.current.loading).toBe(false))
+    expect(reloaded.result.current.weeklyEntries[0].status).toBe('completed')
+    reloaded.unmount()
   })
 })

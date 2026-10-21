@@ -4,8 +4,10 @@ import { getRecentActivity } from '../../../services/activity';
 import { getTasks } from '../../../services/tasks';
 import { getActiveFocusSession } from '../../../services/focus-sessions';
 import { supabase } from '../../../services/supabase';
-import { formatDate, getWeeklyPlanner, getWeekStart } from '../../../services/weekly-planner';
+import { completeHabitOccurrence, formatDate, getWeeklyPlanner, getWeekStart } from '../../../services/weekly-planner';
 import { getUserChronotype, getWeeklyEnergyLevels } from '../../../services/energy';
+import { getPlannerHabits } from '../../../services/habits';
+import { normalizeHabits } from '../../../lib/habits';
 
 export function useDashboardV2Data() {
   const [user, setUser] = useState(null);
@@ -13,6 +15,8 @@ export function useDashboardV2Data() {
   const [tasks, setTasks] = useState([]);
   const [activities, setActivities] = useState([]);
   const [weeklyEntries, setWeeklyEntries] = useState([]);
+  const [habitDefinitions, setHabitDefinitions] = useState([]);
+  const [habitDefinitionsError, setHabitDefinitionsError] = useState('');
   const [energyLevels, setEnergyLevels] = useState([]);
   const [chronotype, setChronotype] = useState(null);
   const [error, setError] = useState('');
@@ -29,6 +33,8 @@ export function useDashboardV2Data() {
     setTasks([]);
     setActivities([]);
     setWeeklyEntries([]);
+    setHabitDefinitions([]);
+    setHabitDefinitionsError('');
     setEnergyLevels([]);
     setChronotype(null);
     setHiddenAnswers({});
@@ -74,6 +80,10 @@ export function useDashboardV2Data() {
     setError('');
 
     let results;
+    const habitDefinitionsRequest = getPlannerHabits(currentUserId).catch(habitError => {
+      console.error('Habit definitions load failed:', habitError);
+      return { habits: { recommended: [], custom: [] }, error: habitError };
+    });
     try {
       results = await Promise.all([
         getTasks(currentUserId),
@@ -83,6 +93,7 @@ export function useDashboardV2Data() {
         getWeeklyEnergyLevels(currentUserId, getWeekStart()),
         getUserChronotype(currentUserId),
         getCurrentProfile(currentUserId),
+        habitDefinitionsRequest,
       ]);
     } catch (loadError) {
       if (!isCurrent() || userIdRef.current !== currentUserId) return;
@@ -99,6 +110,7 @@ export function useDashboardV2Data() {
       { data: energyData, error: energyError },
       { data: chronotypeData, error: chronotypeError },
       { profile: currentProfile, error: profileError },
+      { habits: plannerHabits, error: plannerHabitsError },
     ] = results;
 
     if (!isCurrent() || userIdRef.current !== currentUserId) return;
@@ -127,6 +139,16 @@ export function useDashboardV2Data() {
     setUser(authenticatedUser);
     setProfile(currentProfile);
     setHiddenAnswers(currentProfile.hidden_answers || {});
+    const profileHabitGroups = normalizeHabits(currentProfile.habits);
+    setHabitDefinitions([
+      ...(plannerHabits?.recommended || []),
+      ...(plannerHabits?.custom || []),
+      ...profileHabitGroups.recommended,
+      ...profileHabitGroups.custom,
+    ]);
+    setHabitDefinitionsError(plannerHabitsError
+      ? 'No se pudieron cargar todas las definiciones de hábitos.'
+      : '');
     setTasks(currentTasks);
     setActivities(activitiesError ? [] : currentActivities);
     setWeeklyEntries(plannerEntries || []);
@@ -193,6 +215,22 @@ export function useDashboardV2Data() {
     return { profile: currentProfile, error: profileError };
   }, []);
 
+  const completeHabit = useCallback(async (entryId) => {
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
+      return { entry: null, error: new Error('No se pudo identificar al usuario para completar el hábito.') };
+    }
+
+    const { entry, error: completionError } = await completeHabitOccurrence(entryId, currentUserId);
+    if (completionError) return { entry: null, error: completionError };
+    if (userIdRef.current !== currentUserId) {
+      return { entry: null, error: new Error('El usuario cambió antes de confirmar el hábito.') };
+    }
+
+    setWeeklyEntries(current => current.map(item => item.id === entry.id ? entry : item));
+    return { entry, error: null };
+  }, []);
+
   const refreshDashboard = useCallback(async (currentUserId) => {
     if (userIdRef.current !== currentUserId) return { error: new Error('El usuario del dashboard cambió.') };
 
@@ -255,6 +293,8 @@ export function useDashboardV2Data() {
     pendingTasks,
     activities,
     weeklyEntries: weeklyPlannerEntries,
+    habitDefinitions,
+    habitDefinitionsError,
     energyLevels,
     chronotype,
     currentEnergy,
@@ -272,5 +312,6 @@ export function useDashboardV2Data() {
     setHiddenAnswers,
     refreshDashboard,
     refreshProfile,
+    completeHabit,
   };
 }

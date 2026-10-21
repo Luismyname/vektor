@@ -1,85 +1,124 @@
-import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Check, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export function HabitsCard({ habits }) {
+const ITEMS_PER_PAGE = 3;
+
+function getHabitTitle(entry, habitDefinitions) {
+  const habit = habitDefinitions.find(candidate => (
+    candidate.id === entry.habit_id || candidate.title === entry.habit_id
+  ));
+  return habit?.title || 'Hábito eliminado';
+}
+
+export function HabitsCard({ entries = [], habitDefinitions = [], definitionsError = '', onComplete }) {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 3;
-  const totalPages = Math.ceil(habits.length / ITEMS_PER_PAGE);
-  const [completedHabits, setCompletedHabits] = useState(new Set());
+  const [pendingEntryIds, setPendingEntryIds] = useState(() => new Set());
+  const pendingEntryIdsRef = useRef(new Set());
+  const [completionError, setCompletionError] = useState('');
 
-  const currentHabits = useMemo(() =>
-    habits.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
-    [habits, currentPage]
-  );
+  const totalPages = Math.max(1, Math.ceil(entries.length / ITEMS_PER_PAGE));
+  const currentPageEntries = useMemo(() => (
+    entries.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  ), [entries, currentPage]);
 
-  const toggleHabit = (habit) => {
-    setCompletedHabits(prev => {
-      const next = new Set(prev);
-      if (next.has(habit.id)) next.delete(habit.id);
-      else next.add(habit.id);
-      return next;
-    });
-  };
+  async function completeEntry(entry) {
+    if (entry.status === 'completed' || pendingEntryIdsRef.current.has(entry.id)) return;
 
-  const goNext = () => setCurrentPage(p => Math.min(p + 1, totalPages));
-  const goPrev = () => setCurrentPage(p => Math.max(p - 1, 1));
-  const totalPagesCalc = Math.ceil(habits.length / 3);
+    const pendingIds = new Set(pendingEntryIdsRef.current).add(entry.id);
+    pendingEntryIdsRef.current = pendingIds;
+    setPendingEntryIds(pendingIds);
+    setCompletionError('');
+
+    try {
+      const { error } = await onComplete(entry.id);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Habit occurrence completion failed:', error);
+      setCompletionError(error instanceof Error ? error.message : 'No se pudo completar el hábito.');
+    } finally {
+      const remainingPendingIds = new Set(pendingEntryIdsRef.current);
+      remainingPendingIds.delete(entry.id);
+      pendingEntryIdsRef.current = remainingPendingIds;
+      setPendingEntryIds(remainingPendingIds);
+    }
+  }
 
   return (
     <section className="card card-habits" aria-labelledby="habits-title">
       <header className="card-header">
         <Check className="card-icon" aria-hidden="true" />
-        <h2 id="habits-title" className="card-title">Hábitos</h2>
+        <h2 id="habits-title" className="card-title">Hábitos de hoy</h2>
       </header>
 
-      {habits.length === 0 ? (
+      {definitionsError && <p className="dashboard-v2-error" role="alert">{definitionsError}</p>}
+      {completionError && <p className="dashboard-v2-error" role="alert">{completionError}</p>}
+
+      {entries.length === 0 ? (
         <div className="habits-empty">
-          <p>No hay hábitos activos</p>
-          <button className="primary-button" onClick={() => navigate('/habits')}>
-            <Plus className="btn-icon" aria-hidden="true" />
-            Añadir hábitos
+          <p>No tienes hábitos programados para hoy.</p>
+          <button className="primary-button" type="button" onClick={() => navigate('/weekly-planner')}>
+            <CalendarDays className="btn-icon" aria-hidden="true" />
+            Ir al planificador
           </button>
         </div>
       ) : (
         <>
           <ul className="habits-list" role="list">
-            {currentHabits.map(habit => {
-              const isDone = completedHabits.has(habit.id);
+            {currentPageEntries.map(entry => {
+              const isDone = entry.status === 'completed';
+              const isPending = pendingEntryIds.has(entry.id);
+              const title = getHabitTitle(entry, habitDefinitions);
               return (
-                <li key={habit.id} className={`habit-item ${isDone ? 'completed' : ''}`}>
+                <li key={entry.id} className={`habit-item ${isDone ? 'completed' : ''}`}>
                   <button
+                    type="button"
                     className="habit-checkbox"
-                    onClick={() => toggleHabit(habit)}
+                    onClick={() => completeEntry(entry)}
+                    disabled={isDone || isPending}
                     aria-pressed={isDone}
-                    aria-label={isDone ? `Desmarcar ${habit.title}` : `Marcar ${habit.title}`}
+                    aria-label={isDone ? `${title} completado` : `Completar ${title}`}
+                    aria-busy={isPending}
                   >
                     <Check className="check-icon" aria-hidden="true" />
                   </button>
-                  <span className={`habit-text ${isDone ? 'completed' : ''}`}>{habit.title}</span>
+                  <span className={`habit-text ${isDone ? 'completed' : ''}`}>{title}</span>
+                  {entry.start_time && (
+                    <time className="habit-scheduled-time" dateTime={`${entry.date}T${entry.start_time}`}>
+                      {entry.start_time.slice(0, 5)}
+                    </time>
+                  )}
                 </li>
               );
             })}
           </ul>
 
-          {habits.length > 3 && (
+          {entries.length > ITEMS_PER_PAGE && (
             <div className="habits-pagination">
-              <button className="page-btn" onClick={goPrev} disabled={currentPage === 1} aria-label="Anterior">
+              <button
+                type="button"
+                className="page-btn"
+                onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                aria-label="Anterior"
+              >
                 <ChevronLeft aria-hidden="true" />
               </button>
-              <span className="page-indicator" aria-label={`Página ${currentPage} de ${totalPagesCalc}`}>
-                {currentPage} / {totalPagesCalc}
+              <span className="page-indicator" aria-label={`Página ${currentPage} de ${totalPages}`}>
+                {currentPage} / {totalPages}
               </span>
-              <button className="page-btn" onClick={goNext} disabled={currentPage === totalPagesCalc} aria-label="Siguiente">
+              <button
+                type="button"
+                className="page-btn"
+                onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                aria-label="Siguiente"
+              >
                 <ChevronRight aria-hidden="true" />
               </button>
             </div>
           )}
-
-          <button className="view-all-btn" onClick={() => navigate('/habits')}>
-            Ver todos
-          </button>
         </>
       )}
     </section>

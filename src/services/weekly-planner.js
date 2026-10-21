@@ -169,6 +169,29 @@ export async function updatePlannerEntry(id, changes) {
   return { entry: data, error };
 }
 
+export async function completeHabitOccurrence(entryId, userId) {
+  if (!entryId || !userId) {
+    return { entry: null, error: new Error('Falta la ocurrencia o el usuario para completar el hábito.') };
+  }
+
+  const { data, error } = await supabase
+    .from('weekly_planner')
+    .update({ status: 'completed' })
+    .eq('id', entryId)
+    .eq('user_id', userId)
+    .not('habit_id', 'is', null)
+    .neq('status', 'completed')
+    .select(PLANNER_FIELDS)
+    .single();
+
+  if (error) return { entry: null, error };
+  if (!data || data.id !== entryId || data.user_id !== userId || !data.habit_id || data.status !== 'completed') {
+    return { entry: null, error: new Error('La ocurrencia actualizada no coincide con el usuario o el hábito solicitado.') };
+  }
+
+  return { entry: data, error: null };
+}
+
 export async function moveTask(entryId, taskId, newDate, newStart, newEnd) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, task_id: taskId, status: 'moved' });
 }
