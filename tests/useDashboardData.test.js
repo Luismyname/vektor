@@ -115,7 +115,7 @@ describe('useDashboardData', () => {
     })
   })
 
-  it('debe detectar tarea activa en actividades', async () => {
+  it('no reconstruye la tarea activa solo desde activity', async () => {
     const activitiesWithActive = [
       { id: 'act-1', type: 'in_progress', task_id: 'task-1', duration: 25 },
     ]
@@ -123,25 +123,34 @@ describe('useDashboardData', () => {
 
     const { result } = renderHook(() => useDashboardData(25))
 
-    await waitFor(() => {
-      expect(result.current.activeTask).toBeTruthy()
-      expect(result.current.activeTask.id).toBe('task-1')
-    })
+    await waitFor(() => expect(result.current.user).toEqual(mockUser))
+    expect(result.current.activeTask).toBeNull()
   })
 
-  it('debe recuperar la sesión de enfoque activa del usuario', async () => {
-    const activeSession = { id: 'focus-1', task_id: 'task-1', status: 'paused' }
+  it('recupera la sesión y la tarea desde focus_sessions', async () => {
+    const activeSession = {
+      id: 'focus-1',
+      user_id: 'user-123',
+      task_id: 'task-1',
+      status: 'paused',
+      started_at: '2026-10-21T07:00:00.000Z',
+      paused_at: '2026-10-21T07:10:00.000Z',
+      paused_seconds: 60,
+      planned_duration_seconds: 2700,
+    }
     getActiveFocusSession.mockResolvedValue({ session: activeSession, error: null })
 
     const { result } = renderHook(() => useDashboardData(25))
 
     await waitFor(() => {
       expect(result.current.activeFocusSession).toEqual(activeSession)
+      expect(result.current.activeTask.id).toBe('task-1')
     })
+    expect(result.current.activeTask.duration).toBe(45)
     expect(getActiveFocusSession).toHaveBeenCalledWith('user-123')
   })
 
-  it('debe retornar null como activeTask si no hay actividad en progreso', async () => {
+  it('debe retornar null como activeTask si no hay sesión de enfoque activa', async () => {
     const { result } = renderHook(() => useDashboardData(25))
 
     await waitFor(() => {

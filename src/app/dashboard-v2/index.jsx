@@ -2,51 +2,62 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDashboardV2Data } from './hooks/useDashboardV2Data';
 import { useTaskTimer } from '@/hooks/useTaskTimer';
 import { usePreferences } from '@/hooks/usePreferences';
-import { startTask, stopTask, extendTask, completeTask } from '@/services/tasks';
-import { startFocusSession, transitionFocusSession } from '@/services/focus-sessions';
+import { startTask, stopTask, completeTask } from '@/services/tasks';
+import { getCompletedFocusDurationSeconds, startFocusSession, transitionFocusSession } from '@/services/focus-sessions';
 import {
   DashboardV2Header,
   DashboardV2Hero,
   DashboardV2Grid,
   DashboardV2Modals,
+  FocusTimerV2,
 } from './components';
 import './DashboardV2.css';
 
 const DEFAULT_DURATION = 25;
 
 export default function DashboardV2() {
+  const dashboardData = useDashboardV2Data();
+
+  if (dashboardData.error) return <div className="dashboard-v2-error">{dashboardData.error}</div>;
+  if (dashboardData.loading || !dashboardData.user || !dashboardData.profile) {
+    return <div className="dashboard-v2-loading">Cargando dashboard...</div>;
+  }
+
+  return <DashboardV2Content key={dashboardData.user.id} dashboardData={dashboardData} />;
+}
+
+function DashboardV2Content({ dashboardData }) {
   const { preferences } = usePreferences();
   const defaultDuration = preferences.timerMinutes || DEFAULT_DURATION;
 
   const {
     user,
     profile,
+    tasks,
     pendingTasks,
     activities,
     weeklyEntries,
     currentEnergy,
     energyLabel,
     energyColor,
-    loading,
-    error,
     activeTask,
     setActiveTask,
     activeFocusSession,
     setActiveFocusSession,
     setTasks,
     refreshDashboard,
-  } = useDashboardV2Data(defaultDuration);
+  } = dashboardData;
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration);
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [isFinishingTask, setIsFinishingTask] = useState(false);
+  const [isTimerActionInProgress, setIsTimerActionInProgress] = useState(false);
   const [finishError, setFinishError] = useState('');
 
   const activeTimer = useTaskTimer({
-    durationMinutes: activeTask ? (activeTask.duration || defaultDuration) : defaultDuration,
-    isActive: Boolean(activeTask),
+    session: activeFocusSession,
     onExpire: handleTimerExpire,
   });
 
@@ -67,30 +78,44 @@ export default function DashboardV2() {
   const taskPriority = activeTask?.priority || 'medium';
 
   async function transitionActiveFocusSession(status) {
-    if (!activeFocusSession) return { error: null };
-    const { session, error: focusError } = await transitionFocusSession(activeFocusSession.id, status);
-    if (!focusError) setActiveFocusSession(status === 'running' || status === 'paused' ? session : null);
-    return { session, error: focusError };
+    if (!activeFocusSession || activeFocusSession.user_id !== user?.id) {
+      return { session: null, error: new Error('No se encontró una sesión de enfoque válida para este usuario.') };
+    }
+    const { session, error: focusError } = await transitionFocusSession(activeFocusSession.id, status, user.id);
+    if (focusError) return { session, error: focusError };
+    if (!session || session.user_id !== user.id) {
+      return { session: null, error: new Error('La sesión actualizada no coincide con el usuario autenticado.') };
+    }
+    setActiveFocusSession(session);
+    return { session, error: null };
   }
 
   async function handleTimerExpire() {
+    if (!activeFocusSession || activeFocusSession.status !== 'running') return;
     setFinishError('');
     const { error } = await transitionActiveFocusSession('completed');
-    if (error) setFinishError('No se pudo guardar el final de la sesión de enfoque.');
+    if (error) {
+      setFinishError('No se pudo guardar el final de la sesión de enfoque. Inténtalo de nuevo.');
+      return;
+    }
     setShowEndModal(true);
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleStartConfirm = useCallback(async () => {
     if (!selectedTask || !user) return;
     setFinishError('');
     const duration = Number(selectedDuration);
     const { error: taskError } = await startTask(selectedTask, duration, user.id);
-    if (taskError) return console.error('Start task failed:', taskError);
+    if (taskError) {
+      console.error('Start task failed:', taskError);
+      setFinishError('No se pudo iniciar la tarea.');
+      return;
+    }
 
     const { session, error: sessionError } = await startFocusSession(user.id, selectedTask.id, duration);
     if (sessionError) {
-      await stopTask(selectedTask, user.id);
+      const { error: rollbackError } = await stopTask(selectedTask, user.id);
+      if (rollbackError) console.error('Could not restore task activity after session start failed:', rollbackError);
       setFinishError('No se pudo guardar la sesión de enfoque.');
       return;
     }
@@ -101,54 +126,84 @@ export default function DashboardV2() {
     setShowStartModal(false);
     setSelectedTask(null);
     setSelectedDuration(defaultDuration);
-    activeTimer.start(duration);
-    await refreshDashboard(user.id);
-  }, [selectedTask, selectedDuration, user, defaultDuration, activeTimer, refreshDashboard, setActiveFocusSession, setActiveTask, setTasks]);
+    const { error: refreshError } = await refreshDashboard(user.id);
+    if (refreshError) setFinishError('La sesión empezó, pero no se pudieron actualizar los datos del dashboard.');
+  }, [selectedTask, selectedDuration, user, defaultDuration, refreshDashboard, setActiveFocusSession, setActiveTask, setTasks]);
 
   const handleContinueTimer = async () => {
     if (!activeTask || !user) return;
     const duration = Number(activeTask.duration || defaultDuration);
-    const { error } = await extendTask(activeTask, duration, user.id);
-    if (error) return;
-
-    const { error: closeError } = await transitionActiveFocusSession('completed');
-    if (closeError) return setFinishError('No se pudo cerrar la sesión anterior.');
-
+    if (activeFocusSession && ['running', 'paused'].includes(activeFocusSession.status)) {
+      setFinishError('La sesión actual todavía está activa; deténla o finalízala antes de continuar.');
+      return;
+    }
     const { session, error: sessionError } = await startFocusSession(user.id, activeTask.id, duration);
     if (sessionError) return setFinishError('No se pudo guardar la nueva sesión de enfoque.');
 
     setActiveFocusSession(session);
     setFinishError('');
     setShowEndModal(false);
-    activeTimer.start(duration);
-    await refreshDashboard(user.id);
+    const { error: refreshError } = await refreshDashboard(user.id);
+    if (refreshError) setFinishError('La sesión empezó, pero no se pudieron actualizar los datos del dashboard.');
   };
 
   const handlePauseTimer = async () => {
-    const { session, error } = await transitionActiveFocusSession('paused');
-    if (error) return setFinishError('No se pudo guardar la pausa.');
-    if (session) setActiveFocusSession(session);
-    activeTimer.pause();
+    if (isTimerActionInProgress) return;
+    setIsTimerActionInProgress(true);
+    setFinishError('');
+    try {
+      const { error } = await transitionActiveFocusSession('paused');
+      if (error) setFinishError('No se pudo guardar la pausa.');
+    } catch (error) {
+      console.error('Pause focus session failed:', error);
+      setFinishError('No se pudo guardar la pausa.');
+    } finally {
+      setIsTimerActionInProgress(false);
+    }
   };
 
   const handleResumeTimer = async () => {
-    const { session, error } = await transitionActiveFocusSession('running');
-    if (error) return setFinishError('No se pudo guardar la reanudación.');
-    if (session) setActiveFocusSession(session);
-    activeTimer.resume();
+    if (isTimerActionInProgress) return;
+    setIsTimerActionInProgress(true);
+    setFinishError('');
+    try {
+      const { error } = await transitionActiveFocusSession('running');
+      if (error) setFinishError('No se pudo guardar la reanudación.');
+    } catch (error) {
+      console.error('Resume focus session failed:', error);
+      setFinishError('No se pudo guardar la reanudación.');
+    } finally {
+      setIsTimerActionInProgress(false);
+    }
   };
 
   const handleStopTimer = async () => {
-    if (!activeTask || !user) return;
-    const { error: sessionError } = await transitionActiveFocusSession('interrupted');
-    if (sessionError) return setFinishError('No se pudo guardar la interrupción.');
-    const { error } = await stopTask(activeTask, user.id);
-    if (error) return;
-    setActiveTask(null);
-    setSelectedTask(null);
-    setShowStartModal(false);
-    activeTimer.reset(0);
-    await refreshDashboard(user.id);
+    if (isTimerActionInProgress || !activeTask || !user) return;
+    setIsTimerActionInProgress(true);
+    setFinishError('');
+    try {
+      const { error: sessionError } = await transitionActiveFocusSession('interrupted');
+      if (sessionError) {
+        setFinishError('No se pudo guardar la interrupción de la sesión.');
+        return;
+      }
+      setActiveFocusSession(null);
+      setActiveTask(null);
+      setSelectedTask(null);
+      setShowStartModal(false);
+      const { error } = await stopTask(activeTask, user.id);
+      if (error) {
+        setFinishError('La sesión se interrumpió, pero no se pudo actualizar la actividad de la tarea.');
+      } else {
+        const { error: refreshError } = await refreshDashboard(user.id);
+        if (refreshError) setFinishError('La sesión se interrumpió, pero no se pudieron actualizar los datos del dashboard.');
+      }
+    } catch (error) {
+      console.error('Stop focus session failed:', error);
+      setFinishError('No se pudo completar la interrupción de la sesión.');
+    } finally {
+      setIsTimerActionInProgress(false);
+    }
   };
 
   const handleFinishTask = async () => {
@@ -156,18 +211,23 @@ export default function DashboardV2() {
     setIsFinishingTask(true);
     setFinishError('');
     try {
-      const { error: sessionError } = await transitionActiveFocusSession('completed');
-      if (sessionError) return setFinishError('No se pudo cerrar la sesión de enfoque.');
-      const fallbackDuration = Math.ceil(activeTimer.durationSeconds / 60);
-      const { error } = await completeTask(activeTask, user.id, fallbackDuration);
+      if (activeFocusSession && ['running', 'paused'].includes(activeFocusSession.status)) {
+        const { error: sessionError } = await transitionActiveFocusSession('completed');
+        if (sessionError) return setFinishError('No se pudo cerrar la sesión de enfoque.');
+      }
+      const { durationSeconds, error: durationError } = await getCompletedFocusDurationSeconds(user.id, activeTask.id);
+      if (durationError) return setFinishError('No se pudo calcular el tiempo de enfoque registrado.');
+      const actualDurationMinutes = Math.ceil(durationSeconds / 60);
+      const { error } = await completeTask(activeTask, user.id, actualDurationMinutes);
       if (error) return setFinishError('No se pudo registrar la sesión.');
 
       setShowEndModal(false);
+      setActiveFocusSession(null);
       setActiveTask(null);
       setSelectedTask(null);
       setShowStartModal(false);
-      activeTimer.reset(0);
-      await refreshDashboard(user.id);
+      const { error: refreshError } = await refreshDashboard(user.id);
+      if (refreshError) setFinishError('La tarea finalizó, pero no se pudieron actualizar los datos del dashboard.');
     } catch (err) {
       console.error('Finish task error:', err);
       setFinishError('No se pudo registrar la sesión.');
@@ -178,14 +238,10 @@ export default function DashboardV2() {
 
   const handleTaskSelection = useCallback((task) => {
     if (!task) return;
-    setActiveTask(task);
     setSelectedTask(task);
     setSelectedDuration(Number(task?.duration) || defaultDuration);
     setShowStartModal(true);
-  }, [defaultDuration]);
-
-  if (error) return <div className="dashboard-v2-error">{error}</div>;
-  if (loading || !user || !profile) return <div className="dashboard-v2-loading">Cargando dashboard...</div>;
+  }, [defaultDuration, setShowStartModal]);
 
   // Normalize habits - handle JSONB object, string, or null from Supabase
   const normalizeHabits = (habits) => {
@@ -221,10 +277,25 @@ export default function DashboardV2() {
           }}
         />
 
+        {activeFocusSession && activeTask && (
+          <FocusTimerV2
+            task={activeTask}
+            session={activeFocusSession}
+            remainingSeconds={activeTimer.remainingSeconds}
+            isBusy={isTimerActionInProgress || isFinishingTask}
+            onPause={handlePauseTimer}
+            onResume={handleResumeTimer}
+            onStop={handleStopTimer}
+            onFinishTask={handleFinishTask}
+            onContinue={handleContinueTimer}
+          />
+        )}
+
         <DashboardV2Grid
           profile={profile}
           activeTask={activeTask}
           activeHabits={activeHabits}
+          tasks={tasks}
           pendingTasks={pendingTasks}
           activities={activities}
           weeklyEntries={weeklyEntries}
@@ -256,10 +327,6 @@ export default function DashboardV2() {
           onCloseEndModal={() => setShowEndModal(false)}
           onContinueTimer={handleContinueTimer}
           onFinishTask={handleFinishTask}
-          onPauseTimer={handlePauseTimer}
-          onResumeTimer={handleResumeTimer}
-          onStopTimer={handleStopTimer}
-          activeTimer={activeTimer}
         />
 
         {finishError && !showEndModal && <div className="dashboard-v2-error" role="alert">{finishError}</div>}

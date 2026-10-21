@@ -12,6 +12,7 @@ const { supabaseMock, queryMock, state } = vi.hoisted(() => {
     limit: vi.fn(),
     single: vi.fn(),
     maybeSingle: vi.fn(),
+    then: vi.fn((resolve, reject) => Promise.resolve(state.result).then(resolve, reject)),
   }
   for (const method of ['insert', 'update', 'select', 'eq', 'in', 'order', 'limit']) {
     query[method].mockReturnValue(query)
@@ -27,7 +28,12 @@ const { supabaseMock, queryMock, state } = vi.hoisted(() => {
 
 vi.mock('../src/services/supabase', () => ({ supabase: supabaseMock }))
 
-import { getActiveFocusSession, startFocusSession, transitionFocusSession } from '../src/services/focus-sessions'
+import {
+  getActiveFocusSession,
+  getCompletedFocusDurationSeconds,
+  startFocusSession,
+  transitionFocusSession,
+} from '../src/services/focus-sessions'
 
 describe('focus sessions service', () => {
   beforeEach(() => {
@@ -41,7 +47,7 @@ describe('focus sessions service', () => {
   })
 
   it('crea una sesión con la duración planeada en segundos', async () => {
-    const session = { id: 'session-1', status: 'running' }
+    const session = { id: 'session-1', user_id: 'user-1', task_id: 'task-1', status: 'running' }
     state.result = { data: session, error: null }
 
     const result = await startFocusSession('user-1', 'task-1', 25)
@@ -56,22 +62,37 @@ describe('focus sessions service', () => {
   })
 
   it('transiciona el estado de una sesión existente', async () => {
-    const session = { id: 'session-1', status: 'paused' }
+    const session = { id: 'session-1', user_id: 'user-1', status: 'paused' }
     state.result = { data: session, error: null }
 
-    await transitionFocusSession('session-1', 'paused')
+    await transitionFocusSession('session-1', 'paused', 'user-1')
 
     expect(queryMock.update).toHaveBeenCalledWith({ status: 'paused' })
     expect(queryMock.eq).toHaveBeenCalledWith('id', 'session-1')
+    expect(queryMock.eq).toHaveBeenCalledWith('user_id', 'user-1')
   })
 
   it('recupera la sesión activa o pausada más reciente del usuario', async () => {
-    state.result = { data: { id: 'session-1', status: 'running' }, error: null }
+    state.result = { data: { id: 'session-1', user_id: 'user-1', status: 'running' }, error: null }
 
     const result = await getActiveFocusSession('user-1')
 
     expect(queryMock.eq).toHaveBeenCalledWith('user_id', 'user-1')
     expect(queryMock.in).toHaveBeenCalledWith('status', ['running', 'paused'])
     expect(result.session.id).toBe('session-1')
+  })
+
+  it('suma la duración de sesiones completadas usando el usuario y la tarea', async () => {
+    state.result = {
+      data: [{ duration_seconds: 120 }, { duration_seconds: 45 }],
+      error: null,
+    }
+
+    const result = await getCompletedFocusDurationSeconds('user-1', 'task-1')
+
+    expect(queryMock.eq).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(queryMock.eq).toHaveBeenCalledWith('task_id', 'task-1')
+    expect(queryMock.eq).toHaveBeenCalledWith('status', 'completed')
+    expect(result).toEqual({ durationSeconds: 165, error: null })
   })
 })

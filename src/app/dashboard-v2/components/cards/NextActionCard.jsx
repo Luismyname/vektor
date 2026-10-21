@@ -1,11 +1,11 @@
 import { Zap, Clock, Sparkles, Play, ArrowRight, Plus } from 'lucide-react';
 
-export function NextActionCard({ nextAction, currentEnergy, energyColor, onStartNext, onCreateTask }) {
+export function NextActionCard({ nextAction, scheduledTime, currentEnergy, energyColor, onStartNext, onCreateTask }) {
   const action = nextAction;
   const isHighFocus = currentEnergy >= 8;
 
   return (
-    <section className="card card-next-action" style={{ '--accent-color': energyColor }}>
+    <section className="card card-next-action" style={{ '--accent-color': energyColor || 'var(--accent)' }}>
       <div className="card-decor" aria-hidden="true" />
 
       <header className="card-header">
@@ -17,10 +17,12 @@ export function NextActionCard({ nextAction, currentEnergy, energyColor, onStart
         <>
           <h3 className="action-title">{action.title}</h3>
           <div className="action-meta">
-            <span className="meta-item">
-              <Clock className="meta-icon" aria-hidden="true" />
-              <span>09:00 – 10:00</span>
-            </span>
+            {scheduledTime && (
+              <span className="meta-item">
+                <Clock className="meta-icon" aria-hidden="true" />
+                <span>{scheduledTime}</span>
+              </span>
+            )}
             {isHighFocus && (
               <span className="focus-badge">
                 <Sparkles aria-hidden="true" />

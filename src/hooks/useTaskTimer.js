@@ -1,112 +1,145 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Gestiona cuenta atrás, pausa/reanudación y recuperación del temporizador persistido.
-export function useTaskTimer({ durationMinutes = 25, isActive = false, onExpire }) {
-  const [durationSeconds, setDurationSeconds] = useState(() => readTimer()?.durationSeconds || durationMinutes * 60)
-  const [remainingSeconds, setRemainingSeconds] = useState(() => getRemaining(readTimer(), durationMinutes * 60))
-  const [isStopped, setIsStopped] = useState(() => Boolean(readTimer()?.isPaused))
+export function getFocusSessionRemainingSeconds(session, now = Date.now()) {
+  if (!session || !['running', 'paused'].includes(session.status)) return 0
+
+  const plannedSeconds = Number(session.planned_duration_seconds)
+  const startedAt = Date.parse(session.started_at)
+  const pausedSeconds = Number(session.paused_seconds)
+  const pausedAt = session.status === 'paused' ? Date.parse(session.paused_at) : now
+
+  if (
+    !Number.isFinite(plannedSeconds)
+    || !Number.isFinite(startedAt)
+    || !Number.isFinite(pausedSeconds)
+    || !Number.isFinite(pausedAt)
+  ) return 0
+
+  const elapsedSeconds = Math.max(0, Math.floor((pausedAt - startedAt) / 1000) - pausedSeconds)
+  return Math.max(0, Math.floor(plannedSeconds) - elapsedSeconds)
+}
+
+export function useTaskTimer({ session, onExpire }) {
+  const isSessionControlled = session !== undefined
+  const [localTimer, setLocalTimer] = useState({
+    durationSeconds: 0,
+    remainingSeconds: 0,
+    startedAt: null,
+    paused: true,
+  })
+  const [now, setNow] = useState(Date.now)
   const onExpireRef = useRef(onExpire)
-  const isRunning = Boolean(isActive) && !isStopped && remainingSeconds > 0
+  const expiredSessionIds = useRef(new Set())
 
   useEffect(() => {
     onExpireRef.current = onExpire
   }, [onExpire])
 
+  const sessionRunning = isSessionControlled && session?.status === 'running'
+  const localRunning = !isSessionControlled && Boolean(localTimer.startedAt) && !localTimer.paused
+  const isRunning = sessionRunning
+    ? getFocusSessionRemainingSeconds(session, now) > 0
+    : localRunning && getLocalRemainingSeconds(localTimer, now) > 0
+
   useEffect(() => {
     if (!isRunning) return undefined
-
-    const interval = window.setInterval(() => {
-      setRemainingSeconds((current) => {
-        if (current <= 1) {
-          window.clearInterval(interval)
-          setIsStopped(true)
-          localStorage.removeItem('vektor-active-timer')
-          onExpireRef.current?.()
-          return 0
-        }
-        return current - 1
-      })
-    }, 1000)
-
+    const interval = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(interval)
   }, [isRunning])
 
-  const start = useCallback((nextDuration = durationMinutes) => {
-    const nextSeconds = Math.max(nextDuration * 60, 0)
-    setDurationSeconds(nextSeconds)
-    setRemainingSeconds(nextSeconds)
-    setIsStopped(false)
-    localStorage.setItem('vektor-active-timer', JSON.stringify({
-      durationSeconds: nextSeconds,
-      remainingSeconds: nextSeconds,
+  const durationSeconds = isSessionControlled
+    ? Math.max(0, Number(session?.planned_duration_seconds) || 0)
+    : localTimer.durationSeconds
+  const remainingSeconds = isSessionControlled
+    ? getFocusSessionRemainingSeconds(session, now)
+    : getLocalRemainingSeconds(localTimer, now)
+
+  useEffect(() => {
+    if (remainingSeconds !== 0) return
+    if (sessionRunning) {
+      if (
+        !Number.isFinite(Date.parse(session.started_at))
+        || !Number.isFinite(Number(session.planned_duration_seconds))
+        || !Number.isFinite(Number(session.paused_seconds))
+      ) return
+      if (expiredSessionIds.current.has(session.id)) return
+      expiredSessionIds.current.add(session.id)
+      onExpireRef.current?.()
+    } else if (localRunning && localTimer.startedAt) {
+      const localSessionId = `local-${localTimer.startedAt}`
+      if (expiredSessionIds.current.has(localSessionId)) return
+      expiredSessionIds.current.add(localSessionId)
+      onExpireRef.current?.()
+    }
+  }, [
+    localRunning,
+    localTimer.startedAt,
+    remainingSeconds,
+    session?.id,
+    session?.paused_seconds,
+    session?.planned_duration_seconds,
+    session?.started_at,
+    sessionRunning,
+  ])
+
+  const start = useCallback((durationMinutes) => {
+    if (isSessionControlled) return
+    const duration = Math.max(0, Math.round(Number(durationMinutes) * 60) || 0)
+    setNow(Date.now())
+    setLocalTimer({
+      durationSeconds: duration,
+      remainingSeconds: duration,
       startedAt: Date.now(),
-      isPaused: false,
-    }))
-  }, [durationMinutes])
+      paused: false,
+    })
+  }, [isSessionControlled])
 
   const pause = useCallback(() => {
-    setIsStopped(true)
-    localStorage.setItem('vektor-active-timer', JSON.stringify({
-      durationSeconds,
-      remainingSeconds,
-      isPaused: true,
+    if (isSessionControlled) return
+    const currentTime = Date.now()
+    setNow(currentTime)
+    setLocalTimer(current => ({
+      ...current,
+      remainingSeconds: getLocalRemainingSeconds(current, currentTime),
+      startedAt: null,
+      paused: true,
     }))
-  }, [durationSeconds, remainingSeconds])
+  }, [isSessionControlled])
 
   const resume = useCallback(() => {
-    if (remainingSeconds <= 0) return
-    setIsStopped(false)
-    localStorage.setItem('vektor-active-timer', JSON.stringify({
-      durationSeconds,
-      remainingSeconds,
+    if (isSessionControlled) return
+    setNow(Date.now())
+    setLocalTimer(current => ({
+      ...current,
       startedAt: Date.now(),
-      isPaused: false,
+      paused: false,
     }))
-  }, [durationSeconds, remainingSeconds])
+  }, [isSessionControlled])
 
-  const reset = useCallback((nextDuration = durationMinutes) => {
-    const nextSeconds = Math.max(nextDuration * 60, 0)
-    setDurationSeconds(nextSeconds)
-    setRemainingSeconds(nextSeconds)
-    setIsStopped(true)
-    localStorage.removeItem('vektor-active-timer')
-  }, [durationMinutes])
-
-  const hydrate = useCallback(() => {
-    const savedTimer = readTimer()
-    if (!savedTimer) return
-    setDurationSeconds(savedTimer.durationSeconds)
-    setRemainingSeconds(getRemaining(savedTimer, savedTimer.durationSeconds))
-    setIsStopped(Boolean(savedTimer.isPaused))
-  }, [])
+  const reset = useCallback((durationMinutes = 0) => {
+    if (isSessionControlled) return
+    const duration = Math.max(0, Math.round(Number(durationMinutes) * 60) || 0)
+    setLocalTimer({
+      durationSeconds: duration,
+      remainingSeconds: duration,
+      startedAt: null,
+      paused: true,
+    })
+  }, [isSessionControlled])
 
   return {
     durationSeconds,
     remainingSeconds,
     isRunning,
+    isPaused: session?.status === 'paused' || (!isSessionControlled && localTimer.paused),
     start,
     pause,
     resume,
     reset,
-    hydrate,
   }
 }
 
-// Lee el temporizador guardado y devuelve null ante ausencia o JSON inválido.
-function readTimer() {
-  try {
-    return JSON.parse(localStorage.getItem('vektor-active-timer') || 'null')
-  } catch {
-    return null
-  }
-}
-
-// Reconstruye el tiempo restante descontando el tiempo transcurrido desde el inicio.
-function getRemaining(savedTimer, fallbackSeconds) {
-  if (savedTimer?.isPaused && Number.isFinite(savedTimer.remainingSeconds)) {
-    return savedTimer.remainingSeconds
-  }
-  if (!savedTimer?.startedAt) return fallbackSeconds
-  const remainingSeconds = savedTimer.remainingSeconds ?? savedTimer.durationSeconds
-  return Math.max(remainingSeconds - Math.floor((Date.now() - savedTimer.startedAt) / 1000), 0)
+function getLocalRemainingSeconds(timer, now) {
+  if (!timer.startedAt) return Math.max(0, timer.remainingSeconds)
+  return Math.max(0, timer.remainingSeconds - Math.floor((now - timer.startedAt) / 1000))
 }

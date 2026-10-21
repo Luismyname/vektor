@@ -45,7 +45,7 @@ describe('completeTask', () => {
     hideActivityFromDashboardMock.mockResolvedValue({ activity: { id: 'activity-1' }, error: null })
   })
 
-  it('completa la tarea e inserta una actividad con la duración acumulada', async () => {
+  it('usa la duración calculada desde focus_sessions y no la duración de activity', async () => {
     const task = { id: 'task-1', user_id: 'user-1', title: 'Leer', status: 'pending' }
 
     const result = await completeTask(task, 'user-1', 25)
@@ -54,14 +54,14 @@ describe('completeTask', () => {
     expect(taskUpdateMock).toHaveBeenCalledWith({
       status: 'completed',
       completed_at: expect.any(String),
-      actual_duration: 50,
+      actual_duration: 25,
     })
     expect(createActivityEntryMock).toHaveBeenCalledWith({
       user_id: 'user-1',
       type: 'completed',
       task_id: 'task-1',
       title: 'Leer',
-      duration: 50,
+      duration: 25,
     })
     expect(hideActivityFromDashboardMock).toHaveBeenCalledWith('activity-1')
     expect(result.error).toBeNull()

@@ -28,7 +28,9 @@ export default function TaskTimer({ task, durationMinutes, remainingSeconds, isR
       </div>
 
       <div className="task-timer-value">{formatTime(remainingSeconds)}</div>
-      <p className="task-timer-status">{isRunning ? 'Cuenta regresiva en curso' : 'Pausa'}</p>
+      <p className="task-timer-status">
+        {remainingSeconds <= 0 ? 'Sesión finalizada' : isRunning ? 'Cuenta regresiva en curso' : 'Pausa'}
+      </p>
 
       <div className="task-timer-actions">
         <button type="button" className="secondary-button" onClick={isRunning ? onPause : onResume} disabled={remainingSeconds <= 0}>

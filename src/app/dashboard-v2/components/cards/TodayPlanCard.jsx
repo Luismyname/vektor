@@ -1,8 +1,11 @@
 import { Clock, CalendarX } from 'lucide-react';
+import { formatDate } from '@/services/weekly-planner';
 
-export function TodayPlanCard({ activeTask, weeklyEntries }) {
-  const today = new Date().toISOString().split('T')[0];
-  const todayEntries = weeklyEntries
+export function TodayPlanCard({ activeTask, tasks, activeHabits, weeklyEntries }) {
+  const today = formatDate(new Date());
+  const taskList = Array.isArray(tasks) ? tasks : [];
+  const habitList = Array.isArray(activeHabits) ? activeHabits : [];
+  const todayEntries = (Array.isArray(weeklyEntries) ? weeklyEntries : [])
     .filter(e => e.date === today && e.start_time)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
@@ -33,7 +36,13 @@ export function TodayPlanCard({ activeTask, weeklyEntries }) {
 
       <ol className="timeline" role="list">
         {timelineItems.map((item, idx) => {
-          const isActive = item.isActive || (activeTask && item.title === activeTask.title);
+          const task = taskList.find(candidate => candidate.id === item.task_id);
+          const habit = habitList.find(candidate => candidate.id === item.habit_id || candidate.title === item.habit_id);
+          const title = task?.title || habit?.title;
+          const isActive = Boolean(activeTask && item.task_id === activeTask.id);
+          const startTime = item.start_time.slice(0, 5);
+          const endTime = item.end_time?.slice(0, 5);
+
           return (
             <li key={item.id || idx} className={`timeline-item ${isActive ? 'active' : ''}`}>
               <div className="timeline-marker">
@@ -43,12 +52,11 @@ export function TodayPlanCard({ activeTask, weeklyEntries }) {
               <div className="timeline-content">
                 <div className="timeline-time">
                   <Clock className="time-icon" aria-hidden="true" />
-                  <time>{item.start_time}</time>
+                  <time dateTime={`${item.date}T${item.start_time}`}>
+                    {startTime}{endTime ? ` – ${endTime}` : ''}
+                  </time>
                 </div>
-                <div className="timeline-details">
-                  <strong>{item.title}</strong>
-                  <span className="duration">{item.duration}</span>
-                </div>
+                {title && <div className="timeline-details"><strong>{title}</strong></div>}
                 {isActive && <span className="now-badge">Ahora</span>}
               </div>
             </li>

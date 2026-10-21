@@ -1,46 +1,55 @@
 import { Sparkles, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
 export function InsightsCard({ tasks, activities }) {
-  const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
-  const totalTasks = tasks?.length || 0;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const taskList = Array.isArray(tasks) ? tasks : [];
+  const activityList = Array.isArray(activities) ? activities : [];
+  const insights = [];
 
-  const focusActivities = activities?.filter(a => a.type === 'focus' || a.type === 'completed') || [];
-  const totalFocusMinutes = focusActivities.reduce((sum, a) => sum + (a.duration_minutes || a.duration || 0), 0);
-  const pendingCount = tasks?.filter(t => t.status !== 'completed').length || 0;
+  if (taskList.length > 0) {
+    const completedTasks = taskList.filter(task => task.status === 'completed').length;
+    const pendingCount = taskList.filter(task => task.status !== 'completed').length;
+    const completionRate = Math.round((completedTasks / taskList.length) * 100);
 
-  const insights = [
-    { 
-      type: 'success', 
-      label: 'Completado', 
-      value: `${completionRate}%`, 
-      icon: CheckCircle,
-      color: 'var(--color-success)', 
-      bg: 'rgba(34, 197, 94, 0.12)', 
-      border: 'var(--color-success)',
-      items: [`${completedTasks} de ${totalTasks} tareas`]
-    },
-    { 
-      type: 'info', 
-      label: 'Foco total', 
-      value: `${Math.round(totalFocusMinutes / 60 * 10) / 10}h`, 
+    insights.push(
+      {
+        label: 'Completado',
+        value: `${completionRate}%`,
+        icon: CheckCircle,
+        color: 'var(--color-success)',
+        bg: 'rgba(34, 197, 94, 0.12)',
+        border: 'var(--color-success)',
+        items: [`${completedTasks} de ${taskList.length} tareas`],
+      },
+      {
+        label: 'Pendientes',
+        value: `${pendingCount}`,
+        icon: AlertTriangle,
+        color: 'var(--color-warning)',
+        bg: 'rgba(249, 115, 22, 0.12)',
+        border: 'var(--color-warning)',
+        items: [`${pendingCount} tareas por hacer`],
+      },
+    );
+  }
+
+  const recordedMinutes = activityList
+    .filter(activity => activity.type === 'completed')
+    .reduce((total, activity) => {
+      const duration = Number(activity.duration);
+      return Number.isFinite(duration) && duration > 0 ? total + duration : total;
+    }, 0);
+
+  if (recordedMinutes > 0) {
+    insights.push({
+      label: 'Tiempo registrado',
+      value: `${Math.round(recordedMinutes)} min`,
       icon: Clock,
-      color: 'var(--color-info)', 
-      bg: 'rgba(6, 182, 212, 0.12)', 
+      color: 'var(--color-info)',
+      bg: 'rgba(6, 182, 212, 0.12)',
       border: 'var(--color-info)',
-      items: [`${Math.round(focusActivities.reduce((s, a) => s + (a.duration_minutes || a.duration || 0), 0))} min esta semana`]
-    },
-    { 
-      type: 'warning', 
-      label: 'Pendientes', 
-      value: `${pendingCount}`, 
-      icon: AlertTriangle,
-      color: 'var(--color-warning)', 
-      bg: 'rgba(249, 115, 22, 0.12)', 
-      border: 'var(--color-warning)',
-      items: [`${pendingCount} tareas por hacer`]
-    },
-  ];
+      items: ['En tareas completadas'],
+    });
+  }
 
   return (
     <section className="card card-insights" aria-labelledby="insights-title">
@@ -49,20 +58,26 @@ export function InsightsCard({ tasks, activities }) {
         <h2 id="insights-title" className="card-title">Lo que aprendemos de ti</h2>
       </header>
 
-      <div className="insights-grid" role="list">
-        {insights.map((insight, i) => (
-          <article key={i} className="insight-block" role="listitem" style={{ '--insight-color': insight.color, '--insight-bg': insight.bg, '--insight-border': insight.border }}>
-            <div className="insight-header">
-              <insight.icon className="insight-icon" aria-hidden="true" />
-              <span className="insight-label">{insight.label}</span>
-            </div>
-            <span className="insight-value">{insight.value}</span>
-            <ul className="insight-items" role="list">
-              {insight.items.map(item => <li key={item}>{item}</li>)}
-            </ul>
-          </article>
-        ))}
-      </div>
+      {insights.length > 0 ? (
+        <div className="insights-grid" role="list">
+          {insights.map(insight => (
+            <article key={insight.label} className="insight-block" role="listitem" style={{ '--insight-color': insight.color, '--insight-bg': insight.bg, '--insight-border': insight.border }}>
+              <div className="insight-header">
+                <insight.icon className="insight-icon" aria-hidden="true" />
+                <span className="insight-label">{insight.label}</span>
+              </div>
+              <span className="insight-value">{insight.value}</span>
+              <ul className="insight-items" role="list">
+                {insight.items.map(item => <li key={item}>{item}</li>)}
+              </ul>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <p>No hay datos suficientes para generar insights.</p>
+        </div>
+      )}
     </section>
   );
 }

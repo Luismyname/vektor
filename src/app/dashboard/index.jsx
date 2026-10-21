@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { updateHiddenAnswers } from '../../services/users'
 import { hideActivityFromDashboard } from '../../services/activity'
-import { completeTask, extendTask, startTask, stopTask } from '../../services/tasks'
-import { startFocusSession, transitionFocusSession } from '../../services/focus-sessions'
+import { completeTask, startTask, stopTask } from '../../services/tasks'
+import { getCompletedFocusDurationSeconds, startFocusSession, transitionFocusSession } from '../../services/focus-sessions'
 import RecentActivityPanel from './components/RecentActivityPanel'
 import DashboardHabits from './components/DashboardHabits'
 import DashboardSummary from './components/DashboardSummary'
@@ -49,23 +49,29 @@ export default function Dashboard() {
 
   // Sincroniza el estado de una sesión de enfoque en Supabase y en React.
   async function transitionActiveFocusSession(status) {
-    if (!activeFocusSession) return { error: null }
-    const { session, error } = await transitionFocusSession(activeFocusSession.id, status)
-    if (!error) setActiveFocusSession(status === 'running' || status === 'paused' ? session : null)
+    if (!activeFocusSession || activeFocusSession.user_id !== user?.id) {
+      return { error: new Error('No se encontró una sesión de enfoque válida para este usuario.') }
+    }
+    const { session, error } = await transitionFocusSession(activeFocusSession.id, status, user.id)
+    if (!error && session?.user_id === user.id) setActiveFocusSession(session)
+    else if (!error) return { error: new Error('La sesión actualizada no coincide con el usuario autenticado.') }
     return { session, error }
   }
 
   // Cierra la sesión al agotarse el contador y abre el flujo de finalización.
   async function handleTimerExpire() {
+    if (!activeFocusSession || activeFocusSession.status !== 'running') return
     setFinishError('')
     const { error } = await transitionActiveFocusSession('completed')
-    if (error) setFinishError('No se pudo guardar el final de la sesión de enfoque.')
+    if (error) {
+      setFinishError('No se pudo guardar el final de la sesión de enfoque.')
+      return
+    }
     setShowEndModal(true)
   }
 
   const activeTimer = useTaskTimer({
-    durationMinutes: activeTask ? (activeTask.duration || defaultDuration) : defaultDuration,
-    isActive: Boolean(activeTask),
+    session: activeFocusSession,
     onExpire: handleTimerExpire,
   })
 
@@ -83,7 +89,6 @@ export default function Dashboard() {
   // Selecciona una tarea desde el dashboard y prepara su inicio cronometrado.
   const handleTaskSelection = (task) => {
     if (!task) return
-    setActiveTask(task)
     setSelectedTask(task)
     setSelectedDuration(Number(task?.duration) || defaultDuration)
     setShowStartModal(true)
@@ -115,22 +120,16 @@ export default function Dashboard() {
     setShowStartModal(false)
     setSelectedTask(null)
     setSelectedDuration(defaultDuration)
-    activeTimer.start(duration)
     await refreshDashboard(user.id)
   }
 
-  // Añade tiempo a la tarea y abre una nueva sesión de enfoque.
+  // Abre un nuevo intervalo de enfoque para la misma tarea.
   const handleContinueTimer = async () => {
     if (!activeTask || !user) return
 
     const duration = Number(activeTask.duration || defaultDuration)
-    const { error } = await extendTask(activeTask, duration, user.id)
-
-    if (error) return
-
-    const { error: closeError } = await transitionActiveFocusSession('completed')
-    if (closeError) {
-      setFinishError('No se pudo cerrar la sesión anterior. Inténtalo de nuevo.')
+    if (activeFocusSession && ['running', 'paused'].includes(activeFocusSession.status)) {
+      setFinishError('La sesión actual todavía está activa; deténla o finalízala antes de continuar.')
       return
     }
     const { session, error: sessionError } = await startFocusSession(user.id, activeTask.id, duration)
@@ -142,48 +141,47 @@ export default function Dashboard() {
     setActiveFocusSession(session)
     setFinishError('')
     setShowEndModal(false)
-    activeTimer.start(duration)
     await refreshDashboard(user.id)
   }
 
   // Persiste la pausa antes de detener la cuenta atrás local.
   const handlePauseTimer = async () => {
-    const { session, error } = await transitionActiveFocusSession('paused')
+    const { error } = await transitionActiveFocusSession('paused')
     if (error) {
       setFinishError('No se pudo guardar la pausa de la sesión.')
       return
     }
-    if (session) setActiveFocusSession(session)
-    activeTimer.pause()
   }
 
   // Persiste la reanudación antes de continuar la cuenta atrás local.
   const handleResumeTimer = async () => {
-    const { session, error } = await transitionActiveFocusSession('running')
+    const { error } = await transitionActiveFocusSession('running')
     if (error) {
       setFinishError('No se pudo guardar la reanudación de la sesión.')
       return
     }
-    if (session) setActiveFocusSession(session)
-    activeTimer.resume()
   }
 
   // Interrumpe la sesión, devuelve la tarea a pendiente y limpia el temporizador.
   const handleStopTimer = async () => {
     if (!activeTask || !user) return
 
-    const { error: sessionError } = await transitionActiveFocusSession('interrupted')
-    if (sessionError) {
-      setFinishError('No se pudo guardar la interrupción de la sesión.')
+    if (activeFocusSession && ['running', 'paused'].includes(activeFocusSession.status)) {
+      const { error: sessionError } = await transitionActiveFocusSession('interrupted')
+      if (sessionError) {
+        setFinishError('No se pudo guardar la interrupción de la sesión.')
+        return
+      }
+    }
+    setActiveFocusSession(null)
+    setActiveTask(null)
+    const { error } = await stopTask(activeTask, user.id)
+    if (error) {
+      setFinishError('La sesión se interrumpió, pero no se pudo actualizar la actividad de la tarea.')
       return
     }
-    const { error } = await stopTask(activeTask, user.id)
-    if (error) return
-
-    setActiveTask(null)
     setSelectedTask(null)
     setShowStartModal(false)
-    activeTimer.reset(0)
     await refreshDashboard(user.id)
   }
 
@@ -192,7 +190,6 @@ export default function Dashboard() {
     if (isFinishingTask) return
     if (!activeTask) {
       setShowEndModal(false)
-      activeTimer.reset(0)
       return
     }
     if (!user) {
@@ -203,13 +200,19 @@ export default function Dashboard() {
     setIsFinishingTask(true)
     setFinishError('')
     try {
-      const { error: sessionError } = await transitionActiveFocusSession('completed')
-      if (sessionError) {
-        setFinishError('No se pudo cerrar la sesión de enfoque. Inténtalo de nuevo.')
+      if (activeFocusSession && ['running', 'paused'].includes(activeFocusSession.status)) {
+        const { error: sessionError } = await transitionActiveFocusSession('completed')
+        if (sessionError) {
+          setFinishError('No se pudo cerrar la sesión de enfoque. Inténtalo de nuevo.')
+          return
+        }
+      }
+      const { durationSeconds, error: durationError } = await getCompletedFocusDurationSeconds(user.id, activeTask.id)
+      if (durationError) {
+        setFinishError('No se pudo calcular el tiempo de enfoque registrado.')
         return
       }
-      const fallbackDuration = Math.ceil(activeTimer.durationSeconds / 60)
-      const { error } = await completeTask(activeTask, user.id, fallbackDuration)
+      const { error } = await completeTask(activeTask, user.id, Math.ceil(durationSeconds / 60))
       if (error) {
         console.error('Finish task failed:', error)
         setFinishError('No se pudo registrar la sesión. Comprueba tu conexión e inténtalo de nuevo.')
@@ -217,10 +220,10 @@ export default function Dashboard() {
       }
 
       setShowEndModal(false)
+      setActiveFocusSession(null)
       setActiveTask(null)
       setSelectedTask(null)
       setShowStartModal(false)
-      activeTimer.reset(0)
       await refreshDashboard(user.id)
     } catch (error) {
       console.error('Finish task failed:', error)

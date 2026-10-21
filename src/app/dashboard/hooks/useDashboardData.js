@@ -36,26 +36,49 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
         return
       }
 
-      const [{ tasks: currentTasks }, { activities: currentActivities }, { session: currentFocusSession }] = await Promise.all([
+      const [
+        { tasks: currentTasks, error: tasksError },
+        { activities: currentActivities, error: activitiesError },
+        { session: currentFocusSession, error: focusSessionError },
+      ] = await Promise.all([
         getTasks(authenticatedUser.id),
         getRecentActivity(authenticatedUser.id),
         getActiveFocusSession(authenticatedUser.id),
       ])
 
       if (!active) return
+      if (tasksError || focusSessionError) {
+        setError(focusSessionError
+          ? 'No se pudo recuperar la sesión de enfoque.'
+          : 'No se pudieron cargar las tareas.')
+        return
+      }
 
-      const activeActivity = currentActivities.find((activity) => activity.type === 'in_progress')
-      const persistedActiveTask = currentTasks.find((task) => task.id === activeActivity?.task_id)
+      if (currentFocusSession && currentFocusSession.user_id !== authenticatedUser.id) {
+        setError('La sesión activa recuperada no pertenece al usuario autenticado.')
+        return
+      }
+      const persistedActiveTask = currentFocusSession
+        ? currentTasks.find((task) => task.id === currentFocusSession.task_id)
+        : null
+
+      if (currentFocusSession && !persistedActiveTask) {
+        setError('No se encontró la tarea asociada a la sesión activa.')
+        return
+      }
 
       setUser(authenticatedUser)
       setProfile(currentProfile)
       setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
-      setActivities(currentActivities)
+      setActivities(activitiesError ? [] : currentActivities)
       setActiveFocusSession(currentFocusSession)
 
       if (persistedActiveTask) {
-        setActiveTask({ ...persistedActiveTask, duration: activeActivity.duration || defaultDuration })
+        setActiveTask({
+          ...persistedActiveTask,
+          duration: Number(currentFocusSession.planned_duration_seconds) / 60 || defaultDuration,
+        })
       }
     }
 

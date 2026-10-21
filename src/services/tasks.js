@@ -135,7 +135,7 @@ export async function completeTask(task, userId, fallbackDuration = 0) {
   const { activity: activeActivity, error: readActivityError } = await getInProgressActivity(taskId, userId)
   if (readActivityError) return { task: null, error: readActivityError }
 
-  const recordedDuration = Number(activeActivity?.duration ?? fallbackDuration)
+  const recordedDuration = Number(fallbackDuration)
   const duration = Math.max(0, Math.round(Number.isFinite(recordedDuration) ? recordedDuration : 0))
   const completedAt = new Date().toISOString()
   const { task: completedTask, error: taskError } = await updateTask(taskId, { status: 'completed', completed_at: completedAt, actual_duration: duration })
