@@ -9,7 +9,7 @@ test.describe('Weekly Planner - Manual Testing', () => {
     await page.fill('input[type="email"]', TEST_EMAIL);
     await page.fill('input[type="password"]', TEST_PASSWORD);
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/dashboard-v2', { timeout: 10000 });
   });
 
   test('Desktop - Create task, complete task, check UI', async ({ page }) => {

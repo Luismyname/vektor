@@ -73,7 +73,7 @@ export default function OnboardingHeader({ onSignedOut }) {
         {menuOpen && (
           <nav id="onboarding-menu" className="menu-dropdown" aria-label="navegación del onboarding">
             <ul>
-              <li><Link to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link></li>
+              <li><Link to="/dashboard-v2" onClick={() => setMenuOpen(false)}>Dashboard</Link></li>
               <li><Link to="/profile" onClick={() => setMenuOpen(false)}>Perfil</Link></li>
               <li><Link to="/habits" onClick={() => setMenuOpen(false)}>Hábitos iniciales</Link></li>
               <li><Link to="/tasks" onClick={() => setMenuOpen(false)}>Tareas</Link></li>

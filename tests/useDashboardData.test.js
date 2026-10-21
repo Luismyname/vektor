@@ -37,8 +37,6 @@ describe('useDashboardData', () => {
     dominant_value: 'Honestidad',
     secondary_value: 'Perseverancia',
     habits: ['Ejercicio', 'Lectura'],
-    answers: { 1: 'Respuesta 1' },
-    hidden_answers: {},
     completed_onboarding: true,
   }
   const mockTasks = [
@@ -90,28 +88,6 @@ describe('useDashboardData', () => {
 
     await waitFor(() => {
       expect(result.current.error).toBe('No se pudo cargar tu perfil.')
-    })
-  })
-
-  it('debe inicializar hiddenAnswers como objeto vacío', async () => {
-    const { result } = renderHook(() => useDashboardData(25))
-
-    await waitFor(() => {
-      expect(result.current.hiddenAnswers).toEqual({})
-    })
-  })
-
-  it('debe usar hiddenAnswers del perfil si existe', async () => {
-    const profileWithHidden = {
-      ...mockProfile,
-      hidden_answers: { '1': true },
-    }
-    getCurrentProfile.mockResolvedValue({ profile: profileWithHidden, error: null })
-
-    const { result } = renderHook(() => useDashboardData(25))
-
-    await waitFor(() => {
-      expect(result.current.hiddenAnswers).toEqual({ '1': true })
     })
   })
 

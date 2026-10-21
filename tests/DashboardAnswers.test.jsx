@@ -34,7 +34,7 @@ describe('DashboardAnswers', () => {
       />
     )
 
-    expect(screen.getByText('Tus respuestas')).toBeTruthy()
+    expect(screen.getByText('Tus respuestas de onboarding')).toBeTruthy()
   })
 
   it('debe mostrar las respuestas del perfil', () => {

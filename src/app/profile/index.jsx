@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getAuthenticatedUser } from '../../services/auth'
-import { updateProfile } from '../../services/users'
+import { getAuthenticatedUser, getCurrentProfile } from '../../services/auth'
+import { updateHiddenAnswers, updateProfile } from '../../services/users'
+import OnboardingAnswers from '../../components/OnboardingAnswers'
 
 // Carga y permite editar datos personales y avatar del usuario autenticado.
 export default function Profile() {
@@ -9,12 +10,21 @@ export default function Profile() {
   const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: '', avatarUrl: '' })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [onboardingProfile, setOnboardingProfile] = useState(null)
+  const [hiddenAnswers, setHiddenAnswers] = useState({})
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     async function loadUser() {
       const { user: authenticatedUser } = await getAuthenticatedUser()
       if (!authenticatedUser) return
+      const { profile, error: profileError } = await getCurrentProfile(authenticatedUser.id)
+      if (profileError) {
+        setError('No se pudieron cargar las respuestas de onboarding.')
+      } else {
+        setOnboardingProfile(profile)
+        setHiddenAnswers(profile?.hidden_answers && typeof profile.hidden_answers === 'object' ? profile.hidden_answers : {})
+      }
       const metadata = authenticatedUser.user_metadata || {}
       setUser(authenticatedUser)
       setForm({
@@ -28,6 +38,22 @@ export default function Profile() {
 
     loadUser()
   }, [])
+
+  async function updateAnswerVisibility(questionKey, shouldHide) {
+    if (!user) return
+    const nextHiddenAnswers = { ...hiddenAnswers }
+    if (shouldHide) nextHiddenAnswers[questionKey] = true
+    else delete nextHiddenAnswers[questionKey]
+
+    const { error: visibilityError } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
+    if (visibilityError) {
+      setError('No se pudo actualizar la visibilidad de la respuesta.')
+      return
+    }
+
+    setHiddenAnswers(nextHiddenAnswers)
+    setError('')
+  }
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -91,6 +117,12 @@ export default function Profile() {
           </div>
           <Link className="profile-action" to="/onboarding?mode=edit">Cambiar respuestas</Link>
         </div>
+        <OnboardingAnswers
+          profile={onboardingProfile}
+          hiddenAnswers={hiddenAnswers}
+          onHide={(questionKey) => updateAnswerVisibility(questionKey, true)}
+          onShow={(questionKey) => updateAnswerVisibility(questionKey, false)}
+        />
       </section>
     </main>
   )

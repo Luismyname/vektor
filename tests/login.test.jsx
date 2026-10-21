@@ -3,6 +3,13 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import { BrowserRouter } from 'react-router-dom'
 import Login from '../src/app/auth/login'
 
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }))
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
 // Mock de los servicios de auth
 vi.mock('../src/services/auth', () => ({
   signIn: vi.fn(),
@@ -27,7 +34,7 @@ function renderLogin() {
 describe('Login', () => {
   beforeEach(() => {
     signIn.mockResolvedValue({ error: null })
-    getOnboardingDestination.mockResolvedValue({ destination: '/dashboard', error: null })
+    getOnboardingDestination.mockResolvedValue({ destination: '/dashboard-v2', error: null })
   })
 
   it('debe renderizar el formulario de login', () => {
@@ -105,18 +112,7 @@ describe('Login', () => {
     })
   })
 
-  it('debe navegar a /dashboard cuando el login es exitoso', async () => {
-    const mockNavigate = vi.fn()
-    
-    // Mock de useNavigate
-    vi.doMock('react-router-dom', async () => {
-      const actual = await vi.importActual('react-router-dom')
-      return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-      }
-    })
-
+  it('debe navegar a /dashboard-v2 cuando el login es exitoso', async () => {
     renderLogin()
 
     const emailInput = screen.getByLabelText('Correo electrónico')
@@ -128,6 +124,7 @@ describe('Login', () => {
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith('test@example.com', 'password123')
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard-v2', { replace: true })
     })
   })
 

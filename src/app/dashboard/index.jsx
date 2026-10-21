@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { updateHiddenAnswers } from '../../services/users'
 import { hideActivityFromDashboard } from '../../services/activity'
 import { completeTask, startTask, stopTask } from '../../services/tasks'
 import { getCompletedFocusDurationSeconds, startFocusSession, transitionFocusSession } from '../../services/focus-sessions'
@@ -10,7 +9,6 @@ import DashboardTasks from './components/DashboardTasks'
 import TaskEndModal from './components/TaskEndModal'
 import TaskStartModal from './components/TaskStartModal'
 import TaskTimer from './components/TaskTimer'
-import DashboardAnswers from './components/DashboardAnswers'
 import { useDashboardData } from './hooks/useDashboardData'
 import { useTaskTimer } from '../../hooks/useTaskTimer'
 import { usePreferences } from '../../hooks/usePreferences'
@@ -31,8 +29,6 @@ export default function Dashboard() {
     setTasks,
     activities,
     error,
-    hiddenAnswers,
-    setHiddenAnswers,
     refreshDashboard,
     activeTask,
     setActiveTask,
@@ -233,24 +229,6 @@ export default function Dashboard() {
     }
   }
 
-  // Handlers de respuestas
-  // Marca una respuesta del onboarding como oculta y persiste esa preferencia.
-  const hideAnswer = async (questionKey) => {
-    if (!user) return
-    const nextHiddenAnswers = { ...hiddenAnswers, [questionKey]: true }
-    const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
-    if (!error) setHiddenAnswers(nextHiddenAnswers)
-  }
-
-  // Quita la marca de ocultación de una respuesta y persiste el conjunto resultante.
-  const showAnswer = async (questionKey) => {
-    if (!user) return
-    const nextHiddenAnswers = { ...hiddenAnswers }
-    delete nextHiddenAnswers[questionKey]
-    const { error } = await updateHiddenAnswers(user.id, nextHiddenAnswers)
-    if (!error) setHiddenAnswers(nextHiddenAnswers)
-  }
-
   if (error) return <div className="route-loading">{error}</div>
   if (!user || !profile) return <div className="route-loading">Cargando tu dashboard...</div>
 
@@ -293,12 +271,6 @@ export default function Dashboard() {
           }} />
         </div>
 
-        <DashboardAnswers
-          profile={profile}
-          hiddenAnswers={hiddenAnswers}
-          onHide={hideAnswer}
-          onShow={showAnswer}
-        />
       </div>
 
       <TaskStartModal

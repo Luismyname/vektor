@@ -60,7 +60,7 @@ function ProfileGate({ children, requireCompleted = false, onboarding = false })
   if (onboarding) {
     const mode = new URLSearchParams(location.search).get('mode')
     if (mode !== null && mode !== 'login' && mode !== 'edit') return <Navigate to="/" replace />
-    if (mode === 'login' && state.completed) return <Navigate to="/dashboard" replace />
+    if (mode === 'login' && state.completed) return <Navigate to="/dashboard-v2" replace />
     if (mode === 'edit' && !state.completed) return <Navigate to="/onboarding" replace />
     return children
   }
@@ -93,7 +93,8 @@ export default function App() {
               <Route path="/demo" element={<Layout><Demo /></Layout>} />
               <Route path="/preferences" element={<Layout><Preferences /></Layout>} />
               <Route path="/help" element={<Layout><Help /></Layout>} />
-              <Route path="/dashboard" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard-v2" replace />} />
+              <Route path="/dashboard-classic" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
               <Route path="/dashboard-v2" element={<ProfileGate requireCompleted><PageLayout><DashboardV2 /></PageLayout></ProfileGate>} />
               <Route path="/onboarding" element={<ProfileGate><PageLayout showNavbar={false}><OnboardingWizard /></PageLayout></ProfileGate>} />
               <Route path="/survey" element={<Navigate to="/onboarding" replace />} />

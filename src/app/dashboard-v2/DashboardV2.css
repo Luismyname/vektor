@@ -629,9 +629,6 @@
 .page-indicator { font-size: 13px; font-weight: 600; color: var(--muted-text); min-width: 40px; text-align: center; }
 
 .view-all-btn {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
   padding: 10px 16px;
   background: var(--accent);
   color: white;
@@ -769,6 +766,15 @@
   transition: all 0.2s;
 }
 .view-all-btn:hover { background: var(--color-accent-light); }
+.card-activity {
+  display: flex;
+  flex-direction: column;
+}
+.card-activity .view-all-btn {
+  position: static;
+  align-self: flex-end;
+  flex-shrink: 0;
+}
 
 .empty-state { text-align: center; padding: 24px; color: var(--muted-text); }
 

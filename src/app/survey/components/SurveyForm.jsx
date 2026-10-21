@@ -41,7 +41,7 @@ export default function SurveyForm() {
         : 'No se pudo guardar tu perfil. Inténtalo de nuevo.')
       return
     }
-    navigate('/dashboard', { replace: true })
+    navigate('/dashboard-v2', { replace: true })
   }
 
   return (

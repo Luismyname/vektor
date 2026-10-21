@@ -60,8 +60,8 @@ export default function Navbar() {
         {menuOpen && (
           <nav id="dashboard-menu" className="menu-dropdown" aria-label="navegación del dashboard">
             <ul>
-              <li><Link to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link></li>
-              <li><Link to="/dashboard-v2" onClick={() => setMenuOpen(false)}>Dashboard V2 (Beta)</Link></li>
+              <li><Link to="/dashboard-v2" onClick={() => setMenuOpen(false)}>Dashboard</Link></li>
+              <li><Link to="/dashboard-classic" onClick={() => setMenuOpen(false)}>Dashboard clásico (respaldo)</Link></li>
               <li><Link to="/profile" onClick={() => setMenuOpen(false)}>Perfil</Link></li>
               <li><Link to="/habits" onClick={() => setMenuOpen(false)}>Hábitos iniciales</Link></li>
               <li><Link to="/tasks" onClick={() => setMenuOpen(false)}>Tareas</Link></li>

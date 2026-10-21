@@ -14,7 +14,6 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
   const [tasks, setTasks] = useState([])
   const [activities, setActivities] = useState([])
   const [error, setError] = useState('')
-  const [hiddenAnswers, setHiddenAnswers] = useState({})
   const [activeTask, setActiveTask] = useState(null)
   const [activeFocusSession, setActiveFocusSession] = useState(null)
 
@@ -69,7 +68,6 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
 
       setUser(authenticatedUser)
       setProfile(currentProfile)
-      setHiddenAnswers(currentProfile.hidden_answers && typeof currentProfile.hidden_answers === 'object' ? currentProfile.hidden_answers : {})
       setTasks(currentTasks)
       setActivities(activitiesError ? [] : currentActivities)
       setActiveFocusSession(currentFocusSession)
@@ -102,8 +100,6 @@ export function useDashboardData(defaultDuration = DEFAULT_DURATION) {
     setTasks,
     activities,
     error,
-    hiddenAnswers,
-    setHiddenAnswers,
     refreshDashboard,
     activeTask,
     setActiveTask,

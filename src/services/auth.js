@@ -22,7 +22,7 @@ export async function getCurrentProfile(userId) {
   return { profile: data, error }
 }
 
-// Decide si la sesión debe ir al login, al onboarding o al dashboard.
+// Decide si la sesión debe ir al login, al onboarding o al dashboard principal.
 export async function getOnboardingDestination() {
   const { user, error: userError } = await getAuthenticatedUser()
 
@@ -31,7 +31,7 @@ export async function getOnboardingDestination() {
   const { profile, error } = await getCurrentProfile(user.id)
 
   if (error) return { destination: null, error }
-  return { destination: profile?.completed_onboarding ? '/dashboard' : '/onboarding', error: null }
+  return { destination: profile?.completed_onboarding ? '/dashboard-v2' : '/onboarding', error: null }
 }
 
 // Actualiza el perfil del usuario (onboarding, valores, cronotipo, hábitos)

@@ -1,4 +1,5 @@
 import { useState, useCallback, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { updateProfile } from '../../services/auth'
 import { AuthContext } from '../../context/AuthContext'
 import OnboardingStep1 from './steps/OnboardingStep1'
@@ -16,7 +17,8 @@ const STEPS = [
 ]
 
 export default function OnboardingWizard({ onComplete }) {
-  const { user } = useContext(AuthContext)
+  const { user, completeOnboarding } = useContext(AuthContext)
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState({
     values: [],
@@ -73,7 +75,9 @@ export default function OnboardingWizard({ onComplete }) {
         }, { onConflict: 'user_id,date,hour' })
       }
 
-      onComplete()
+      completeOnboarding()
+      if (onComplete) onComplete()
+      else navigate('/dashboard-v2', { replace: true })
     } catch (err) {
       setError(err.message || 'Error completando onboarding')
     } finally {
