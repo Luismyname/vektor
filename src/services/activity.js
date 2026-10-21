@@ -45,6 +45,18 @@ export async function getRecentActivity(userId) {
   return { activities: data || [], error }
 }
 
+export async function getRecentCompletedActivity(userId) {
+  const { data, error } = await supabase
+    .from('activity')
+    .select('id, user_id, type, task_id, title, duration, created_at, hidden_in_dashboard')
+    .eq('user_id', userId)
+    .eq('type', 'completed')
+    .eq('hidden_in_dashboard', false)
+    .order('created_at', { ascending: false })
+
+  return { activities: data || [], error }
+}
+
 // Oculta una entrada del dashboard sin borrarla del historial.
 export async function hideActivityFromDashboard(activityId) {
   const { data, error } = await supabase

@@ -36,6 +36,7 @@ vi.mock('../src/services/supabase', () => ({ supabase: supabaseMock }))
 vi.mock('../src/services/auth', () => ({ getCurrentProfile: getCurrentProfileMock }))
 
 import {
+  completePlannerAction,
   completeHabitOccurrence,
   createReminder,
   getHabitStatusHistory,
@@ -159,5 +160,24 @@ describe('consultas del planificador semanal', () => {
     expect(supabaseMock.from).not.toHaveBeenCalled()
     expect(result.entry).toBeNull()
     expect(result.error).toBeInstanceOf(Error)
+  })
+
+  it('completa una ocurrencia de tarea del usuario y mantiene su identidad de planner', async () => {
+    const completedEntry = {
+      id: 'planner-task-1',
+      user_id: 'user-1',
+      task_id: 'task-1',
+      status: 'completed',
+    }
+    state.result = { data: completedEntry, error: null }
+
+    const result = await completePlannerAction('planner-task-1', 'user-1', 'task')
+
+    expect(state.table).toBe('weekly_planner')
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'eq', 'id', 'planner-task-1'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'eq', 'user_id', 'user-1'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'neq', 'status', 'completed'])
+    expect(state.tableCalls).toContainEqual(['weekly_planner', 'not', 'task_id', 'is', null])
+    expect(result).toEqual({ entry: completedEntry, error: null })
   })
 })

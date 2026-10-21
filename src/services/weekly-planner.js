@@ -192,6 +192,32 @@ export async function completeHabitOccurrence(entryId, userId) {
   return { entry: data, error: null };
 }
 
+export async function completePlannerAction(entryId, userId, type) {
+  if (!entryId || !userId || !['task', 'habit'].includes(type)) {
+    return { entry: null, error: new Error('Falta la acción programada, el usuario o el tipo de acción.') };
+  }
+
+  let query = supabase
+    .from('weekly_planner')
+    .update({ status: 'completed' })
+    .eq('id', entryId)
+    .eq('user_id', userId)
+    .neq('status', 'completed')
+    .not(type === 'task' ? 'task_id' : 'habit_id', 'is', null);
+  const { data, error } = await query.select(PLANNER_FIELDS).single();
+
+  if (error) return { entry: null, error };
+  if (!data
+    || data.id !== entryId
+    || data.user_id !== userId
+    || data.status !== 'completed'
+    || (type === 'task' ? !data.task_id : !data.habit_id)) {
+    return { entry: null, error: new Error('La acción completada no coincide con la ocurrencia solicitada.') };
+  }
+
+  return { entry: data, error: null };
+}
+
 export async function moveTask(entryId, taskId, newDate, newStart, newEnd) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, task_id: taskId, status: 'moved' });
 }

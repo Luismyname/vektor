@@ -35,7 +35,10 @@ function DashboardV2Content({ dashboardData }) {
     profile,
     tasks,
     pendingTasks,
+    nextAction,
     activities,
+    progressActivities,
+    progressActivitiesError,
     weeklyEntries,
     habitDefinitions,
     habitDefinitionsError,
@@ -49,14 +52,19 @@ function DashboardV2Content({ dashboardData }) {
     setTasks,
     refreshDashboard,
     completeHabit,
+    completePlannedAction,
+    hideProgressActivity,
   } = dashboardData;
 
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedAction, setSelectedAction] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration);
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [isFinishingTask, setIsFinishingTask] = useState(false);
   const [isTimerActionInProgress, setIsTimerActionInProgress] = useState(false);
+  const [isActionBusy, setIsActionBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [finishError, setFinishError] = useState('');
 
   const activeTimer = useTaskTimer({
@@ -193,6 +201,7 @@ function DashboardV2Content({ dashboardData }) {
       setActiveFocusSession(null);
       setActiveTask(null);
       setSelectedTask(null);
+      setSelectedAction(null);
       setShowStartModal(false);
       const { error } = await stopTask(activeTask, user.id);
       if (error) {
@@ -224,13 +233,25 @@ function DashboardV2Content({ dashboardData }) {
       const { error } = await completeTask(activeTask, user.id, actualDurationMinutes);
       if (error) return setFinishError('No se pudo registrar la sesión.');
 
+      const completedAction = selectedAction || nextAction;
+      let plannerCompletionError = null;
+      if (completedAction?.type === 'task' && completedAction.task?.id === activeTask.id) {
+        const { error: occurrenceError } = await completePlannedAction(completedAction.plannerEntryId, 'task');
+        plannerCompletionError = occurrenceError;
+      }
+
       setShowEndModal(false);
       setActiveFocusSession(null);
       setActiveTask(null);
       setSelectedTask(null);
+      setSelectedAction(null);
       setShowStartModal(false);
       const { error: refreshError } = await refreshDashboard(user.id);
-      if (refreshError) setFinishError('La tarea finalizó, pero no se pudieron actualizar los datos del dashboard.');
+      if (plannerCompletionError) {
+        setFinishError('La tarea finalizó, pero no se pudo actualizar su ocurrencia del planificador.');
+      } else if (refreshError) {
+        setFinishError('La tarea finalizó, pero no se pudieron actualizar los datos del dashboard.');
+      }
     } catch (err) {
       console.error('Finish task error:', err);
       setFinishError('No se pudo registrar la sesión.');
@@ -239,12 +260,34 @@ function DashboardV2Content({ dashboardData }) {
     }
   };
 
-  const handleTaskSelection = useCallback((task) => {
-    if (!task) return;
+  const handleTaskSelection = useCallback((action) => {
+    if (!action?.task) return;
+    const task = action.task;
+    setSelectedAction(action);
     setSelectedTask(task);
-    setSelectedDuration(Number(task?.duration) || defaultDuration);
+    setSelectedDuration(Number(task.duration) || action.scheduledDuration || defaultDuration);
     setShowStartModal(true);
   }, [defaultDuration, setShowStartModal]);
+
+  const handleStartNextAction = async () => {
+    if (!nextAction || isActionBusy || nextAction.status === 'active') return;
+    setActionError('');
+    if (nextAction.type === 'task') {
+      handleTaskSelection(nextAction);
+      return;
+    }
+
+    setIsActionBusy(true);
+    try {
+      const { error: completionError } = await completeHabit(nextAction.plannerEntryId);
+      if (completionError) throw completionError;
+    } catch (error) {
+      console.error('Complete planned habit failed:', error);
+      setActionError(error instanceof Error ? error.message : 'No se pudo completar el hábito.');
+    } finally {
+      setIsActionBusy(false);
+    }
+  };
 
   const profileHabits = normalizeHabits(profile.habits);
   const activeHabits = [...profileHabits.recommended, ...profileHabits.custom].filter(habit => habit.active);
@@ -258,14 +301,11 @@ function DashboardV2Content({ dashboardData }) {
           currentEnergy={currentEnergy}
           energyLabel={energyLabel}
           energyColor={energyColor}
+          nextAction={nextAction}
+          isActionBusy={isActionBusy}
           pendingTasksCount={pendingTasks.length}
           activeHabitsCount={activeHabits.length}
-          onStartNextSession={() => {
-            if (pendingTasks.length) {
-              const nextTask = pendingTasks[0];
-              handleTaskSelection(nextTask);
-            }
-          }}
+          onStartNextSession={handleStartNextAction}
         />
 
         {activeFocusSession && activeTask && (
@@ -284,21 +324,23 @@ function DashboardV2Content({ dashboardData }) {
 
         <DashboardV2Grid
           profile={profile}
-          activeTask={activeTask}
-          activeHabits={activeHabits}
+          nextAction={nextAction}
           habitDefinitions={habitDefinitions}
           habitDefinitionsError={habitDefinitionsError}
           onCompleteHabit={completeHabit}
           tasks={tasks}
-          pendingTasks={pendingTasks}
           activities={activities}
+          progressActivities={progressActivities}
+          progressActivitiesError={progressActivitiesError}
           weeklyEntries={weeklyEntries}
           currentEnergy={currentEnergy}
+          isActionBusy={isActionBusy}
+          actionError={actionError}
           energyLabel={energyLabel}
           energyColor={energyColor}
-          onTaskSelection={handleTaskSelection}
-          onStartNextSession={() => pendingTasks.length && handleTaskSelection(pendingTasks[0])}
-          onCreateTask={() => window.location.href = '/tasks'}
+          onStartNextSession={handleStartNextAction}
+          onOpenPlanner={() => window.location.href = '/weekly-planner'}
+          onHideProgressActivity={hideProgressActivity}
         />
 
         <DashboardV2Modals
@@ -317,7 +359,7 @@ function DashboardV2Content({ dashboardData }) {
           onStartConfirm={handleStartConfirm}
           onContinueTimer={handleContinueTimer}
           onFinishTask={handleFinishTask}
-          onCloseStartModal={() => { setShowStartModal(false); setSelectedTask(null); setSelectedDuration(defaultDuration); }}
+          onCloseStartModal={() => { setShowStartModal(false); setSelectedTask(null); setSelectedAction(null); setSelectedDuration(defaultDuration); }}
           onCloseEndModal={() => setShowEndModal(false)}
           onContinueTimer={handleContinueTimer}
           onFinishTask={handleFinishTask}

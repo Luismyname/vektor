@@ -25,9 +25,15 @@ export function DashboardV2Hero({
   activeHabitsCount,
   energyLabel,
   energyColor,
+  nextAction,
+  isActionBusy,
   onStartNextSession,
 }) {
   const name = getDisplayName(user, profile).split(/\s+/)[0];
+  const actionLabel = nextAction?.type === 'habit'
+    ? 'Completar próximo hábito'
+    : 'Iniciar próxima sesión';
+  const buttonLabel = nextAction?.status === 'active' ? 'Acción en curso' : actionLabel;
 
   return (
     <section className="dashboard-v2-hero" aria-labelledby="hero-title">
@@ -64,11 +70,12 @@ export function DashboardV2Hero({
       <button
         className="hero-cta"
         onClick={onStartNextSession}
-        disabled={false}
-        aria-label="Iniciar próxima sesión"
+        disabled={!nextAction || isActionBusy || nextAction.status === 'active'}
+        aria-busy={isActionBusy}
+        aria-label={buttonLabel}
       >
         <Play className="cta-icon" aria-hidden="true" />
-        <span>Iniciar próxima sesión</span>
+        <span>{buttonLabel}</span>
         <Zap className="cta-spark" aria-hidden="true" />
       </button>
     </section>

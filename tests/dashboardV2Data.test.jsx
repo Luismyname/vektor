@@ -11,10 +11,13 @@ const { state, mocks } = vi.hoisted(() => ({
     getAuthenticatedUser: vi.fn(),
     getCurrentProfile: vi.fn(),
     getRecentActivity: vi.fn(),
+    getRecentCompletedActivity: vi.fn(),
+    hideActivityFromDashboard: vi.fn(),
     getTasks: vi.fn(),
     getActiveFocusSession: vi.fn(),
     getWeeklyPlanner: vi.fn(),
     completeHabitOccurrence: vi.fn(),
+    completePlannerAction: vi.fn(),
     getPlannerHabits: vi.fn(),
     getWeekStart: vi.fn(() => '2026-10-19'),
     getWeeklyEnergyLevels: vi.fn(),
@@ -29,6 +32,8 @@ vi.mock('../src/services/auth', () => ({
 }))
 vi.mock('../src/services/activity', () => ({
   getRecentActivity: mocks.getRecentActivity,
+  getRecentCompletedActivity: mocks.getRecentCompletedActivity,
+  hideActivityFromDashboard: mocks.hideActivityFromDashboard,
 }))
 vi.mock('../src/services/tasks', () => ({
   getTasks: mocks.getTasks,
@@ -38,6 +43,7 @@ vi.mock('../src/services/focus-sessions', () => ({
 }))
 vi.mock('../src/services/weekly-planner', () => ({
   completeHabitOccurrence: mocks.completeHabitOccurrence,
+  completePlannerAction: mocks.completePlannerAction,
   formatDate: mocks.formatDate,
   getWeeklyPlanner: mocks.getWeeklyPlanner,
   getWeekStart: mocks.getWeekStart,
@@ -113,12 +119,15 @@ describe('useDashboardV2Data focus session recovery', () => {
     }))
     mocks.getTasks.mockImplementation(async userId => ({ tasks: state.users[userId].tasks, error: null }))
     mocks.getRecentActivity.mockImplementation(async userId => ({ activities: state.users[userId].activities, error: null }))
+    mocks.getRecentCompletedActivity.mockResolvedValue({ activities: [], error: null })
+    mocks.hideActivityFromDashboard.mockReset()
     mocks.getActiveFocusSession.mockImplementation(async userId => ({
       session: state.users[userId].session,
       error: null,
     }))
     mocks.getWeeklyPlanner.mockResolvedValue({ entries: [], error: null })
     mocks.completeHabitOccurrence.mockReset()
+    mocks.completePlannerAction.mockReset()
     mocks.getPlannerHabits.mockResolvedValue({ habits: { recommended: [], custom: [] }, error: null })
     mocks.getWeeklyEnergyLevels.mockResolvedValue({ data: [], error: null })
     mocks.getUserChronotype.mockResolvedValue({ data: null, error: null })
@@ -136,6 +145,38 @@ describe('useDashboardV2Data focus session recovery', () => {
     expect(mocks.getActiveFocusSession).toHaveBeenCalledWith('user-a')
   })
 
+  it('expone la próxima acción derivada de una ocurrencia del planificador', async () => {
+    const today = new Date()
+    const date = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-')
+    state.users['user-a'] = userData('user-a', null)
+    mocks.getWeeklyPlanner.mockResolvedValue({
+      entries: [{
+        id: 'planner-task-today',
+        user_id: 'user-a',
+        date,
+        start_time: '23:59:00',
+        end_time: '23:59:59',
+        task_id: 'task-user-a',
+        habit_id: null,
+        status: 'scheduled',
+      }],
+      error: null,
+    })
+
+    const { result } = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.nextAction).toMatchObject({
+      plannerEntryId: 'planner-task-today',
+      type: 'task',
+      title: 'Task user-a',
+    })
+  })
+
   it('limpia el estado al cerrar sesión y vuelve a hidratar solo la cuenta siguiente', async () => {
     const { result } = renderHook(() => useDashboardV2Data())
     await waitFor(() => expect(result.current.activeFocusSession?.user_id).toBe('user-a'))
@@ -151,6 +192,78 @@ describe('useDashboardV2Data focus session recovery', () => {
 
     expect(result.current.activeTask.id).toBe('task-user-b')
     expect(result.current.activeTask.id).not.toBe('task-user-a')
+  })
+
+  it('carga el progreso completado y solo lo oculta tras confirmación del servicio', async () => {
+    const completedActivity = {
+      id: 'activity-completed-1',
+      user_id: 'user-a',
+      type: 'completed',
+      title: 'Leroy',
+      hidden_in_dashboard: false,
+    }
+    mocks.getRecentCompletedActivity.mockResolvedValue({
+      activities: [completedActivity],
+      error: null,
+    })
+    let resolveHide
+    mocks.hideActivityFromDashboard.mockImplementation(() => new Promise(resolve => {
+      resolveHide = resolve
+    }))
+
+    const { result, unmount } = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.progressActivities).toEqual([completedActivity])
+
+    let hideRequest
+    act(() => {
+      hideRequest = result.current.hideProgressActivity(completedActivity.id)
+    })
+    expect(result.current.progressActivities).toEqual([completedActivity])
+
+    await act(async () => {
+      resolveHide({
+        activity: { id: completedActivity.id, hidden_in_dashboard: true },
+        error: null,
+      })
+      await hideRequest
+    })
+    expect(result.current.progressActivities).toEqual([])
+    expect(mocks.hideActivityFromDashboard).toHaveBeenCalledWith(completedActivity.id)
+
+    mocks.getRecentCompletedActivity.mockResolvedValue({ activities: [], error: null })
+    unmount()
+    const reloaded = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(reloaded.result.current.loading).toBe(false))
+    expect(reloaded.result.current.progressActivities).toEqual([])
+    reloaded.unmount()
+  })
+
+  it('conserva el progreso visible y devuelve error si falla la ocultación', async () => {
+    const completedActivity = {
+      id: 'activity-completed-2',
+      user_id: 'user-a',
+      type: 'completed',
+      title: 'Terminar informe',
+      hidden_in_dashboard: false,
+    }
+    mocks.getRecentCompletedActivity.mockResolvedValue({
+      activities: [completedActivity],
+      error: null,
+    })
+    const hideError = new Error('Sin conexión')
+    mocks.hideActivityFromDashboard.mockResolvedValue({ activity: null, error: hideError })
+
+    const { result } = renderHook(() => useDashboardV2Data())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let response
+    await act(async () => {
+      response = await result.current.hideProgressActivity(completedActivity.id)
+    })
+
+    expect(response.error).toBe(hideError)
+    expect(result.current.progressActivities).toEqual([completedActivity])
   })
 
   it('actualiza la ocurrencia solo tras confirmar y la recupera en una nueva carga', async () => {

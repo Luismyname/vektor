@@ -10,27 +10,23 @@ import { formatDate } from '@/services/weekly-planner';
 
 export function DashboardV2Grid({
   profile,
-  activeTask,
-  activeHabits,
+  nextAction,
   habitDefinitions,
   habitDefinitionsError,
   onCompleteHabit,
   tasks,
-  pendingTasks,
   activities,
+  progressActivities,
+  progressActivitiesError,
   weeklyEntries,
   currentEnergy,
+  isActionBusy,
+  actionError,
   onStartNextSession,
-  onCreateTask,
+  onOpenPlanner,
+  onHideProgressActivity,
 }) {
-  const nextAction = pendingTasks[0] || null;
   const today = formatDate(new Date());
-  const nextActionEntry = nextAction && weeklyEntries.find(
-    entry => entry.task_id === nextAction.id && entry.date === today,
-  );
-  const scheduledTime = nextActionEntry?.start_time && nextActionEntry?.end_time
-    ? `${nextActionEntry.start_time.slice(0, 5)} – ${nextActionEntry.end_time.slice(0, 5)}`
-    : null;
   const todayHabitEntries = weeklyEntries.filter(
     entry => entry.date === today && typeof entry.habit_id === 'string' && entry.habit_id.length > 0,
   );
@@ -39,13 +35,13 @@ export function DashboardV2Grid({
     <div className="dashboard-v2-grid" role="region" aria-label="Panel principal">
       <DirectionCard profile={profile} />
       <NextActionCard
-        activeTask={activeTask}
-        nextAction={nextAction}
-        scheduledTime={scheduledTime}
+        action={nextAction}
         currentEnergy={currentEnergy}
         energyColor={currentEnergy == null ? 'var(--accent)' : currentEnergy >= 8 ? 'var(--color-success)' : currentEnergy >= 5 ? 'var(--color-warning)' : 'var(--color-danger)'}
+        isBusy={isActionBusy}
+        actionError={actionError}
         onStartNext={onStartNextSession}
-        onCreateTask={onCreateTask}
+        onOpenPlanner={onOpenPlanner}
       />
       <HabitsCard
         entries={todayHabitEntries}
@@ -54,13 +50,17 @@ export function DashboardV2Grid({
         onComplete={onCompleteHabit}
       />
       <TodayPlanCard
-        activeTask={activeTask}
         tasks={tasks}
-        activeHabits={activeHabits}
+        activeHabits={habitDefinitions}
         weeklyEntries={weeklyEntries}
+        nextAction={nextAction}
       />
       <InsightsCard tasks={tasks} activities={activities} />
-      <RecentActivityCard activities={activities} />
+      <RecentActivityCard
+        activities={progressActivities}
+        loadError={progressActivitiesError}
+        onHideActivity={onHideProgressActivity}
+      />
     </div>
   );
 }

@@ -1,19 +1,22 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getAuthenticatedUser, getCurrentProfile } from '../../../services/auth';
-import { getRecentActivity } from '../../../services/activity';
+import { getRecentActivity, getRecentCompletedActivity, hideActivityFromDashboard } from '../../../services/activity';
 import { getTasks } from '../../../services/tasks';
 import { getActiveFocusSession } from '../../../services/focus-sessions';
 import { supabase } from '../../../services/supabase';
-import { completeHabitOccurrence, formatDate, getWeeklyPlanner, getWeekStart } from '../../../services/weekly-planner';
+import { completeHabitOccurrence, completePlannerAction, formatDate, getWeeklyPlanner, getWeekStart } from '../../../services/weekly-planner';
 import { getUserChronotype, getWeeklyEnergyLevels } from '../../../services/energy';
 import { getPlannerHabits } from '../../../services/habits';
 import { normalizeHabits } from '../../../lib/habits';
+import { selectNextDashboardAction } from '../../../lib/dashboardV2Actions';
 
 export function useDashboardV2Data() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [progressActivities, setProgressActivities] = useState([]);
+  const [progressActivitiesError, setProgressActivitiesError] = useState('');
   const [weeklyEntries, setWeeklyEntries] = useState([]);
   const [habitDefinitions, setHabitDefinitions] = useState([]);
   const [habitDefinitionsError, setHabitDefinitionsError] = useState('');
@@ -23,6 +26,7 @@ export function useDashboardV2Data() {
   const [hiddenAnswers, setHiddenAnswers] = useState({});
   const [activeTask, setActiveTask] = useState(null);
   const [activeFocusSession, setActiveFocusSession] = useState(null);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const [loading, setLoading] = useState(true);
   const userIdRef = useRef(null);
 
@@ -32,6 +36,8 @@ export function useDashboardV2Data() {
     setProfile(null);
     setTasks([]);
     setActivities([]);
+    setProgressActivities([]);
+    setProgressActivitiesError('');
     setWeeklyEntries([]);
     setHabitDefinitions([]);
     setHabitDefinitionsError('');
@@ -88,6 +94,7 @@ export function useDashboardV2Data() {
       results = await Promise.all([
         getTasks(currentUserId),
         getRecentActivity(currentUserId),
+        getRecentCompletedActivity(currentUserId),
         getActiveFocusSession(currentUserId),
         getWeeklyPlanner(currentUserId, getWeekStart()),
         getWeeklyEnergyLevels(currentUserId, getWeekStart()),
@@ -105,6 +112,7 @@ export function useDashboardV2Data() {
     const [
       { tasks: currentTasks, error: tasksError },
       { activities: currentActivities, error: activitiesError },
+      { activities: currentProgressActivities, error: progressError },
       { session: currentFocusSession, error: focusSessionError },
       { entries: plannerEntries, error: plannerError },
       { data: energyData, error: energyError },
@@ -151,6 +159,8 @@ export function useDashboardV2Data() {
       : '');
     setTasks(currentTasks);
     setActivities(activitiesError ? [] : currentActivities);
+    setProgressActivities(progressError ? [] : currentProgressActivities);
+    setProgressActivitiesError(progressError ? 'No se pudo cargar el progreso reciente.' : '');
     setWeeklyEntries(plannerEntries || []);
     setEnergyLevels(energyData || []);
     setChronotype(chronotypeData?.chronotype || null);
@@ -207,6 +217,11 @@ export function useDashboardV2Data() {
     };
   }, [clearUserData, loadDashboard]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(new Date()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const refreshProfile = useCallback(async (currentUserId) => {
     const { profile: currentProfile, error: profileError } = await getCurrentProfile(currentUserId);
     if (userIdRef.current === currentUserId && !profileError && currentProfile) {
@@ -231,6 +246,41 @@ export function useDashboardV2Data() {
     return { entry, error: null };
   }, []);
 
+  const completePlannedAction = useCallback(async (entryId, type) => {
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
+      return { entry: null, error: new Error('No se pudo identificar al usuario para completar la acción.') };
+    }
+
+    const { entry, error: completionError } = await completePlannerAction(entryId, currentUserId, type);
+    if (completionError) return { entry: null, error: completionError };
+    if (userIdRef.current !== currentUserId) {
+      return { entry: null, error: new Error('El usuario cambió antes de confirmar la acción.') };
+    }
+
+    setWeeklyEntries(current => current.map(item => item.id === entry.id ? entry : item));
+    return { entry, error: null };
+  }, []);
+
+  const hideProgressActivity = useCallback(async (activityId) => {
+    const currentUserId = userIdRef.current;
+    if (!currentUserId || !activityId) {
+      return { error: new Error('No se pudo identificar la actividad o el usuario.') };
+    }
+
+    const { activity, error: hideError } = await hideActivityFromDashboard(activityId);
+    if (hideError) return { error: hideError };
+    if (!activity?.id || activity.id !== activityId || activity.hidden_in_dashboard !== true) {
+      return { error: new Error('No se confirmó que la actividad se ocultara del dashboard.') };
+    }
+    if (userIdRef.current !== currentUserId) {
+      return { error: new Error('El usuario cambió antes de confirmar la ocultación.') };
+    }
+
+    setProgressActivities(current => current.filter(item => item.id !== activityId));
+    return { error: null };
+  }, []);
+
   const refreshDashboard = useCallback(async (currentUserId) => {
     if (userIdRef.current !== currentUserId) return { error: new Error('El usuario del dashboard cambió.') };
 
@@ -239,7 +289,9 @@ export function useDashboardV2Data() {
       results = await Promise.all([
         getTasks(currentUserId),
         getRecentActivity(currentUserId),
+        getRecentCompletedActivity(currentUserId),
         getActiveFocusSession(currentUserId),
+        getWeeklyPlanner(currentUserId, getWeekStart()),
       ]);
     } catch (refreshError) {
       if (userIdRef.current !== currentUserId) return { error: refreshError };
@@ -250,15 +302,19 @@ export function useDashboardV2Data() {
     const [
       { tasks: currentTasks, error: tasksError },
       { activities: currentActivities, error: activitiesError },
+      { activities: currentProgressActivities, error: progressError },
       { session: currentFocusSession, error: focusSessionError },
+      { entries: plannerEntries, error: plannerError },
     ] = results;
 
     if (userIdRef.current !== currentUserId) return { error: new Error('El usuario del dashboard cambió.') };
-    const refreshError = tasksError || focusSessionError;
+    const refreshError = tasksError || focusSessionError || plannerError;
     if (refreshError) {
       setError(focusSessionError
         ? 'No se pudo sincronizar la sesión de enfoque.'
-        : 'No se pudieron actualizar las tareas.');
+        : plannerError
+          ? 'No se pudo sincronizar el plan del día.'
+          : 'No se pudieron actualizar las tareas.');
       return { error: refreshError };
     }
 
@@ -271,12 +327,23 @@ export function useDashboardV2Data() {
     }
     setTasks(currentTasks);
     setActivities(activitiesError ? [] : currentActivities);
+    setProgressActivities(progressError ? [] : currentProgressActivities);
+    setProgressActivitiesError(progressError ? 'No se pudo cargar el progreso reciente.' : '');
+    setWeeklyEntries(plannerEntries || []);
     const { error: profileError } = await refreshProfile(currentUserId);
     return { error: profileError || activitiesError || null };
   }, [applyFocusSession, refreshProfile]);
 
   const pendingTasks = tasks.filter(t => t.status !== 'completed');
   const weeklyPlannerEntries = weeklyEntries.filter(e => e.task_id || e.habit_id);
+  const nextAction = selectNextDashboardAction({
+    entries: weeklyPlannerEntries,
+    tasks,
+    habits: habitDefinitions,
+    activeTask,
+    activeFocusSession,
+    now: currentTime,
+  });
   const todayEnergy = energyLevels.find(e => e.date === formatDate(new Date()));
   const currentEnergy = todayEnergy?.energy_level ?? null;
   const energyLabel = currentEnergy == null
@@ -292,7 +359,10 @@ export function useDashboardV2Data() {
     tasks,
     pendingTasks,
     activities,
+    progressActivities,
+    progressActivitiesError,
     weeklyEntries: weeklyPlannerEntries,
+    nextAction,
     habitDefinitions,
     habitDefinitionsError,
     energyLevels,
@@ -313,5 +383,7 @@ export function useDashboardV2Data() {
     refreshDashboard,
     refreshProfile,
     completeHabit,
+    completePlannedAction,
+    hideProgressActivity,
   };
 }

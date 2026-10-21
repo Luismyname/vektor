@@ -506,6 +506,18 @@
   color: var(--muted-text);
 }
 .meta-icon { width: 14px; height: 14px; color: var(--muted-text); }
+.action-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-white-04);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.action-status-delayed { color: var(--color-warning); }
+.action-status-active { color: var(--color-success); }
 
 .focus-badge {
   display: inline-flex;
@@ -666,6 +678,7 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--bg-card), 0 0 0 7px var(--color-accent-light);
 }
+.timeline-item.next-action .timeline-details strong { color: var(--accent); }
 .active-ring {
   position: absolute;
   left: 50%;
@@ -737,6 +750,8 @@
 .activity-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .activity-content strong { font-size: 14px; color: var(--text-primary); }
 .activity-content time { font-size: 12px; color: var(--muted-text); }
+.activity-duration { display: inline-flex; align-items: center; gap: 4px; color: var(--muted-text); font-size: 12px; }
+.activity-duration-icon { width: 13px; height: 13px; }
 
 .view-all-btn {
   display: inline-flex;

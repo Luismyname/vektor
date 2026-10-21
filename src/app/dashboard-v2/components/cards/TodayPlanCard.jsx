@@ -1,7 +1,7 @@
 import { Clock, CalendarX } from 'lucide-react';
 import { formatDate } from '@/services/weekly-planner';
 
-export function TodayPlanCard({ activeTask, tasks, activeHabits, weeklyEntries }) {
+export function TodayPlanCard({ tasks, activeHabits, weeklyEntries, nextAction }) {
   const today = formatDate(new Date());
   const taskList = Array.isArray(tasks) ? tasks : [];
   const habitList = Array.isArray(activeHabits) ? activeHabits : [];
@@ -38,13 +38,18 @@ export function TodayPlanCard({ activeTask, tasks, activeHabits, weeklyEntries }
         {timelineItems.map((item, idx) => {
           const task = taskList.find(candidate => candidate.id === item.task_id);
           const habit = habitList.find(candidate => candidate.id === item.habit_id || candidate.title === item.habit_id);
-          const title = task?.title || habit?.title;
-          const isActive = Boolean(activeTask && item.task_id === activeTask.id);
+          const isSelectedAction = Boolean(nextAction && item.id === nextAction.plannerEntryId);
+          const isActive = isSelectedAction && nextAction.status === 'active';
           const startTime = item.start_time.slice(0, 5);
           const endTime = item.end_time?.slice(0, 5);
+          const title = task?.title || habit?.title || (item.habit_id ? 'Hábito eliminado' : 'Tarea no disponible');
 
           return (
-            <li key={item.id || idx} className={`timeline-item ${isActive ? 'active' : ''}`}>
+            <li
+              key={item.id || idx}
+              className={`timeline-item ${isSelectedAction ? 'next-action' : ''} ${isActive ? 'active' : ''}`}
+              aria-current={isSelectedAction ? 'step' : undefined}
+            >
               <div className="timeline-marker">
                 <span className="timeline-dot" aria-hidden="true" />
                 {isActive && <span className="active-ring" aria-hidden="true" />}
@@ -56,8 +61,9 @@ export function TodayPlanCard({ activeTask, tasks, activeHabits, weeklyEntries }
                     {startTime}{endTime ? ` – ${endTime}` : ''}
                   </time>
                 </div>
-                {title && <div className="timeline-details"><strong>{title}</strong></div>}
-                {isActive && <span className="now-badge">Ahora</span>}
+                <div className="timeline-details"><strong>{title}</strong></div>
+                {isActive && <span className="now-badge">En progreso</span>}
+                {isSelectedAction && !isActive && <span className="now-badge">Próxima acción</span>}
               </div>
             </li>
           );
