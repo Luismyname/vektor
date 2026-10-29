@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
 import { startFocusSession, updateFocusSessionQuality } from '../../services/focus-sessions'
-import { formatDate, getWeekDates, getWeekStart, shiftWeek } from '../../services/weekly-planner'
+import { formatDate, getWeekDates, getWeekStart, shiftWeek, parseTime } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
@@ -119,8 +119,8 @@ export default function WeeklyPlannerPage() {
 
   // Suma minutos a una hora sin permitir que el resultado supere el final del día.
   function addMinutes(time, amount) {
-    const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
-    const total = Math.min(hours * 60 + minutes + amount, 23 * 60 + 59)
+    const parsed = parseTime(time)
+    const total = Math.min(parsed.hours * 60 + parsed.minutes + amount, 23 * 60 + 59)
     return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
   }
 
@@ -179,6 +179,25 @@ export default function WeeklyPlannerPage() {
     setModalSlot({ date, startTime, endTime })
   }
 
+  // Inicia una tarea: captura energía inicial y lanza focus session
+  async function handleStartTask(entry, task) {
+    // La energía se captura vía TaskEnergySelector antes de llamar a esta función
+    // Iniciamos la focus session
+    if (user) {
+      const startParsed = parseTime(entry.start_time)
+      const endParsed = parseTime(entry.end_time)
+      const durationMinutes = Math.max((endParsed.hours * 60 + endParsed.minutes) - (startParsed.hours * 60 + startParsed.minutes), 30)
+      const { session, error } = await startFocusSession(user.id, task.id, durationMinutes)
+      if (!error && session) {
+        // Actualizar la entrada del planner con el focus_session_id
+        await planner.updateStatus(entry.id, 'in_progress')
+        // Actualizar la entrada local con el focus_session_id
+        const updatedEntry = { ...entry, focus_session_id: session.id, status: 'in_progress' }
+        planner.setEntries?.(planner.entries.map(e => e.id === entry.id ? updatedEntry : e))
+      }
+    }
+  }
+
   // Despacha la acción del modal al flujo de tarea, hábito, recordatorio o creación.
   async function handleModalSubmit(action) {
     const { date, startTime, endTime } = modalSlot
@@ -223,6 +242,7 @@ export default function WeeklyPlannerPage() {
       durationMinutes: sessionData.durationMinutes,
       taskTitle: sessionData.taskTitle,
       taskId: sessionData.taskId,
+      focusSessionId: sessionData.sessionId,
     })
   }
 
@@ -296,6 +316,8 @@ export default function WeeklyPlannerPage() {
               onTaskUpdate={handleTaskUpdate}
               onClearDay={planner.clearDay}
               onClickSlot={handleClickSlot}
+              userId={user?.id}
+              onStartTask={handleStartTask}
             />
           </div>
           <VektorPanel
@@ -348,6 +370,7 @@ export default function WeeklyPlannerPage() {
                   items={planner.tasks}
                   onStatusChange={handleIncompleteStatusChange}
                   updatingEntryId={updatingEntryId}
+                  userId={user?.id}
                 />
                 <PlannerIncompleteSection
                   itemType="habit"
@@ -355,6 +378,7 @@ export default function WeeklyPlannerPage() {
                   items={planner.habits}
                   onStatusChange={handleIncompleteStatusChange}
                   updatingEntryId={updatingEntryId}
+                  userId={user?.id}
                 />
               </section>
           </section>
@@ -391,6 +415,8 @@ export default function WeeklyPlannerPage() {
         durationMinutes={focusQualityModal?.durationMinutes || 0}
         taskTitle={focusQualityModal?.taskTitle || 'Sesión de enfoque'}
         taskId={focusQualityModal?.taskId}
+        focusSessionId={focusQualityModal?.focusSessionId}
+        userId={user?.id}
       />
     </main>
   )

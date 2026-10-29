@@ -4,6 +4,10 @@ import { supabase } from './supabase'
  * Guarda un check-in de energía matutino
  */
 export async function saveEnergyCheckIn(userId, date, hour, energyLevel, source = 'manual') {
+  if (!userId || !date || !Number.isInteger(hour) || hour < 0 || hour > 23
+    || !Number.isInteger(energyLevel) || energyLevel < 1 || energyLevel > 10) {
+    return { data: null, error: new Error('El usuario, la fecha, la hora o el nivel de energía no son válidos.') }
+  }
   const { data, error } = await supabase
     .from('energy_levels')
     .upsert({
@@ -11,7 +15,7 @@ export async function saveEnergyCheckIn(userId, date, hour, energyLevel, source 
       date,
       hour,
       energy_level: energyLevel,
-      source,
+      source: normalizeEnergySource(source),
     }, { onConflict: 'user_id,date,hour' })
     .select()
     .single()
@@ -143,4 +147,42 @@ export function getUserPeakHours(chronotype, peakHours) {
     night: { morning: [], afternoon: [], evening: [20, 21, 22] },
   }
   return defaults[chronotype] || defaults.afternoon
+}
+
+/**
+ * Guarda un check-in de energía en un momento específico (inicio/fin tarea, foco, hábito)
+ */
+export async function saveEnergyAtMoment(userId, energyLevel, source) {
+  const now = new Date()
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const hour = now.getHours()
+
+  return saveEnergyCheckIn(userId, date, hour, energyLevel, source)
+}
+
+/**
+ * Guarda energía al iniciar una tarea/foco
+ */
+export async function saveEnergyAtTaskStart(userId, energyLevel) {
+  return saveEnergyAtMoment(userId, energyLevel, 'task_start')
+}
+
+/**
+ * Guarda energía al completar una tarea/foco
+ */
+export async function saveEnergyAtTaskEnd(userId, energyLevel) {
+  return saveEnergyAtMoment(userId, energyLevel, 'task_end')
+}
+
+/**
+ * Guarda energía al completar un hábito
+ */
+export async function saveEnergyAtHabitCompletion(userId, energyLevel) {
+  return saveEnergyAtMoment(userId, energyLevel, 'habit_completion')
+}
+
+function normalizeEnergySource(source) {
+  if (['task_start', 'task_end', 'habit_completion', 'onboarding'].includes(source)) return 'checkin'
+  if (['manual', 'inferred', 'checkin'].includes(source)) return source
+  throw new Error(`Origen de energía no permitido: ${source}`)
 }

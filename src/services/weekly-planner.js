@@ -15,6 +15,18 @@ export function formatDate(value) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
+/**
+ * Parsea una cadena de hora (HH:MM o HH:MM:SS) y devuelve { hours, minutes }.
+ * Compatible con el tipo time without time zone de PostgreSQL/Supabase.
+ */
+export function parseTime(timeString) {
+  if (!timeString) return { hours: 0, minutes: 0 };
+  const parts = String(timeString).split(':');
+  const hours = Number.isFinite(Number(parts[0])) ? Number(parts[0]) : 0;
+  const minutes = Number.isFinite(Number(parts[1])) ? Number(parts[1]) : 0;
+  return { hours, minutes };
+}
+
 export function getTimeRange(startTime, durationMinutes = 30) {
   const normalized = String(startTime || '00:00');
   const [hours, minutes] = normalized.split(':').map(Number);

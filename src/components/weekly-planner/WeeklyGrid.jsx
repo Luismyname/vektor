@@ -2,14 +2,14 @@ import { useEffect, useRef } from 'react'
 import DayColumn from './DayColumn'
 
 // Compone las 24 horas y siete columnas conectadas a las acciones del padre.
-export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot }) {
+export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot, userId, onStartTask }) {
   const gridRef = useRef(null)
   const currentHour = currentTime.getHours()
   const weekStart = dates[0]
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      if (gridRef.current) gridRef.current.scrollTop = Math.max(currentHour - 1, 0) * 70
+      if (gridRef.current) gridRef.current.scrollTop = Math.max(currentHour - 1, 0) * 48
     })
 
     return () => cancelAnimationFrame(frame)
@@ -42,7 +42,7 @@ export default function WeeklyGrid({ dates, currentTime, today, entries, taskByI
       </div>
       <div className="weekly-time-axis" aria-hidden="true">{Array.from({ length: 24 }, (_, index) => <span key={index}>{String(index).padStart(2, '0')}:00</span>)}</div>
       <div className="weekly-grid">
-        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} onClickSlot={onClickSlot} />)}
+        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} onClickSlot={onClickSlot} userId={userId} onStartTask={onStartTask} />)}
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { FocusEnergySelector } from '../EnergySelector'
 
 // Modal que aparece al terminar una sesión de enfoque para calificar la calidad
 export default function FocusQualityModal({
@@ -7,10 +8,14 @@ export default function FocusQualityModal({
   onSubmit,
   durationMinutes,
   taskTitle,
+  taskId,
+  focusSessionId,
+  userId,
 }) {
   const [qualityScore, setQualityScore] = useState(5)
   const [interruptions, setInterruptions] = useState(0)
   const [notes, setNotes] = useState('')
+  const [energyAtEnd, setEnergyAtEnd] = useState(null)
   const modalRef = useRef(null)
 
   // Focus trap and close on Escape
@@ -40,6 +45,7 @@ export default function FocusQualityModal({
       qualityScore: Number(qualityScore),
       interruptions: Number(interruptions),
       notes,
+      energyAtEnd,
     })
     onClose()
   }
@@ -120,6 +126,15 @@ export default function FocusQualityModal({
               placeholder="¿Qué funcionó bien? ¿Qué mejorar?..."
             />
           </div>
+
+          <FocusEnergySelector
+            value={energyAtEnd}
+            onChange={setEnergyAtEnd}
+            onSave={setEnergyAtEnd}
+            userId={userId}
+            taskId={taskId}
+            focusSessionId={focusSessionId}
+          />
 
           <div className="form-actions">
             <button type="button" className="secondary-button" onClick={onClose}>

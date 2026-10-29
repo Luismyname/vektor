@@ -15,7 +15,7 @@ function getFocusLabel(session) {
 }
 
 // Renderiza slots y bloques de un día junto al indicador de hora actual.
-export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot }) {
+export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot, userId, onStartTask }) {
   const startHour = 0
   const endHour = 24
   const totalHours = endHour - startHour
@@ -28,7 +28,7 @@ export default function DayColumn({ date, today, currentTime, entries, taskById,
       <div className="weekly-day-body">
         {HOURS.map((hour) => <HourSlot key={hour} date={date} hour={hour} onDropTask={onDropTask} onClick={onClickSlot} />)}
         {date === today && <div className="current-time-line" style={{ top: `${percent}%` }} />}
-        {entries.filter((entry) => entry.task_id).map((entry) => <TaskBlock key={entry.id} entry={entry} task={taskById[entry.task_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} />)}
+        {entries.filter((entry) => entry.task_id).map((entry) => <TaskBlock key={entry.id} entry={entry} task={taskById[entry.task_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} userId={userId} onStartTask={onStartTask} />)}
         {entries.filter((entry) => entry.habit_id).map((entry) => <HabitBlock key={entry.id} entry={entry} habit={habitById[entry.habit_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
         {entries.filter((entry) => !entry.task_id && !entry.habit_id && !entry.is_creative_block).map((entry) => <ReminderBlock key={entry.id} entry={entry} reminder={{ title: entry.notes?.trim() || 'Evento fijo' }} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
         {sessions.map((session) => <div key={`focus-${session.id}`} className="weekly-focus-marker" title={getFocusLabel(session)}>{getFocusLabel(session)}</div>)}

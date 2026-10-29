@@ -71,7 +71,7 @@ describe('WeeklyGrid', () => {
 
     const { container } = renderGrid()
 
-    expect(container.querySelector('.weekly-grid-wrap').scrollTop).toBe(7 * 70)
+    expect(container.querySelector('.weekly-grid-wrap').scrollTop).toBe(7 * 48)
   })
 })
 

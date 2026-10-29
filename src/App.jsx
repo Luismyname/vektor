@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from './context/AuthProvider'
 import { AuthContext } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeProvider'
+import { EnergyPopoverProvider } from './context/EnergyPopoverContext'
 import Layout from './components/Layout'
 const Dashboard = lazy(() => import('./app/dashboard'))
 // const Survey = lazy(() => import('./app/survey')) // Replaced by OnboardingWizard
@@ -85,9 +86,10 @@ export default function App() {
     <BrowserRouter>
       <Analytics />
       <ThemeProvider>
-        <AuthProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
+        <EnergyPopoverProvider>
+          <AuthProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<div className="route-loading">Cargando Vektor...</div>}>
               <Routes>
               <Route path="/" element={<Layout><Portada /></Layout>} />
               <Route path="/demo" element={<Layout><Demo /></Layout>} />
@@ -111,6 +113,7 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
         </AuthProvider>
+        </EnergyPopoverProvider>
       </ThemeProvider>
     </BrowserRouter>
   )

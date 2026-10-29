@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import WeeklyBlockModal from './WeeklyBlockModal'
+import { parseTime } from '../../services/weekly-planner'
 
 // Etiquetas presentadas para los estados persistidos del bloque.
 const STATUS_LABELS = { scheduled: 'Programado', completed: 'Completado', failed: 'Fallido', moved: 'Movido' }
@@ -8,12 +9,14 @@ const STATUS_LABELS = { scheduled: 'Programado', completed: 'Completado', failed
 export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, onDurationChange, onDelete }) {
   const [showModal, setShowModal] = useState(false)
   if (!habit) return null
-  const startMinutes = Number(entry.start_time.slice(0, 2)) * 60 + Number(entry.start_time.slice(3, 5))
-  const endMinutes = Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3, 5))
+  const startTime = parseTime(entry.start_time)
+  const endTime = parseTime(entry.end_time)
+  const startMinutes = startTime.hours * 60 + startTime.minutes
+  const endMinutes = endTime.hours * 60 + endTime.minutes
   const duration = Math.max(endMinutes - startMinutes, 30)
   return (
     <>
-      <article style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 70)}px` }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir hábito ${habit.title}`}>
+      <article style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir hábito ${habit.title}`}>
         <strong>{habit.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
       </article>

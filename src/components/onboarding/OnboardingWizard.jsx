@@ -71,7 +71,7 @@ export default function OnboardingWizard({ onComplete }) {
           date: today,
           hour: new Date().getHours(),
           energy_level: data.energyCheckIn,
-          source: 'onboarding',
+          source: 'checkin',
         }, { onConflict: 'user_id,date,hour' })
       }
 

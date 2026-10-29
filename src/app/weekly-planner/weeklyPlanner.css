@@ -1,5 +1,5 @@
 .weekly-planner-page {
-  --weekly-hour-height: 70px;
+  --weekly-hour-height: 48px;
   min-height: 100vh;
   box-sizing: border-box;
   padding: calc(var(--vektor-header-height) + 34px) 28px 64px;

@@ -517,7 +517,7 @@
 .weekly-block { position: absolute; left: 4px; right: 4px; z-index: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px; border-radius: 6px; box-sizing: border-box; overflow: hidden; font-size: 11px; line-height: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.12); height: var(--block-height, 48px); transition: height 0.15s ease; cursor: pointer; }
 .weekly-block:hover { height: calc(var(--block-height, 48px) + 12px); z-index: 3; }
 .weekly-block .weekly-task-description { display: none; }
-.weekly-task-block, .weekly-habit-block { top: calc((var(--start-hour, 5) - 5) * 48px); }
+.weekly-task-block, .weekly-habit-block { top: calc(var(--start-hour, 0) * 48px); }
 .weekly-task-block { background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--accent); }
 .weekly-habit-block { background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--accent); }
 

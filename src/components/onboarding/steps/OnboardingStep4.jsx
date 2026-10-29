@@ -26,7 +26,7 @@ export default function OnboardingStep4({ data, onUpdate, onNext, onPrev, user }
     try {
       const { saveEnergyCheckIn } = await import('../../../services/energy')
       const today = new Date().toISOString().split('T')[0]
-      const { error } = await saveEnergyCheckIn(user.id, today, hour, energy, 'onboarding')
+      const { error } = await saveEnergyCheckIn(user.id, today, hour, energy, 'checkin')
       if (error) throw error
       onUpdate('energyCheckIn', energy)
       setSaved(true)

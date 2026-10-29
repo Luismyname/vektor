@@ -1,18 +1,28 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useEnergyPopover } from '../../hooks/useEnergyPopover'
+import { saveEnergyAtTaskStart } from '../../services/energy'
+import { parseTime } from '../../services/weekly-planner'
 import WeeklyBlockModal from './WeeklyBlockModal'
 
 // Nombres visibles para los estados posibles de una tarea planificada.
 const STATUS_LABELS = { scheduled: 'Programada', completed: 'Completada', failed: 'Fallida', moved: 'Pospuesta' }
 
 // Renderiza una tarea posicionada por horario y habilita edición en un modal.
-export default function TaskBlock({ entry, task, onStatusChange, onDragStart, onAutoReschedule, onDurationChange, onDelete, onTaskUpdate }) {
+export default function TaskBlock({ entry, task, onStatusChange, onDragStart, onAutoReschedule, onDurationChange, onDelete, onTaskUpdate, userId }) {
+  const { openEnergyPopover } = useEnergyPopover()
+  const energyTriggerRef = useRef(null)
+  
   const [isEditing, setIsEditing] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [title, setTitle] = useState(task?.title || '')
   const [description, setDescription] = useState(task?.description || '')
+  
   if (!task) return null
-  const startHour = Number(entry.start_time.slice(0, 2))
-  const duration = Math.max((Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3, 5))) - (startHour * 60 + Number(entry.start_time.slice(3, 5))), 30)
+  
+  const startTime = parseTime(entry.start_time)
+  const endTime = parseTime(entry.end_time)
+  const startHour = startTime.hours
+  const duration = Math.max((endTime.hours * 60 + endTime.minutes) - (startHour * 60 + startTime.minutes), 30)
 
   // Valida el título y persiste los campos editables de la tarea.
   async function saveTask() {
@@ -22,11 +32,39 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
     setIsEditing(false)
   }
 
+  const handleOpenEnergyPopover = (e) => {
+    e.stopPropagation()
+    if (entry.status !== 'scheduled') return
+    openEnergyPopover({
+      value: entry.energy_level ?? 5,
+      label: 'Energía inicial',
+      triggerRef: energyTriggerRef,
+      onSave: async (energy) => {
+        const { error } = await saveEnergyAtTaskStart(userId, energy)
+        if (error) throw error
+      },
+      disabled: entry.status !== 'scheduled',
+    })
+  }
+
   return (
     <>
-      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 70)}px` }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
+      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 48)}px` }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
         <strong>{task.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
+        {entry.status === 'scheduled' && (
+          <button
+            ref={energyTriggerRef}
+            type="button"
+            className="task-energy-trigger"
+            onClick={handleOpenEnergyPopover}
+            disabled={entry.status !== 'scheduled'}
+            aria-label="Registrar energía inicial"
+            title="Registrar energía inicial"
+          >
+            ⚡
+          </button>
+        )}
       </article>
       {showModal && <WeeklyBlockModal title={task.title} description={task.description} start={entry.start_time.slice(0, 5)} end={entry.end_time.slice(0, 5)} status={entry.status} statusLabel={STATUS_LABELS[entry.status]} onClose={() => setShowModal(false)}>
         {isEditing ? <div className="weekly-task-edit">

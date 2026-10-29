@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import WeeklyBlockModal from './WeeklyBlockModal'
+import { parseTime } from '../../services/weekly-planner'
 
 // Etiquetas para los estados de recordatorios
 const STATUS_LABELS = { scheduled: 'Programado', completed: 'Completado', failed: 'Fallido', moved: 'Movido' }
@@ -9,8 +10,10 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
   const [showModal, setShowModal] = useState(false)
   if (!reminder) return null
   
-  const startMinutes = Number(entry.start_time.slice(0, 2)) * 60 + Number(entry.start_time.slice(3, 5))
-  const endMinutes = Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3, 5))
+  const startTime = parseTime(entry.start_time)
+  const endTime = parseTime(entry.end_time)
+  const startMinutes = startTime.hours * 60 + startTime.minutes
+  const endMinutes = endTime.hours * 60 + endTime.minutes
   const duration = Math.max(endMinutes - startMinutes, 30)
   
   return (
@@ -18,7 +21,7 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
       <article 
         style={{ 
           '--start-hour': startMinutes / 60, 
-          '--block-height': `${Math.round(duration / 60 * 70)}px`
+          '--block-height': `${Math.round(duration / 60 * 48)}px`
         }} 
         className={`weekly-block weekly-reminder-block status-${entry.status}`}
         draggable 
