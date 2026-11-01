@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../services/supabase'
 import { formatDate } from '../../services/weekly-planner'
 
+type WeeklyReviewAnswers = Record<string, string>
+
 // Preguntas que estructuran la revisión y sus claves almacenadas en notes.
 const QUESTIONS = [
   ['learned', '¿Qué aprendí esta semana?'],
@@ -12,8 +14,8 @@ const QUESTIONS = [
 ]
 
 // Carga y guarda las respuestas de revisión semanal en una entrada del planificador.
-export function useWeeklyReview(userId, weekStart) {
-  const [review, setReview] = useState({})
+export function useWeeklyReview(userId: string | null | undefined, weekStart: Date | string) {
+  const [review, setReview] = useState<WeeklyReviewAnswers>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const reviewDate = formatDate(weekStart)
@@ -31,7 +33,7 @@ export function useWeeklyReview(userId, weekStart) {
     return () => { active = false }
   }, [userId, reviewDate])
 
-  async function saveReview(nextReview) {
+  async function saveReview(nextReview: WeeklyReviewAnswers) {
     setSaving(true)
     setSaved(false)
     const payload = { user_id: userId, date: reviewDate, start_time: '05:00', end_time: '23:00', status: 'scheduled', notes: JSON.stringify(nextReview), task_id: null, habit_id: null }

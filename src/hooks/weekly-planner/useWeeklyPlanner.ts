@@ -1,15 +1,46 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder, scheduleCreativeBlock } from '../../services/weekly-planner'
+import type { Habit, Task } from '../../types'
+
+type PlannerTask = Pick<Task, 'id' | 'user_id'> & Partial<Task>
+
+interface PlannerEntry {
+  id: string
+  user_id: string
+  date: string
+  start_time: string
+  end_time: string
+  task_id: string | null
+  habit_id: string | null
+  status: string
+  notes?: string | null
+}
+
+interface PlannerFocusSession {
+  id: string
+  user_id: string
+  task_id: string | null
+  started_at: string
+  ended_at: string | null
+  duration_seconds?: number | null
+  duration_minutes?: number
+  status: string
+}
+
+interface SaveResult {
+  entry: PlannerEntry
+  error: { message?: string } | null
+}
 
 // Coordina datos, mutaciones y operaciones de agenda que consume la vista semanal.
-export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
+export function useWeeklyPlanner(userId: string, initialWeek: Date | string = getWeekStart()) {
   const [weekStart, setWeekStart] = useState(initialWeek)
-  const [entries, setEntries] = useState([])
-  const [tasks, setTasks] = useState([])
-  const [habits, setHabits] = useState([])
-  const [selectedHabits, setSelectedHabits] = useState([])
-  const [plannedTaskIds, setPlannedTaskIds] = useState(() => new Set())
-  const [focusSessions, setFocusSessions] = useState([])
+  const [entries, setEntries] = useState<PlannerEntry[]>([])
+  const [tasks, setTasks] = useState<PlannerTask[]>([])
+  const [habits, setHabits] = useState<Habit[]>([])
+  const [selectedHabits, setSelectedHabits] = useState<Habit[]>([])
+  const [plannedTaskIds, setPlannedTaskIds] = useState<Set<string>>(() => new Set())
+  const [focusSessions, setFocusSessions] = useState<PlannerFocusSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -39,7 +70,7 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return () => clearTimeout(timer)
   }, [load])
 
-  const save = async (operation) => {
+  const save = async (operation: () => Promise<SaveResult>) => {
     const { entry, error: operationError } = await operation()
     if (operationError) {
       setError(operationError.message || 'No se pudo guardar el cambio.')
@@ -55,22 +86,22 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return entry
   }
 
-  const schedule = (task, date, start, end) => save(() => scheduleTask(task, date, start, end, userId))
-  const scheduleExistingHabit = (habit, date, start, end) => save(() => scheduleHabit(habit, date, start, end, userId))
-  const move = (entry, date, start, end) => save(() => movePlannerEntry(entry.id, date, start, end))
-  const resize = (entry, start, end) => save(() => resizePlannerEntry(entry.id, start, end))
-  const updateStatus = (entryId, status, notes = '') => save(() => updatePlannerEntry(entryId, { status, notes }))
-  const updateTaskData = (taskId, changes) => {
+  const schedule = (task: PlannerTask, date: Date | string, start: string, end: string) => save(() => scheduleTask(task, date, start, end, userId))
+  const scheduleExistingHabit = (habit: Habit, date: Date | string, start: string, end: string) => save(() => scheduleHabit(habit, date, start, end, userId))
+  const move = (entry: PlannerEntry, date: Date | string, start: string, end: string) => save(() => movePlannerEntry(entry.id, date, start, end))
+  const resize = (entry: PlannerEntry, start: string, end: string) => save(() => resizePlannerEntry(entry.id, start, end))
+  const updateStatus = (entryId: string, status: string, notes: string = '') => save(() => updatePlannerEntry(entryId, { status, notes }))
+  const updateTaskData = (taskId: string, changes: Partial<PlannerTask>) => {
     setTasks((current) => current.map((task) => task.id === taskId ? { ...task, ...changes } : task))
   }
 
-  async function removeEntry(entryId) {
+  async function removeEntry(entryId: string) {
     const { error: operationError } = await deletePlannerEntry(entryId)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el bloque.')
     await load()
   }
 
-  async function clearDay(date) {
+  async function clearDay(date: Date | string) {
     const { error: operationError } = await deletePlannerDay(userId, date)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el día.')
     await load()
@@ -83,7 +114,12 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
   }
 
   // Wrapper functions for new modal operations
-  const createTaskAndScheduleWrapper = async (taskData, date, startTime, endTime) => {
+  const createTaskAndScheduleWrapper = async (
+    taskData: Parameters<typeof createTaskAndSchedule>[0],
+    date: Date | string,
+    startTime: string,
+    endTime: string
+  ) => {
     const result = await createTaskAndSchedule(taskData, date, startTime, endTime, userId)
     if (result.error) {
       setError(result.error.message || 'No se pudo crear la tarea.')
@@ -93,7 +129,12 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return result.entry
   }
 
-  const createHabitAndScheduleWrapper = async (habitData, date, startTime, endTime) => {
+  const createHabitAndScheduleWrapper = async (
+    habitData: Parameters<typeof createHabitAndSchedule>[0],
+    date: Date | string,
+    startTime: string,
+    endTime: string
+  ) => {
     const result = await createHabitAndSchedule(habitData, date, startTime, endTime, userId)
     if (result.error) {
       setError(result.error.message || 'No se pudo crear el hábito.')
@@ -103,7 +144,12 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return result.entry
   }
 
-  const createReminderWrapper = async (reminderData, date, startTime, endTime) => {
+  const createReminderWrapper = async (
+    reminderData: Parameters<typeof createReminder>[0],
+    date: Date | string,
+    startTime: string,
+    endTime: string
+  ) => {
     const result = await createReminder(reminderData, date, startTime, endTime, userId)
     if (result.error) {
       setError(result.error.message || 'No se pudo crear el recordatorio.')
@@ -113,7 +159,12 @@ export function useWeeklyPlanner(userId, initialWeek = getWeekStart()) {
     return result.entry
   }
 
-  const createCreativeBlockWrapper = async (blockData, date, startTime, endTime) => {
+  const createCreativeBlockWrapper = async (
+    blockData: Parameters<typeof scheduleCreativeBlock>[0],
+    date: Date | string,
+    startTime: string,
+    endTime: string
+  ) => {
     const result = await scheduleCreativeBlock(blockData, date, startTime, endTime, userId)
     if (result.error) {
       setError(result.error.message || 'No se pudo crear el bloque creativo.')

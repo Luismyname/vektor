@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 
 // Hook para paginación cognitiva (3 elementos por página)
-export function useCognitivePagination(items, itemsPerPage = 3) {
+export function useCognitivePagination<T>(items: T[], itemsPerPage: number = 3) {
   const [currentPage, setCurrentPage] = useState(1)
 
   const totalPages = useMemo(
@@ -16,7 +16,7 @@ export function useCognitivePagination(items, itemsPerPage = 3) {
 
   const goNext = () => setCurrentPage(p => Math.min(p + 1, totalPages))
   const goPrev = () => setCurrentPage(p => Math.max(p - 1, 1))
-  const goToPage = (page) => setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  const goToPage = (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages)))
   const reset = () => setCurrentPage(1)
 
   return {

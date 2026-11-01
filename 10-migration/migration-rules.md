@@ -54,3 +54,15 @@ Primero migrar.
 Después mejorar.
 
 Nunca ambas cosas a la vez.
+
+Durante Fase 3:
+
+NO convertir hooks a lógica nueva.
+
+NO fusionar hooks.
+
+NO dividir hooks.
+
+NO optimizar hooks.
+
+Solo añadir tipos.

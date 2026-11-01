@@ -2,19 +2,72 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { getWeeklyEnergyLevels, detectChronotype, getUserPeakHours } from '../../services/energy'
 import { getWeeklyCreativeBlocks, getCreativeBlocksStats } from '../../services/creative'
 import { getWeeklyProgress, getHabitConsistency, getWeekDates } from '../../services/weekly-planner'
+import type { Habit } from '../../types'
+
+interface EnergyDatum {
+  date: string
+  hour: number
+  energy_level: number
+  source: string
+}
+
+interface CreativeBlock {
+  date: string
+  start_time: string
+  end_time: string
+  block_type: string
+  quality_score: number | null
+}
+
+interface CreativeStats {
+  totalBlocks: number
+  totalMinutes: number
+  avgQuality: number | null
+  totalInterruptions: number
+  byType: Record<string, number>
+  withQualityScore: number
+}
+
+interface WeeklyProgress {
+  scheduled: number
+  completed: number
+  failed: number
+  moved: number
+  focusSessions: number
+  completionRate: number
+}
+
+type HabitConsistency = Habit & {
+  scheduled: number
+  completed: number
+  failed: number
+}
+
+interface EnergyQualityCorrelation {
+  correlation: number
+  sampleSize: number
+  interpretation: 'positive' | 'negative' | 'neutral'
+}
+
+interface WeeklyInsight {
+  type: string
+  title: string
+  description: string
+  actionable: string
+}
 
 /**
  * Hook combinado para analíticas semanales: energía + bloques creativos + tareas + hábitos
  * Calcula correlaciones y patrones automáticamente
  */
-export function useWeeklyAnalytics(userId, weekStart) {
-  const [energyData, setEnergyData] = useState([])
-  const [creativeBlocks, setCreativeBlocks] = useState([])
-  const [creativeStats, setCreativeStats] = useState(null)
-  const [progress, setProgress] = useState(null)
-  const [habitConsistency, setHabitConsistency] = useState([])
+export function useWeeklyAnalytics(userId: string, weekStart: string) {
+  const [energyData, setEnergyData] = useState<EnergyDatum[]>([])
+  const [creativeBlocks, setCreativeBlocks] = useState<CreativeBlock[]>([])
+  const [creativeStats, setCreativeStats] = useState<CreativeStats | null>(null)
+  const [progress, setProgress] = useState<WeeklyProgress | null>(null)
+  const [habitConsistency, setHabitConsistency] = useState<HabitConsistency[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   const loadAll = useCallback(async () => {
     if (!userId) return
@@ -61,7 +114,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 
   // Energy heatmap data: array of { date, hour, energy_level }
   const energyHeatmap = useMemo(() => {
-    const heatmap = []
+    const heatmap: Array<{ date: string; hour: number; energy: number; source: string }> = []
     energyData.forEach(entry => {
       heatmap.push({
         date: entry.date,
@@ -75,7 +128,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 
   // Energy by day and hour (for grid visualization)
   const energyByDayHour = useMemo(() => {
-    const grid = {}
+    const grid: Record<string, Record<number, number | null>> = {}
     const dates = getWeekDates(weekStart)
     dates.forEach(date => {
       grid[date] = {}
@@ -89,7 +142,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 
   // Average energy by hour across the week
   const avgEnergyByHour = useMemo(() => {
-    const byHour = {}
+    const byHour: Record<number, number> = {}
     for (let h = 0; h <= 23; h++) {
       const values = energyData.filter(e => e.hour === h).map(e => e.energy_level)
       if (values.length) {
@@ -107,7 +160,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 
   // Creative blocks by day
   const creativeBlocksByDay = useMemo(() => {
-    const byDay = {}
+    const byDay: Record<string, CreativeBlock[]> = {}
     creativeBlocks.forEach(block => {
       if (!byDay[block.date]) byDay[block.date] = []
       byDay[block.date].push(block)
@@ -130,7 +183,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
   }, [creativeBlocks, energyData])
 
   // Correlation: energy at block start vs quality score
-  const energyQualityCorrelation = useMemo(() => {
+  const energyQualityCorrelation = useMemo<EnergyQualityCorrelation | null>(() => {
     const withBoth = blocksWithEnergy.filter(b => b.energyAtStart !== null && b.quality_score !== null)
     if (withBoth.length < 3) return null
 
@@ -147,7 +200,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 
   // Best days for deep work (high energy + high quality)
   const bestDeepWorkDays = useMemo(() => {
-    const dayScores = {}
+    const dayScores: Record<string, number[]> = {}
     creativeBlocks.forEach(block => {
       const blockHour = parseInt(block.start_time.split(':')[0])
       const energyEntry = energyData.find(e => e.date === block.date && e.hour === blockHour)
@@ -169,7 +222,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
   }, [creativeBlocks, energyData])
 
   // Weekly pattern insights
-  const insights = useMemo(() => {
+  const insights = useMemo<WeeklyInsight[]>(() => {
     const insights = []
 
     // Energy pattern
@@ -178,7 +231,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
         if (!acc[e.hour]) acc[e.hour] = []
         acc[e.hour].push(e.energy_level)
         return acc
-      }, {})
+      }, {} as Record<number, number[]>)
     ).map(([hour, vals]) => ({
       hour: parseInt(hour),
       avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
@@ -283,7 +336,7 @@ export function useWeeklyAnalytics(userId, weekStart) {
 }
 
 // Helper: calculate Pearson correlation
-function calculateCorrelation(x, y) {
+function calculateCorrelation(x: number[], y: number[]) {
   const n = x.length
   if (n !== y.length || n < 2) return 0
 
@@ -300,15 +353,15 @@ function calculateCorrelation(x, y) {
 }
 
 // Helper: get block duration in minutes
-function getBlockDuration(block) {
+function getBlockDuration(block: Pick<CreativeBlock, 'start_time' | 'end_time'>) {
   const start = new Date(`2000-01-01T${block.start_time}`)
   const end = new Date(`2000-01-01T${block.end_time}`)
-  return Math.round((end - start) / (1000 * 60))
+  return Math.round((end.getTime() - start.getTime()) / (1000 * 60))
 }
 
 // Helper: get block type label
-function getBlockTypeLabel(type) {
-  const labels = {
+function getBlockTypeLabel(type: string) {
+  const labels: Record<string, string> = {
     deep_work: 'Deep Work',
     shallow_work: 'Shallow Work',
     creative: 'Creativo',

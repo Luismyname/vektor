@@ -5,14 +5,35 @@ import {
   saveNotificationConfig,
   initializeScheduledNotifications,
   DEFAULT_NOTIFICATION_CONFIG,
+  NOTIFICATION_TYPES,
 } from '../services/notifications'
+
+type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES]
+
+interface NotificationSettings {
+  enabled?: boolean
+  time?: string
+  days?: number[]
+  beforeMinutes?: number
+  day?: number
+}
+
+type NotificationConfig = Record<string, NotificationSettings>
+
+interface NotificationUpdates {
+  enabled?: boolean
+  time?: string
+  days?: number[]
+  beforeMinutes?: number
+  day?: number
+}
 
 /**
  * Hook para gestionar notificaciones
  */
-export function useNotifications(userId) {
+export function useNotifications(userId: string | null | undefined) {
   const [permission, setPermission] = useState(Notification.permission)
-  const [config, setConfig] = useState(DEFAULT_NOTIFICATION_CONFIG)
+  const [config, setConfig] = useState<NotificationConfig>(DEFAULT_NOTIFICATION_CONFIG)
   const [loading, setLoading] = useState(true)
 
   // Cargar config y permiso al montar
@@ -48,7 +69,7 @@ export function useNotifications(userId) {
   }, [userId])
 
   // Actualizar config
-  const updateConfig = useCallback(async (type, updates) => {
+  const updateConfig = useCallback(async (type: NotificationType, updates: NotificationUpdates) => {
     if (!userId) return { error: new Error('No user') }
 
     const newConfig = { ...config, [type]: { ...config[type], ...updates } }
@@ -63,18 +84,18 @@ export function useNotifications(userId) {
   }, [config, userId])
 
   // Toggle enabled
-  const toggleEnabled = useCallback(async (type) => {
+  const toggleEnabled = useCallback(async (type: NotificationType) => {
     const current = config[type]?.enabled ?? false
     return updateConfig(type, { enabled: !current })
   }, [config, updateConfig])
 
   // Actualizar hora
-  const updateTime = useCallback(async (type, time) => {
+  const updateTime = useCallback(async (type: NotificationType, time: string) => {
     return updateConfig(type, { time })
   }, [updateConfig])
 
   // Actualizar días
-  const updateDays = useCallback(async (type, days) => {
+  const updateDays = useCallback(async (type: NotificationType, days: number[]) => {
     return updateConfig(type, { days })
   }, [updateConfig])
 
@@ -94,7 +115,7 @@ export function useNotifications(userId) {
 // Helper para formatear días
 export const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
-export function formatDays(days) {
+export function formatDays(days: number[] | null | undefined) {
   if (!days?.length) return 'Nunca'
   if (days.length === 7) return 'Todos los días'
   return days.map(d => DAY_LABELS[d]).join(', ')

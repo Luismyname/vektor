@@ -1,6 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export function getFocusSessionRemainingSeconds(session, now = Date.now()) {
+interface FocusTimerSession {
+  id: string
+  status: string
+  planned_duration_seconds: number
+  started_at: string
+  paused_seconds: number
+  paused_at: string | null
+}
+
+interface LocalTimer {
+  durationSeconds: number
+  remainingSeconds: number
+  startedAt: number | null
+  paused: boolean
+}
+
+interface UseTaskTimerOptions {
+  session?: FocusTimerSession | null
+  onExpire?: () => void
+}
+
+export function getFocusSessionRemainingSeconds(
+  session: FocusTimerSession | null | undefined,
+  now: number = Date.now()
+) {
   if (!session || !['running', 'paused'].includes(session.status)) return 0
 
   const plannedSeconds = Number(session.planned_duration_seconds)
@@ -19,7 +43,7 @@ export function getFocusSessionRemainingSeconds(session, now = Date.now()) {
   return Math.max(0, Math.floor(plannedSeconds) - elapsedSeconds)
 }
 
-export function useTaskTimer({ session, onExpire }) {
+export function useTaskTimer({ session, onExpire }: UseTaskTimerOptions) {
   const isSessionControlled = session !== undefined
   const [localTimer, setLocalTimer] = useState({
     durationSeconds: 0,
@@ -28,8 +52,8 @@ export function useTaskTimer({ session, onExpire }) {
     paused: true,
   })
   const [now, setNow] = useState(Date.now)
-  const onExpireRef = useRef(onExpire)
-  const expiredSessionIds = useRef(new Set())
+  const onExpireRef = useRef<(() => void) | undefined>(onExpire)
+  const expiredSessionIds = useRef(new Set<string>())
 
   useEffect(() => {
     onExpireRef.current = onExpire
@@ -82,7 +106,7 @@ export function useTaskTimer({ session, onExpire }) {
     sessionRunning,
   ])
 
-  const start = useCallback((durationMinutes) => {
+  const start = useCallback((durationMinutes: number) => {
     if (isSessionControlled) return
     const duration = Math.max(0, Math.round(Number(durationMinutes) * 60) || 0)
     setNow(Date.now())
@@ -116,7 +140,7 @@ export function useTaskTimer({ session, onExpire }) {
     }))
   }, [isSessionControlled])
 
-  const reset = useCallback((durationMinutes = 0) => {
+  const reset = useCallback((durationMinutes: number = 0) => {
     if (isSessionControlled) return
     const duration = Math.max(0, Math.round(Number(durationMinutes) * 60) || 0)
     setLocalTimer({
@@ -139,7 +163,7 @@ export function useTaskTimer({ session, onExpire }) {
   }
 }
 
-function getLocalRemainingSeconds(timer, now) {
+function getLocalRemainingSeconds(timer: LocalTimer, now: number) {
   if (!timer.startedAt) return Math.max(0, timer.remainingSeconds)
   return Math.max(0, timer.remainingSeconds - Math.floor((now - timer.startedAt) / 1000))
 }
