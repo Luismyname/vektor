@@ -1,12 +1,33 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent } from 'react'
 import WeeklyBlockModal from './WeeklyBlockModal'
 import { parseTime } from '../../services/weekly-planner'
 
+interface PlannerEntry {
+  id: string
+  start_time: string
+  end_time: string
+  status: string
+}
+
+interface Reminder {
+  title: string
+  description?: string | null
+}
+
+interface ReminderBlockProps {
+  entry: PlannerEntry
+  reminder?: Reminder
+  onStatusChange: (entry: PlannerEntry, status: string) => void
+  onDragStart: (event: DragEvent<HTMLElement>, entry: PlannerEntry) => void
+  onDurationChange: (entry: PlannerEntry, duration: number) => void
+  onDelete: (entryId: string) => void
+}
+
 // Etiquetas para los estados de recordatorios
-const STATUS_LABELS = { scheduled: 'Programado', completed: 'Completado', failed: 'Fallido', moved: 'Movido' }
+const STATUS_LABELS: Record<string, string> = { scheduled: 'Programado', completed: 'Completado', failed: 'Fallido', moved: 'Movido' }
 
 // Renderiza un bloque de recordatorio (evento fijo) con indicador de candado
-export default function ReminderBlock({ entry, reminder, onStatusChange, onDragStart, onDurationChange, onDelete }) {
+export default function ReminderBlock({ entry, reminder, onStatusChange, onDragStart, onDurationChange, onDelete }: ReminderBlockProps) {
   const [showModal, setShowModal] = useState(false)
   if (!reminder) return null
   
@@ -22,12 +43,12 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
         style={{ 
           '--start-hour': startMinutes / 60, 
           '--block-height': `${Math.round(duration / 60 * 48)}px`
-        }} 
+        } as CSSProperties & { '--start-hour': number; '--block-height': string }} 
         className={`weekly-block weekly-reminder-block status-${entry.status}`}
         draggable 
         onDragStart={(event) => onDragStart(event, entry)} 
         onClick={() => setShowModal(true)} 
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} 
+        onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} 
         role="button" 
         tabIndex={0} 
         aria-label={`Abrir recordatorio ${reminder.title} (evento fijo)`}
@@ -45,7 +66,7 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
         onClose={() => setShowModal(false)}
       >
         <label className="weekly-modal-field">Duración
-          <select value={duration} onChange={(event) => onDurationChange(entry, Number(event.target.value))} aria-label={`Duración de ${reminder.title}`}>
+          <select value={duration} onChange={(event: ChangeEvent<HTMLSelectElement>) => onDurationChange(entry, Number(event.target.value))} aria-label={`Duración de ${reminder.title}`}>
             <option value="30">30 min</option>
             <option value="60">60 min</option>
             <option value="90">90 min</option>
@@ -53,7 +74,7 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
           </select>
         </label>
         <label className="weekly-modal-field">Estado
-          <select value={entry.status} onChange={(event) => onStatusChange(entry, event.target.value)} aria-label={`Estado de ${reminder.title}`}>
+          <select value={entry.status} onChange={(event: ChangeEvent<HTMLSelectElement>) => onStatusChange(entry, event.target.value)} aria-label={`Estado de ${reminder.title}`}>
             <option value="scheduled">Programado</option>
             <option value="completed">Completado</option>
             <option value="failed">Fallido</option>

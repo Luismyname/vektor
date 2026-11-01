@@ -1,4 +1,31 @@
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties } from 'react'
+
+interface CorrelationPanelProps {
+  energyQualityCorrelation?: {
+    interpretation: 'positive' | 'negative' | 'neutral'
+    correlation: number
+    sampleSize: number
+  } | null
+  blocksWithEnergy?: unknown[] | null
+  progress?: {
+    completed: number
+    scheduled: number
+    failed?: number
+    moved?: number
+  } | null
+  habitConsistency?: Array<{
+    scheduled?: number
+    completed: number
+  }> | null
+  creativeStats?: {
+    totalBlocks: number
+    totalMinutes: number
+    avgQuality?: number | null
+    totalInterruptions: number
+    withQualityScore: number
+  } | null
+  avgEnergyByHour?: Record<string, number> | null
+}
 
 /**
  * Panel de correlación: Energía + Bloques Creativos + Completado de Tareas
@@ -10,7 +37,7 @@ export default function CorrelationPanel({
   habitConsistency,
   creativeStats,
   avgEnergyByHour
-}) {
+}: CorrelationPanelProps) {
   // Energy trend over the week
   const energyTrend = useMemo(() => {
     if (!avgEnergyByHour) return []
@@ -94,7 +121,7 @@ export default function CorrelationPanel({
                 style={{ 
                   '--bar-height': `${Math.max(5, (point.avg / 10) * 100)}%`,
                   '--bar-delay': `${i * 30}ms`
-                }}
+                } as CSSProperties}
                 title={`${point.hour}:00 - ${point.avg}/10`}
               >
                 <span className="bar-label">{point.hour}h</span>
@@ -150,7 +177,7 @@ export default function CorrelationPanel({
       {/* Habit Completion */}
       {habitRate !== null && (
         <div className="correlation-card habit-rate">
-          <div className="habit-rate-circle" style={{ '--rate': `${habitRate}%` }}>
+          <div className="habit-rate-circle" style={{ '--rate': `${habitRate}%` } as CSSProperties}>
             <span className="rate-value">{habitRate}%</span>
           </div>
           <div className="habit-rate-label">

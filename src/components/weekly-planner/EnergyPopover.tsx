@@ -1,5 +1,16 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+
+interface EnergyPopoverProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave?: (value: number) => void | { error?: unknown } | Promise<void | { error?: unknown }>
+  value?: number
+  label?: string
+  triggerRef?: { current: HTMLElement | null }
+  position?: 'auto' | 'top'
+  disabled?: boolean
+}
 
 /**
  * Popover flotante para captura de energía (1-10)
@@ -15,16 +26,16 @@ export function EnergyPopover({
   triggerRef,
   position = 'auto',
   disabled = false,
-}) {
+}: EnergyPopoverProps) {
   const [localValue, setLocalValue] = useState(value ?? 5)
-  const popoverRef = useRef(null)
-  const sliderRef = useRef(null)
-  const [positionStyles, setPositionStyles] = useState({})
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const sliderRef = useRef<HTMLInputElement>(null)
+  const [positionStyles, setPositionStyles] = useState<CSSProperties>({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  const handleClickOutside = useCallback((e) => {
-    const target = e.target
+  const handleClickOutside = useCallback((e: globalThis.PointerEvent) => {
+    const target = e.target as Node
     if (popoverRef.current?.contains(target)) return
     if (triggerRef?.current?.contains(target)) return
     onClose()
@@ -38,7 +49,7 @@ export function EnergyPopover({
 
   useEffect(() => {
     if (!isOpen) return undefined
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -76,7 +87,7 @@ export function EnergyPopover({
     setSaving(true)
     setSaveError('')
     try {
-      const result = await onSave?.(localValue)
+      const result = await onSave?.(localValue) as { error?: unknown } | undefined
       if (result?.error) throw result.error
       onClose()
     } catch (error) {

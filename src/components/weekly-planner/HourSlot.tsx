@@ -1,10 +1,19 @@
+import type { DragEvent } from 'react'
+
+interface HourSlotProps {
+  date: string
+  hour: number
+  onDropTask: (itemId: string, entryId: string, itemType: 'task' | 'habit', date: string, startTime: string, endTime: string) => void
+  onClick?: (date: string, startTime: string, endTime: string) => void
+}
+
 // Franja horaria que recibe elementos arrastrados y permite abrir el modal de agenda.
-export default function HourSlot({ date, hour, onDropTask, onClick }) {
+export default function HourSlot({ date, hour, onDropTask, onClick }: HourSlotProps) {
   const startTime = `${String(hour).padStart(2, '0')}:00`
   const endTime = hour === 23 ? '23:59' : `${String(hour + 1).padStart(2, '0')}:00`
 
   // Interpreta el elemento arrastrado y lo agenda en el intervalo de una hora.
-  function handleDrop(event) {
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     const taskId = event.dataTransfer.getData('text/task')
     const habitId = event.dataTransfer.getData('text/habit')

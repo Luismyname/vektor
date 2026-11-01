@@ -1,5 +1,32 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 
+type EnergyCallback = (value: number) => void | Promise<void>
+
+interface EnergySelectorProps {
+  value?: number | null
+  onChange?: (value: number) => void
+  label?: string
+  size?: string
+  onSave?: EnergyCallback
+  disabled?: boolean
+}
+
+interface UserEnergySelectorProps {
+  userId: string
+  onEnergySelect?: (value: number) => void
+  disabled?: boolean
+}
+
+interface FocusEnergySelectorProps {
+  value?: number | null
+  onChange?: (value: number) => void
+  onSave?: EnergyCallback
+  userId: string
+  taskId?: string
+  focusSessionId?: string
+  disabled?: boolean
+}
+
 /**
  * @deprecated Use the EnergyPopover for planner energy check-ins.
  * Retained for FocusQualityModal until that flow is migrated.
@@ -11,12 +38,12 @@ export function EnergySelector({
   size = 'compact',
   onSave,
   disabled = false,
-}) {
+}: EnergySelectorProps) {
   // Usar value directamente si está definido, sino usar estado local
   const localValue = useMemo(() => value ?? 5, [value])
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleSelect = useCallback(async (newValue) => {
+  const handleSelect = useCallback(async (newValue: number) => {
     onChange?.(newValue)
 
     if (onSave) {
@@ -30,8 +57,8 @@ export function EnergySelector({
     setIsOpen(false)
   }, [onChange, onSave])
 
-  const handleClickOutside = useCallback((e) => {
-    if (isOpen && !e.target.closest('.energy-selector')) {
+  const handleClickOutside = useCallback((e: globalThis.MouseEvent) => {
+    if (isOpen && !(e.target as Element).closest('.energy-selector')) {
       setIsOpen(false)
     }
   }, [isOpen])
@@ -121,10 +148,10 @@ export function TaskEnergySelector({
   userId, 
   onEnergySelect,
   disabled = false 
-}) {
+}: UserEnergySelectorProps) {
   const [showSelector, setShowSelector] = useState(false)
 
-  const handleSave = async (value) => {
+  const handleSave = async (value: number) => {
     try {
       const { saveEnergyAtTaskStart } = await import('../../services/energy')
       const { error } = await saveEnergyAtTaskStart(userId, value)
@@ -180,7 +207,7 @@ export function FocusEnergySelector({
   onSave,
   userId,
   disabled = false 
-}) {
+}: FocusEnergySelectorProps) {
   const [localValue, setLocalValue] = useState(value ?? 5)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -243,10 +270,10 @@ export function HabitEnergySelector({
   userId, 
   onEnergySelect,
   disabled = false 
-}) {
+}: UserEnergySelectorProps) {
   const [showSelector, setShowSelector] = useState(false)
 
-  const handleSave = async (value) => {
+  const handleSave = async (value: number) => {
     try {
       const { saveEnergyAtHabitCompletion } = await import('../../services/energy')
       const { error } = await saveEnergyAtHabitCompletion(userId, value)

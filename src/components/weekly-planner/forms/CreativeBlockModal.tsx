@@ -1,5 +1,29 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { getTimeRange } from '../../../services/weekly-planner'
+import type { Task } from '../../../types'
+
+type CreativeBlockType = 'deep_work' | 'shallow_work' | 'creative' | 'learning' | 'admin'
+
+interface CreativeBlockAction {
+  type: 'creative-block'
+  blockType: CreativeBlockType
+  duration: number
+  startTime: string
+  endTime: string
+  qualityScore: number | null
+  interruptions: number
+  plannedTaskId: string | null
+  notes: string
+}
+
+interface CreativeBlockModalProps {
+  isOpen: boolean
+  onClose: () => void
+  startTime?: string
+  onSubmit: (action: CreativeBlockAction) => void
+  tasks?: Task[]
+  defaultDuration?: number
+}
 
 // Modal para configurar un bloque creativo (deep work)
 export default function CreativeBlockModal({
@@ -8,16 +32,16 @@ export default function CreativeBlockModal({
   startTime: initialStartTime,
   onSubmit,
   tasks = [],
-}) {
-  const [blockType, setBlockType] = useState('deep_work')
+}: CreativeBlockModalProps) {
+  const [blockType, setBlockType] = useState<CreativeBlockType>('deep_work')
   const [duration, setDuration] = useState(60)
   const [startTime, setStartTime] = useState(initialStartTime || '09:00')
-  const [qualityScore, setQualityScore] = useState(null)
+  const [qualityScore, setQualityScore] = useState<string | null>(null)
   const [interruptions, setInterruptions] = useState(0)
-  const [plannedTaskId, setPlannedTaskId] = useState(null)
+  const [plannedTaskId, setPlannedTaskId] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
-  const modalRef = useRef(null)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   const blockTypes = [
     { value: 'deep_work', label: 'Deep Work', description: 'Trabajo enfocado sin distracciones' },
@@ -39,7 +63,7 @@ export default function CreativeBlockModal({
   }, [isOpen])
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -48,7 +72,7 @@ export default function CreativeBlockModal({
 
   if (!isOpen) return null
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!startTime) {
       setError('La hora de inicio es obligatoria')
@@ -100,7 +124,7 @@ export default function CreativeBlockModal({
             <select
               id="block-type"
               value={blockType}
-              onChange={(e) => setBlockType(e.target.value)}
+              onChange={(e) => setBlockType(e.target.value as CreativeBlockType)}
               className="form-select"
             >
               {blockTypes.map((bt) => (
@@ -148,7 +172,7 @@ export default function CreativeBlockModal({
             <label htmlFor="block-type-select">Tipo de bloque</label>
             <select
               value={blockType}
-              onChange={(e) => setBlockType(e.target.value)}
+              onChange={(e) => setBlockType(e.target.value as CreativeBlockType)}
               className="form-select"
             >
               {blockTypes.map((bt) => (

@@ -1,22 +1,34 @@
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties } from 'react'
+
+interface PeakHours {
+  morning?: number[]
+  afternoon?: number[]
+  evening?: number[]
+}
+
+interface EnergyHeatmapProps {
+  energyByDayHour: Record<string, Record<number, number | null | undefined>>
+  peakHours?: PeakHours | null
+  onHourClick?: (date: string, hour: number, energy: number | null | undefined) => void
+}
 
 /**
  * Representación horizontal de los niveles de energía por día y hora.
  */
-export default function EnergyHeatmap({ energyByDayHour, peakHours, onHourClick }) {
+export default function EnergyHeatmap({ energyByDayHour, peakHours, onHourClick }: EnergyHeatmapProps) {
   const hours = useMemo(() => Array.from({ length: 19 }, (_, i) => i + 5), []) // 5-23
   const dayLabels = useMemo(() => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'], [])
 
   // Get sorted dates (Mon-Sun)
   const dates = useMemo(() => Object.keys(energyByDayHour).sort(), [energyByDayHour])
 
-  const isPeakHour = (date, hour) => {
+  const isPeakHour = (date: string, hour: number) => {
     if (!peakHours) return false
     const allPeak = [...(peakHours.morning || []), ...(peakHours.afternoon || []), ...(peakHours.evening || [])]
     return allPeak.includes(hour)
   }
 
-  const isToday = (date) => {
+  const isToday = (date: string) => {
     const today = new Date().toISOString().split('T')[0]
     return date === today
   }
@@ -54,7 +66,7 @@ export default function EnergyHeatmap({ energyByDayHour, peakHours, onHourClick 
                   <button
                     key={hour}
                     className={`heatmap-cell ${peak ? 'peak-hour' : ''} ${energy === null || energy === undefined ? 'no-data' : ''}`}
-                    style={{ '--energy-level': energy === null || energy === undefined ? 0 : Math.max(0.18, energy / 10) }}
+                    style={{ '--energy-level': energy === null || energy === undefined ? 0 : Math.max(0.18, energy / 10) } as CSSProperties}
                     onClick={() => onHourClick?.(date, hour, energy)}
                     aria-label={`${dayLabels[dayIndex]} ${String(hour).padStart(2, '0')}:00 - Energía: ${energy !== null && energy !== undefined ? energy + '/10' : 'sin datos'}${peak ? ' (hora pico)' : ''}`}
                     title={`${dayLabels[dayIndex]} ${String(hour).padStart(2, '0')}:00 · ${energy !== null && energy !== undefined ? `${energy}/10` : 'Sin datos'}${peak ? ' · Hora pico' : ''}`}

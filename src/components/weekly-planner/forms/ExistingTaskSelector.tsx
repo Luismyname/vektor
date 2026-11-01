@@ -1,7 +1,17 @@
 import { useState, useMemo } from 'react'
+import type { Task, TaskPriority } from '../../../types'
+
+type SelectableTask = Task & { duration?: number }
+
+interface ExistingTaskSelectorProps {
+  tasks: SelectableTask[]
+  plannedTaskIds?: Set<string>
+  onSelect: (task: SelectableTask) => void
+  onClose: () => void
+}
 
 // Busca y ordena tareas abiertas para vincular una existente al intervalo.
-export default function ExistingTaskSelector({ tasks, plannedTaskIds = new Set(), onSelect, onClose }) {
+export default function ExistingTaskSelector({ tasks, plannedTaskIds = new Set(), onSelect, onClose }: ExistingTaskSelectorProps) {
   const [search, setSearch] = useState('')
 
   const visibleTasks = useMemo(() => tasks.filter((task) => (
@@ -14,12 +24,12 @@ export default function ExistingTaskSelector({ tasks, plannedTaskIds = new Set()
         task.title.toLowerCase().includes(search.toLowerCase())
       )
       .sort((a, b) => {
-        const priorityOrder = { high: 0, medium: 1, low: 2 }
+        const priorityOrder: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 }
         return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1)
       })
   }, [visibleTasks, search])
 
-  const priorityLabels = {
+  const priorityLabels: Record<TaskPriority, { label: string; color: string }> = {
     high: { label: 'HIGH', color: 'var(--color-danger)' },
     medium: { label: 'MEDIUM', color: 'var(--accent)' },
     low: { label: 'LOW', color: 'var(--color-success)' }

@@ -1,7 +1,19 @@
 import { useState } from 'react'
+import type { Habit } from '../../../types'
+
+type SelectableHabit = Pick<Habit, 'title' | 'active'> & {
+  id?: string
+  duration?: number
+}
+
+interface ExistingHabitSelectorProps {
+  habits: SelectableHabit[]
+  onSelect: (habit: SelectableHabit) => void
+  onClose: () => void
+}
 
 // Filtra hábitos activos por nombre y devuelve el seleccionado al modal padre.
-export default function ExistingHabitSelector({ habits, onSelect, onClose }) {
+export default function ExistingHabitSelector({ habits, onSelect, onClose }: ExistingHabitSelectorProps) {
   const [search, setSearch] = useState('')
 
   const filteredHabits = habits

@@ -66,3 +66,27 @@ NO dividir hooks.
 NO optimizar hooks.
 
 Solo añadir tipos.
+
+REGLA VEKTOR TS-002
+
+TaskBlock
+HabitBlock
+ReminderBlock
+DayColumn
+WeeklyGrid
+
+son componentes críticos.
+
+Está prohibido modificar:
+
+- top
+- left
+- transform
+- posicionamiento
+- variables CSS
+- drag and drop
+- sistema de energía
+
+durante la migración.
+
+La migración debe limitarse exclusivamente al tipado.

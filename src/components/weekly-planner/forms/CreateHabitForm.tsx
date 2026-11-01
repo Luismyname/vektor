@@ -1,8 +1,23 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { getTimeRange } from '../../../services/weekly-planner'
 
+interface CreateHabitData extends Record<string, unknown> {
+  title: string
+  duration: number
+  active: true
+  startTime: string
+  endTime: string
+}
+
+interface CreateHabitFormProps {
+  onSubmit: (habit: CreateHabitData) => void
+  onCancel: () => void
+  initialDuration?: number
+  initialStartTime?: string
+}
+
 // Construye un hábito nuevo junto con su duración e intervalo horario.
-export default function CreateHabitForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }) {
+export default function CreateHabitForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }: CreateHabitFormProps) {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState(initialDuration)
   const [startTime, setStartTime] = useState(initialStartTime)
@@ -11,7 +26,7 @@ export default function CreateHabitForm({ onSubmit, onCancel, initialDuration = 
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
   // Rechaza nombres vacíos y envía el hábito listo para ser persistido y agendado.
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!title.trim()) {
       setError('El nombre del hábito es obligatorio')

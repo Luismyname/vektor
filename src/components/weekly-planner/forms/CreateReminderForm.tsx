@@ -1,7 +1,18 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+
+interface CreateReminderData extends Record<string, unknown> {
+  title: string
+  duration: number
+}
+
+interface CreateReminderFormProps {
+  onSubmit: (reminder: CreateReminderData) => void
+  onCancel: () => void
+  initialDuration?: number
+}
 
 // Recoge el texto y la duración de un recordatorio sin vínculo a tarea/hábito.
-export default function CreateReminderForm({ onSubmit, onCancel, initialDuration = 30 }) {
+export default function CreateReminderForm({ onSubmit, onCancel, initialDuration = 30 }: CreateReminderFormProps) {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState(initialDuration)
   const [error, setError] = useState('')
@@ -9,7 +20,7 @@ export default function CreateReminderForm({ onSubmit, onCancel, initialDuration
   const durations = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480]
 
   // Valida el contenido y delega al padre la creación de la entrada semanal.
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!title.trim()) {
       setError('El texto del recordatorio es obligatorio')

@@ -1,5 +1,23 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { FocusEnergySelector } from '../EnergySelector'
+
+interface FocusQualityData {
+  qualityScore: number
+  interruptions: number
+  notes: string
+  energyAtEnd: number | null
+}
+
+interface FocusQualityModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: FocusQualityData) => void | Promise<void>
+  durationMinutes: number
+  taskTitle: string
+  taskId?: string
+  focusSessionId?: string
+  userId: string
+}
 
 // Modal que aparece al terminar una sesión de enfoque para calificar la calidad
 export default function FocusQualityModal({
@@ -11,12 +29,12 @@ export default function FocusQualityModal({
   taskId,
   focusSessionId,
   userId,
-}) {
+}: FocusQualityModalProps) {
   const [qualityScore, setQualityScore] = useState(5)
   const [interruptions, setInterruptions] = useState(0)
   const [notes, setNotes] = useState('')
-  const [energyAtEnd, setEnergyAtEnd] = useState(null)
-  const modalRef = useRef(null)
+  const [energyAtEnd, setEnergyAtEnd] = useState<number | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   // Focus trap and close on Escape
   useEffect(() => {
@@ -30,7 +48,7 @@ export default function FocusQualityModal({
   }, [isOpen])
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -39,7 +57,7 @@ export default function FocusQualityModal({
 
   if (!isOpen) return null
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSubmit({
       qualityScore: Number(qualityScore),

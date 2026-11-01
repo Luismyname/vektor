@@ -1,7 +1,28 @@
+import type { CSSProperties } from 'react'
+
+interface WeeklyInsight {
+  type: string
+  title: string
+  description: string
+  actionable: string
+}
+
+interface DeepWorkDay {
+  date: string
+  avgScore: number
+  sessions: number
+}
+
+interface WeeklyPatternsProps {
+  insights?: WeeklyInsight[] | null
+  bestDeepWorkDays?: DeepWorkDay[] | null
+  chronotype?: string | null
+}
+
 /**
  * Panel de patrones semanales detectados automáticamente
  */
-export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype }) {
+export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype }: WeeklyPatternsProps) {
   if (!insights || insights.length === 0) {
     return (
       <div className="weekly-patterns empty">
@@ -14,8 +35,8 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
     )
   }
 
-  const iconForType = (type) => {
-    const icons = {
+  const iconForType = (type: string) => {
+    const icons: Record<string, string> = {
       energy_peak: '⚡',
       energy_low: '🔋',
       creative_type: '🧠',
@@ -26,8 +47,8 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
     return icons[type] || '💡'
   }
 
-  const colorForType = (type) => {
-    const colors = {
+  const colorForType = (type: string) => {
+    const colors: Record<string, string> = {
       energy_peak: 'var(--accent)',
       energy_low: 'var(--color-warning)',
       creative_type: 'var(--color-accent-light)',
@@ -43,7 +64,7 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
       <div className="patterns-header">
         <h3>Vektor recomienda</h3>
         {chronotype && (
-          <span className="chronotype-badge" style={{ '--badge-color': colorForType('creative_type') }}>
+          <span className="chronotype-badge" style={{ '--badge-color': colorForType('creative_type') } as CSSProperties}>
             Cronotipo: {chronotype.charAt(0).toUpperCase() + chronotype.slice(1)}
           </span>
         )}
@@ -51,7 +72,7 @@ export default function WeeklyPatterns({ insights, bestDeepWorkDays, chronotype 
 
       <div className="insights-list">
         {insights.map((insight, index) => (
-          <div key={index} className="insight-card" style={{ '--insight-color': colorForType(insight.type) }}>
+          <div key={index} className="insight-card" style={{ '--insight-color': colorForType(insight.type) } as CSSProperties}>
             <div className="insight-icon" style={{ background: colorForType(insight.type) }}>
               {iconForType(insight.type)}
             </div>

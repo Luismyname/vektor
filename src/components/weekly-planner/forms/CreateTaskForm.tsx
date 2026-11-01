@@ -1,11 +1,27 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { getTimeRange } from '../../../services/weekly-planner'
+import type { TaskPriority } from '../../../types'
+
+interface CreateTaskData extends Record<string, unknown> {
+  title: string
+  description: string
+  priority: TaskPriority
+  startTime: string
+  endTime: string
+}
+
+interface CreateTaskFormProps {
+  onSubmit: (task: CreateTaskData) => void
+  onCancel: () => void
+  initialDuration?: number
+  initialStartTime?: string
+}
 
 // Recoge datos de una tarea nueva y calcula el intervalo que ocupará en la agenda.
-export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }) {
+export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 30, initialStartTime = '09:00' }: CreateTaskFormProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState('medium')
+  const [priority, setPriority] = useState<TaskPriority>('medium')
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(getTimeRange(initialStartTime, initialDuration).endTime)
   const [error, setError] = useState('')
@@ -29,7 +45,7 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
     : null
 
   // Valida el título y el intervalo antes de devolver el horario al padre.
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!title.trim()) {
       setError('El título es obligatorio')
@@ -84,7 +100,7 @@ export default function CreateTaskForm({ onSubmit, onCancel, initialDuration = 3
         <select
           id="task-priority"
           value={priority}
-          onChange={(e) => setPriority(e.target.value)}
+          onChange={(e) => setPriority(e.target.value as TaskPriority)}
           className="form-select"
         >
           {priorities.map((p) => (

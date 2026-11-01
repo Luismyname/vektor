@@ -5,6 +5,27 @@ import CreateReminderForm from './forms/CreateReminderForm'
 import ExistingTaskSelector from './forms/ExistingTaskSelector'
 import ExistingHabitSelector from './forms/ExistingHabitSelector'
 import CreativeBlockModal from './forms/CreativeBlockModal'
+import type { Habit, Task } from '../../types'
+
+interface WeeklySlotAction {
+  type: string
+  [key: string]: unknown
+}
+
+interface WeeklyTimeSlotModalProps {
+  isOpen: boolean
+  onClose: () => void
+  startTime?: string | null
+  defaultDuration?: number
+  onSubmit: (action: WeeklySlotAction) => void
+  tasks?: Task[]
+  habits?: Habit[]
+  plannedTaskIds?: Set<string>
+  date?: string
+  endTime?: string
+  onCancel?: () => void
+  user?: unknown
+}
 
 // Selector por pestañas para añadir tareas, hábitos o recordatorios a una franja.
 export default function WeeklyTimeSlotModal({
@@ -16,9 +37,9 @@ export default function WeeklyTimeSlotModal({
   tasks = [],
   habits = [],
   plannedTaskIds = new Set(),
-}) {
+}: WeeklyTimeSlotModalProps) {
   const [activeTab, setActiveTab] = useState('existing-task')
-  const modalRef = useRef(null)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   // Focus trap and close on Escape
   useEffect(() => {
@@ -32,7 +53,7 @@ export default function WeeklyTimeSlotModal({
   }, [isOpen])
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -41,17 +62,17 @@ export default function WeeklyTimeSlotModal({
 
   if (!isOpen) return null
 
-  const handleCreateTask = (taskData) => {
+  const handleCreateTask = (taskData: Record<string, unknown>) => {
     onSubmit({ type: 'new-task', ...taskData })
     onClose()
   }
 
-  const handleCreateHabit = (habitData) => {
+  const handleCreateHabit = (habitData: Record<string, unknown>) => {
     onSubmit({ type: 'new-habit', ...habitData })
     onClose()
   }
 
-  const handleCreateReminder = (reminderData) => {
+  const handleCreateReminder = (reminderData: Record<string, unknown>) => {
     onSubmit({ type: 'reminder', ...reminderData })
     onClose()
   }

@@ -1,9 +1,35 @@
 import { useMemo } from 'react'
 
+declare module 'react' {
+  // Required to match React's generic interface during module augmentation.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface StyleHTMLAttributes<T> {
+    jsx?: boolean
+  }
+}
+
+interface CreativeBlock {
+  quality_score: number | null
+}
+
+interface CreativeBlockStats {
+  totalMinutes?: number
+  totalBlocks?: number
+  avgQuality?: number | string | null
+  totalInterruptions?: number
+  byType?: Record<string, number>
+}
+
+interface CreativeBlocksSummaryProps {
+  stats?: CreativeBlockStats | null
+  weeklyBlocks?: CreativeBlock[]
+  avgQuality: number | null
+}
+
 /**
  * Panel resumen de bloques creativos de la semana
  */
-export default function CreativeBlocksSummary({ stats, weeklyBlocks, avgQuality }) {
+export default function CreativeBlocksSummary({ stats, weeklyBlocks, avgQuality }: CreativeBlocksSummaryProps) {
   const blocksWithQuality = useMemo(
     () => (weeklyBlocks || []).filter(b => b.quality_score !== null),
     [weeklyBlocks]
@@ -14,7 +40,7 @@ export default function CreativeBlocksSummary({ stats, weeklyBlocks, avgQuality 
     [stats?.totalMinutes]
   )
 
-  const typeLabels = useMemo(() => ({
+  const typeLabels = useMemo<Record<string, string>>(() => ({
     deep_work: '🎯 Deep Work',
     shallow_work: '📋 Shallow Work',
     creative: '🎨 Creativo',

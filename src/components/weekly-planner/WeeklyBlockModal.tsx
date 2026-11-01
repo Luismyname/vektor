@@ -1,10 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 
+interface WeeklyBlockModalProps {
+  title: string
+  description?: string | null
+  start: string
+  end: string
+  status: string
+  statusLabel?: string
+  onClose: () => void
+  children?: ReactNode
+}
+
 // Presenta detalles/controles de un bloque en un portal y cierra con Escape.
-export default function WeeklyBlockModal({ title, description, start, end, status, statusLabel, onClose, children }) {
+export default function WeeklyBlockModal({ title, description, start, end, status, statusLabel, onClose, children }: WeeklyBlockModalProps) {
   useEffect(() => {
-    function handleKeyDown(event) {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -14,7 +25,7 @@ export default function WeeklyBlockModal({ title, description, start, end, statu
   return createPortal(
     <>
       <div className="weekly-modal-overlay" onClick={onClose} />
-      <section className="weekly-modal" role="dialog" aria-modal="true" aria-labelledby="weekly-modal-title" onClick={(event) => event.stopPropagation()}>
+      <section className="weekly-modal" role="dialog" aria-modal="true" aria-labelledby="weekly-modal-title" onClick={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}>
         <button type="button" className="weekly-modal-close" onClick={onClose}>Cerrar</button>
         <h3 id="weekly-modal-title">{title}</h3>
         {description && <p className="weekly-modal-description">{description}</p>}

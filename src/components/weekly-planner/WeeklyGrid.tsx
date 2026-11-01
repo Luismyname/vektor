@@ -1,8 +1,57 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type DragEvent } from 'react'
+import type { Habit, Task } from '../../types'
 import DayColumn from './DayColumn'
 
+type PlannerTask = Pick<Task, 'id' | 'title'> & Partial<Task>
+
+interface PlannerEntry {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  task_id: string | null
+  habit_id: string | null
+  status: string
+  notes?: string | null
+  energy_level?: number | null
+  is_creative_block?: boolean
+}
+
+interface FocusSession {
+  id: string
+  user_id: string
+  task_id: string | null
+  started_at: string
+  ended_at: string | null
+  duration_seconds?: number | null
+  duration_minutes?: number
+  status: string
+}
+
+interface WeeklyGridProps {
+  dates: string[]
+  currentTime: Date
+  today: string
+  entries: PlannerEntry[]
+  taskById: Record<string, PlannerTask | undefined>
+  habitById: Record<string, Habit | undefined>
+  focusSessions: FocusSession[]
+  energyByDayHour?: Record<string, Record<number, number | null>>
+  onDropTask: (itemId: string, entryId: string, itemType: string, date: string, startTime: string, endTime: string) => void
+  onDragStart: (event: DragEvent<HTMLElement>, entry: PlannerEntry) => void
+  onStatusChange: (entry: PlannerEntry, status: string) => void
+  onDurationChange: (entry: PlannerEntry, duration: number) => void
+  onAutoReschedule: (taskId: string) => void
+  onDelete: (entryId: string) => void
+  onTaskUpdate: (taskId: string, changes: Partial<Task>) => void | Promise<void>
+  onClearDay: (date: string) => void
+  onClickSlot: (date: string, startTime: string, endTime: string) => void
+  userId: string
+  onStartTask: (taskId: string) => void
+}
+
 // Compone las 24 horas y siete columnas conectadas a las acciones del padre.
-export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot, userId, onStartTask }) {
+export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot, userId, onStartTask }: WeeklyGridProps) {
   const gridRef = useRef(null)
   const currentHour = currentTime.getHours()
   const weekStart = dates[0]
