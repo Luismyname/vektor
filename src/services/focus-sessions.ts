@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 const FOCUS_SESSION_FIELDS = 'id, user_id, task_id, planned_duration_seconds, started_at, paused_at, paused_seconds, ended_at, duration_seconds, status, created_at'
 
 // Registra una sesión y convierte la duración planificada de minutos a segundos.
-export async function startFocusSession(userId, taskId, plannedDurationMinutes) {
+export async function startFocusSession(userId: string, taskId: string, plannedDurationMinutes: number) {
   if (!userId || !taskId || !Number.isFinite(Number(plannedDurationMinutes)) || Number(plannedDurationMinutes) <= 0) {
     return { session: null, error: new Error('Falta un usuario, una tarea o una duración válida para iniciar el enfoque.') }
   }
@@ -28,7 +28,7 @@ export async function startFocusSession(userId, taskId, plannedDurationMinutes) 
 }
 
 // Cambia el estado de una sesión existente y devuelve su registro actualizado.
-export async function transitionFocusSession(sessionId, status, userId) {
+export async function transitionFocusSession(sessionId: string, status: string, userId: string) {
   if (!sessionId || !userId || !['running', 'paused', 'completed', 'interrupted'].includes(status)) {
     return { session: null, error: new Error('Falta la sesión o el usuario para actualizar el enfoque.') }
   }
@@ -49,7 +49,7 @@ export async function transitionFocusSession(sessionId, status, userId) {
 }
 
 // Recupera la sesión activa más reciente del usuario, tanto si corre como si está pausada.
-export async function getActiveFocusSession(userId) {
+export async function getActiveFocusSession(userId: string) {
   if (!userId) {
     return { session: null, error: new Error('Falta el usuario para recuperar la sesión de enfoque.') }
   }
@@ -70,7 +70,7 @@ export async function getActiveFocusSession(userId) {
   return { session: data, error }
 }
 
-export async function getCompletedFocusDurationSeconds(userId, taskId) {
+export async function getCompletedFocusDurationSeconds(userId: string, taskId: string) {
   if (!userId || !taskId) {
     return { durationSeconds: null, error: new Error('Falta el usuario o la tarea para calcular el enfoque registrado.') }
   }
@@ -93,7 +93,12 @@ export async function getCompletedFocusDurationSeconds(userId, taskId) {
 }
 
 // Actualiza la calidad de una sesión de enfoque completada.
-export async function updateFocusSessionQuality(sessionId, qualityScore, interruptions, notes) {
+export async function updateFocusSessionQuality(
+  sessionId: string,
+  qualityScore: number,
+  interruptions: number,
+  notes: string
+) {
   const payload = {
     quality_score: qualityScore,
     interruptions: interruptions,

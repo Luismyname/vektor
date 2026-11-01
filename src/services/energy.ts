@@ -1,9 +1,20 @@
 import { supabase } from './supabase'
 
+interface EnergyLevelRecord {
+  hour: number
+  energy_level: number
+}
+
 /**
  * Guarda un check-in de energía matutino
  */
-export async function saveEnergyCheckIn(userId, date, hour, energyLevel, source = 'manual') {
+export async function saveEnergyCheckIn(
+  userId: string,
+  date: string,
+  hour: number,
+  energyLevel: number,
+  source: string = 'manual'
+) {
   if (!userId || !date || !Number.isInteger(hour) || hour < 0 || hour > 23
     || !Number.isInteger(energyLevel) || energyLevel < 1 || energyLevel > 10) {
     return { data: null, error: new Error('El usuario, la fecha, la hora o el nivel de energía no son válidos.') }
@@ -26,7 +37,7 @@ export async function saveEnergyCheckIn(userId, date, hour, energyLevel, source 
 /**
  * Obtiene los niveles de energía de una semana
  */
-export async function getWeeklyEnergyLevels(userId, weekStart) {
+export async function getWeeklyEnergyLevels(userId: string, weekStart: string) {
   const dates = []
   const start = new Date(weekStart)
   for (let i = 0; i < 7; i++) {
@@ -49,7 +60,7 @@ export async function getWeeklyEnergyLevels(userId, weekStart) {
 /**
  * Obtiene el check-in de hoy (si existe)
  */
-export async function getTodayEnergyCheckIn(userId) {
+export async function getTodayEnergyCheckIn(userId: string) {
   const today = new Date().toISOString().split('T')[0]
   const { data, error } = await supabase
     .from('energy_levels')
@@ -66,7 +77,7 @@ export async function getTodayEnergyCheckIn(userId) {
 /**
  * Obtiene el cronotipo del usuario desde profiles
  */
-export async function getUserChronotype(userId) {
+export async function getUserChronotype(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
     .select('chronotype, peak_hours')
@@ -79,7 +90,7 @@ export async function getUserChronotype(userId) {
 /**
  * Actualiza el cronotipo del usuario
  */
-export async function updateUserChronotype(userId, chronotype) {
+export async function updateUserChronotype(userId: string, chronotype: string) {
   const { data, error } = await supabase
     .from('profiles')
     .update({ chronotype })
@@ -93,7 +104,7 @@ export async function updateUserChronotype(userId, chronotype) {
 /**
  * Actualiza las horas pico del usuario
  */
-export async function updateUserPeakHours(userId, peakHours) {
+export async function updateUserPeakHours(userId: string, peakHours: Record<string, number[]>) {
   const { data, error } = await supabase
     .from('profiles')
     .update({ peak_hours: peakHours })
@@ -107,17 +118,17 @@ export async function updateUserPeakHours(userId, peakHours) {
 /**
  * Calcula el cronotipo basado en los niveles de energía históricos
  */
-export function detectChronotype(energyLevels) {
+export function detectChronotype(energyLevels: EnergyLevelRecord[]) {
   if (!energyLevels.length) return null
 
   // Agrupar por hora y promediar
-  const byHour = {}
+  const byHour: Record<number, number[]> = {}
   energyLevels.forEach(e => {
     if (!byHour[e.hour]) byHour[e.hour] = []
     byHour[e.hour].push(e.energy_level)
   })
 
-  const avgByHour = {}
+  const avgByHour: Record<string, number> = {}
   Object.entries(byHour).forEach(([h, vals]) => {
     avgByHour[h] = vals.reduce((a, b) => a + b, 0) / vals.length
   })
@@ -136,7 +147,10 @@ export function detectChronotype(energyLevels) {
 /**
  * Obtiene las horas pico del usuario (basado en cronotipo o datos)
  */
-export function getUserPeakHours(chronotype, peakHours) {
+export function getUserPeakHours(
+  chronotype: string | null | undefined,
+  peakHours: Record<string, number[]> | null | undefined
+) {
   if (peakHours && Object.keys(peakHours).length) return peakHours
 
   // Defaults por cronotipo
@@ -152,7 +166,7 @@ export function getUserPeakHours(chronotype, peakHours) {
 /**
  * Guarda un check-in de energía en un momento específico (inicio/fin tarea, foco, hábito)
  */
-export async function saveEnergyAtMoment(userId, energyLevel, source) {
+export async function saveEnergyAtMoment(userId: string, energyLevel: number, source: string) {
   const now = new Date()
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const hour = now.getHours()
@@ -163,25 +177,25 @@ export async function saveEnergyAtMoment(userId, energyLevel, source) {
 /**
  * Guarda energía al iniciar una tarea/foco
  */
-export async function saveEnergyAtTaskStart(userId, energyLevel) {
+export async function saveEnergyAtTaskStart(userId: string, energyLevel: number) {
   return saveEnergyAtMoment(userId, energyLevel, 'task_start')
 }
 
 /**
  * Guarda energía al completar una tarea/foco
  */
-export async function saveEnergyAtTaskEnd(userId, energyLevel) {
+export async function saveEnergyAtTaskEnd(userId: string, energyLevel: number) {
   return saveEnergyAtMoment(userId, energyLevel, 'task_end')
 }
 
 /**
  * Guarda energía al completar un hábito
  */
-export async function saveEnergyAtHabitCompletion(userId, energyLevel) {
+export async function saveEnergyAtHabitCompletion(userId: string, energyLevel: number) {
   return saveEnergyAtMoment(userId, energyLevel, 'habit_completion')
 }
 
-function normalizeEnergySource(source) {
+function normalizeEnergySource(source: string) {
   if (['task_start', 'task_end', 'habit_completion', 'onboarding'].includes(source)) return 'checkin'
   if (['manual', 'inferred', 'checkin'].includes(source)) return source
   throw new Error(`Origen de energía no permitido: ${source}`)

@@ -1,5 +1,19 @@
 import { supabase } from './supabase'
 
+interface EnergyCheckinConfig {
+  time: string
+  days: number[]
+}
+
+interface WeeklyReviewConfig {
+  day: number
+  time: string
+}
+
+interface NotificationActionsOptions extends NotificationOptions {
+  actions?: Array<{ action: string; title: string }>
+}
+
 // Tipos de notificación
 export const NOTIFICATION_TYPES = {
   ENERGY_CHECKIN: 'energy_checkin',
@@ -31,12 +45,12 @@ export async function requestNotificationPermission() {
     const permission = await Notification.requestPermission()
     return { granted: permission === 'granted', permission }
   } catch (err) {
-    return { granted: false, error: err.message }
+    return { granted: false, error: (err as { message?: string }).message }
   }
 }
 
 // Obtener configuración del usuario
-export async function getNotificationConfig(userId) {
+export async function getNotificationConfig(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
     .select('notification_config')
@@ -49,7 +63,7 @@ export async function getNotificationConfig(userId) {
 }
 
 // Guardar configuración
-export async function saveNotificationConfig(userId, config) {
+export async function saveNotificationConfig(userId: string, config: Record<string, unknown>) {
   const { error } = await supabase
     .from('profiles')
     .update({ notification_config: config })
@@ -59,7 +73,7 @@ export async function saveNotificationConfig(userId, config) {
 }
 
 // Mostrar notificación local
-export function showLocalNotification(title, options = {}) {
+export function showLocalNotification(title: string, options: NotificationActionsOptions = {}) {
   if (!isNotificationSupported()) return
   if (Notification.permission !== 'granted') return
 
@@ -85,9 +99,15 @@ export function showLocalNotification(title, options = {}) {
 }
 
 // Programar notificaciones usando setTimeout (fallback simple)
-const scheduledTimeouts = new Map()
+const scheduledTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-export function scheduleNotification(type, triggerTime, title, body, data = {}) {
+export function scheduleNotification(
+  type: string,
+  triggerTime: number,
+  title: string,
+  body: string,
+  data: Record<string, unknown> = {}
+) {
   const now = Date.now()
   const delay = triggerTime - now
 
@@ -102,7 +122,7 @@ export function scheduleNotification(type, triggerTime, title, body, data = {}) 
   return true
 }
 
-export function cancelScheduledNotification(type) {
+export function cancelScheduledNotification(type: string) {
   const timeoutId = scheduledTimeouts.get(type)
   if (timeoutId) {
     clearTimeout(timeoutId)
@@ -118,7 +138,7 @@ export function cancelAllScheduled() {
 }
 
 // Calcular próximo trigger para check-in energía
-export function getNextEnergyCheckinTime(config) {
+export function getNextEnergyCheckinTime(config: EnergyCheckinConfig) {
   const now = new Date()
   const [hours, minutes] = config.time.split(':').map(Number)
 
@@ -147,7 +167,7 @@ export function getNextEnergyCheckinTime(config) {
 }
 
 // Calcular próximo trigger para revisión semanal
-export function getNextWeeklyReviewTime(config) {
+export function getNextWeeklyReviewTime(config: WeeklyReviewConfig) {
   const now = new Date()
   const [hours, minutes] = config.time.split(':').map(Number)
 
@@ -166,7 +186,7 @@ export function getNextWeeklyReviewTime(config) {
 }
 
 // Inicializar todas las notificaciones programadas
-export async function initializeScheduledNotifications(userId) {
+export async function initializeScheduledNotifications(userId: string) {
   const { config } = await getNotificationConfig(userId)
 
   cancelAllScheduled()
@@ -200,7 +220,7 @@ export async function initializeScheduledNotifications(userId) {
 }
 
 // Notificación para inicio de deep work
-export function notifyDeepWorkStart(blockTitle, startTime, blockId) {
+export function notifyDeepWorkStart(blockTitle: string, startTime: string, blockId: string) {
   showLocalNotification('🧠 Deep Work inicia', {
     body: `${blockTitle} a las ${startTime}`,
     data: { type: NOTIFICATION_TYPES.DEEP_WORK_START, blockId },
@@ -213,7 +233,7 @@ export function notifyDeepWorkStart(blockTitle, startTime, blockId) {
 }
 
 // Notificación para hábito
-export function notifyHabit(habitTitle, startTime, habitId) {
+export function notifyHabit(habitTitle: string, startTime: string, habitId: string) {
   showLocalNotification('🌱 Hábito programado', {
     body: `${habitTitle} a las ${startTime}`,
     data: { type: NOTIFICATION_TYPES.HABIT_REMINDER, habitId },
@@ -225,7 +245,7 @@ export function notifyHabit(habitTitle, startTime, habitId) {
 }
 
 // Notificación fin de sesión de enfoque
-export function notifyFocusSessionEnd(sessionId, durationMinutes) {
+export function notifyFocusSessionEnd(sessionId: string, durationMinutes: number) {
   showLocalNotification('✅ Sesión completada', {
     body: `Trabajaste ${durationMinutes} min. ¿Cómo fue? (1-10)`,
     data: { type: NOTIFICATION_TYPES.FOCUS_SESSION_END, sessionId },

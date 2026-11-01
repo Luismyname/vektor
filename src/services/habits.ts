@@ -1,9 +1,18 @@
 import { supabase } from './supabase'
+import type { Habit, HabitGroups } from '../types'
+
+interface NewHabitInput {
+  title: string
+  description?: string
+  duration?: number
+  color?: string
+  frequency?: string
+}
 
 /**
                                                                  * Obtiene los hábitos del usuario desde la tabla habits
  */
-export async function getUserHabits(userId) {
+export async function getUserHabits(userId: string) {
   const { data, error } = await supabase
     .from('habits')
     .select('*')
@@ -13,7 +22,7 @@ export async function getUserHabits(userId) {
 
   if (error) return { habits: { recommended: [], custom: [] }, error }
 
-  const habits = { recommended: [], custom: [] }
+  const habits: HabitGroups = { recommended: [], custom: [] }
   data.forEach(habit => {
     if (habit.source === 'recommended') habits.recommended.push(habit)
     else habits.custom.push(habit)
@@ -24,7 +33,7 @@ export async function getUserHabits(userId) {
 /**
  * Agrega un nuevo hábito a la tabla habits
  */
-export async function addHabit(userId, habit) {
+export async function addHabit(userId: string, habit: NewHabitInput) {
   const newHabit = {
     title: habit.title,
     description: habit.description || '',
@@ -47,7 +56,7 @@ export async function addHabit(userId, habit) {
 /**
  * Actualiza un hábito existente
  */
-export async function updateHabit(userId, habitId, updates) {
+export async function updateHabit(userId: string, habitId: string, updates: Partial<Habit>) {
   const { data, error } = await supabase
     .from('habits')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -62,7 +71,7 @@ export async function updateHabit(userId, habitId, updates) {
 /**
  * Elimina un hábito
  */
-export async function deleteHabit(userId, habitId) {
+export async function deleteHabit(userId: string, habitId: string) {
   const { error } = await supabase
     .from('habits')
     .delete()
@@ -75,14 +84,14 @@ export async function deleteHabit(userId, habitId) {
 /**
  * Alterna estado activo/inactivo de un hábito
  */
-export async function toggleHabitActive(userId, habitId, active) {
+export async function toggleHabitActive(userId: string, habitId: string, active: boolean) {
   return updateHabit(userId, habitId, { active })
 }
 
 /**
  * Obtiene hábitos para el planificador (incluye inactivos para el backlog)
  */
-export async function getPlannerHabits(userId) {
+export async function getPlannerHabits(userId: string) {
   const { data, error } = await supabase
     .from('habits')
     .select('*')
@@ -91,7 +100,7 @@ export async function getPlannerHabits(userId) {
 
   if (error) return { habits: { recommended: [], custom: [] }, error }
 
-  const habits = { recommended: [], custom: [] }
+  const habits: HabitGroups = { recommended: [], custom: [] }
   data.forEach(habit => {
     if (habit.source === 'recommended') habits.recommended.push(habit)
     else habits.custom.push(habit)

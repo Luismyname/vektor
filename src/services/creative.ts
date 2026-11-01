@@ -1,9 +1,21 @@
 import { supabase } from './supabase'
 
+interface CreativeBlockInput {
+  date: string
+  startTime: string
+  endTime: string
+  blockType?: string
+  plannedTaskId?: string | null
+  actualFocusSessionId?: string | null
+  qualityScore?: number | null
+  interruptions?: number
+  notes?: string
+}
+
 /**
  * Crea un bloque creativo (deep work) vinculado a una tarea opcional y sesión de enfoque
  */
-export async function createCreativeBlock(userId, input) {
+export async function createCreativeBlock(userId: string, input: CreativeBlockInput) {
   const payload = {
     user_id: userId,
     date: input.date,
@@ -23,7 +35,7 @@ export async function createCreativeBlock(userId, input) {
 /**
  * Actualiza un bloque creativo existente
  */
-export async function updateCreativeBlock(id, updates) {
+export async function updateCreativeBlock(id: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('creative_blocks')
     .update(updates)
@@ -36,7 +48,7 @@ export async function updateCreativeBlock(id, updates) {
 /**
  * Obtiene los bloques creativos de una semana
  */
-export async function getWeeklyCreativeBlocks(userId, weekStart) {
+export async function getWeeklyCreativeBlocks(userId: string, weekStart: string) {
   const dates = []
   const start = new Date(weekStart)
   for (let i = 0; i < 7; i++) {
@@ -59,7 +71,7 @@ export async function getWeeklyCreativeBlocks(userId, weekStart) {
 /**
  * Obtiene bloques creativos de un día específico
  */
-export async function getDailyCreativeBlocks(userId, date) {
+export async function getDailyCreativeBlocks(userId: string, date: string) {
   const { data, error } = await supabase
     .from('creative_blocks')
     .select('*')
@@ -73,7 +85,7 @@ export async function getDailyCreativeBlocks(userId, date) {
 /**
  * Elimina un bloque creativo
  */
-export async function deleteCreativeBlock(id) {
+export async function deleteCreativeBlock(id: string) {
   const { error } = await supabase.from('creative_blocks').delete().eq('id', id)
   return { error }
 }
@@ -81,7 +93,7 @@ export async function deleteCreativeBlock(id) {
 /**
  * Calcula estadísticas de bloques creativos de una semana
  */
-export async function getCreativeBlocksStats(userId, weekStart) {
+export async function getCreativeBlocksStats(userId: string, weekStart: string) {
   const { data: blocks, error } = await getWeeklyCreativeBlocks(userId, weekStart)
   if (error) return { stats: null, error }
 
@@ -89,7 +101,7 @@ export async function getCreativeBlocksStats(userId, weekStart) {
   const totalMinutes = blocks.reduce((sum, b) => {
     const start = new Date(`2000-01-01T${b.start_time}`)
     const end = new Date(`2000-01-01T${b.end_time}`)
-    return sum + (end - start) / (1000 * 60)
+    return sum + (end.getTime() - start.getTime()) / (1000 * 60)
   }, 0)
 
   const withQuality = blocks.filter(b => b.quality_score !== null)

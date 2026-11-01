@@ -1,4 +1,22 @@
 import { supabase } from './supabase'
+import type { User } from '@supabase/supabase-js'
+
+interface UpdateProfileInput {
+  user: User
+  firstName: string
+  middleName: string
+  lastName: string
+  email: string
+  avatarUrl: string
+}
+
+interface SaveOnboardingInput {
+  user?: Pick<User, 'id'> | null
+  answers: Record<string, unknown>
+  dominantValue: string | null
+  secondaryValue: string | null
+  habits: unknown
+}
 
 // Cuenta usuarios sin transferir sus registros al cliente.
 export async function getUsersCount() {
@@ -7,7 +25,14 @@ export async function getUsersCount() {
 }
 
 // Actualiza metadatos de autenticación y los campos básicos del perfil.
-export async function updateProfile({ user, firstName, middleName, lastName, email, avatarUrl }) {
+export async function updateProfile({
+  user,
+  firstName,
+  middleName,
+  lastName,
+  email,
+  avatarUrl,
+}: UpdateProfileInput) {
   const first_name = firstName.trim()
   const middle_name = middleName.trim()
   const last_name = lastName.trim()
@@ -35,7 +60,13 @@ export async function updateProfile({ user, firstName, middleName, lastName, ema
 }
 
 // Persiste respuestas y resultados del onboarding tras validar la sesión propietaria.
-export async function saveOnboarding({ user, answers, dominantValue, secondaryValue, habits }) {
+export async function saveOnboarding({
+  user,
+  answers,
+  dominantValue,
+  secondaryValue,
+  habits,
+}: SaveOnboardingInput) {
   const { data: authData, error: authError } = await supabase.auth.getUser()
   const authenticatedUser = authData?.user
   if (authError || !authenticatedUser) {
@@ -74,7 +105,7 @@ export async function saveOnboarding({ user, answers, dominantValue, secondaryVa
 }
 
 // Reemplaza la lista de hábitos guardada en el perfil del usuario.
-export async function saveHabits(userId, habits) {
+export async function saveHabits(userId: string, habits: unknown) {
   const { data, error } = await supabase
     .from('profiles')
     .update({ habits })
@@ -86,7 +117,7 @@ export async function saveHabits(userId, habits) {
 }
 
 // Guarda qué respuestas del onboarding se ocultan en la interfaz.
-export async function updateHiddenAnswers(userId, hiddenAnswers) {
+export async function updateHiddenAnswers(userId: string, hiddenAnswers: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('profiles')
     .update({ hidden_answers: hiddenAnswers })

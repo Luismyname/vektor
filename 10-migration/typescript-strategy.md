@@ -10,6 +10,17 @@ Fase 2
 
 Migrar servicios.
 
+Los tipos deben reflejar
+el modelo existente.
+
+No deben diseñar
+un modelo nuevo.
+
+TypeScript documenta
+la arquitectura actual.
+
+No la redefine.
+
 Fase 3
 
 Migrar hooks.
@@ -29,3 +40,4 @@ Activar strict mode.
 Regla:
 
 Nunca migrar más de una capa a la vez.
+

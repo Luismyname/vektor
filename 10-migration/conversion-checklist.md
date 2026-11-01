@@ -27,3 +27,13 @@ Resultado esperado:
 Misma aplicación.
 
 Mejor tipado.
+
+[ ] Misma cantidad de archivos
+
+[ ] Misma estructura de carpetas
+
+[ ] Mismas exportaciones
+
+[ ] Mismos imports públicos
+
+[ ] Mismo comportamiento runtime

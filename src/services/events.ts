@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // Recupera los eventos más recientes limitando cuántos se transfieren al cliente.
-export async function getEvents(limit = 10) {
+export async function getEvents(limit: number = 10) {
   const { data } = await supabase
     .from('events')
     .select('*')

@@ -33,3 +33,24 @@ Mismo comportamiento
 TypeScript
 
 Nada más.
+
+REGLA VEKTOR TS-001
+
+Durante la migración TypeScript:
+
+Está prohibido corregir "malas prácticas".
+
+Está prohibido refactorizar.
+
+Está prohibido mejorar arquitectura.
+
+Está prohibido extraer hooks.
+
+Está prohibido dividir componentes.
+
+Está prohibido cambiar nombres.
+
+Primero migrar.
+Después mejorar.
+
+Nunca ambas cosas a la vez.

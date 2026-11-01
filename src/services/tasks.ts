@@ -1,8 +1,20 @@
 import { supabase } from './supabase'
 import { createActivityEntry, getInProgressActivity, hideActivityFromDashboard } from './activity'
+import type { Task } from '../types'
+
+type TaskInput = Pick<Task, 'user_id' | 'title'> & Partial<Omit<Task, 'id' | 'user_id' | 'title'>>
+type TaskReference = Pick<Task, 'id'> & Partial<Pick<Task, 'title' | 'status' | 'completed_at'>>
+
+interface ActivityEntryInput {
+  user_id: string
+  type: string
+  task_id: string
+  title: string
+  duration?: number | null
+}
 
 // Inserta actividad y reintenta sin duración si el esquema remoto no acepta ese campo.
-async function insertActivityEntry(entry) {
+async function insertActivityEntry(entry: ActivityEntryInput) {
   const payload = {
     user_id: entry.user_id,
     type: entry.type,
@@ -29,7 +41,7 @@ async function insertActivityEntry(entry) {
 }
 
 // Lista las tareas del usuario en orden de creación descendente.
-export async function getTasks(userId) {
+export async function getTasks(userId: string) {
   const { data, error } = await supabase
     .from('tasks')
     .select('id, user_id, title, description, priority, status, related_value, created_at, completed_at, energy_cost, cognitive_load, work_type, estimated_duration, actual_duration')
@@ -40,7 +52,7 @@ export async function getTasks(userId) {
 }
 
 // Crea una tarea pendiente y su entrada inicial en el historial de actividad.
-export async function createTask(data) {
+export async function createTask(data: TaskInput) {
   const { data: task, error } = await supabase
     .from('tasks')
     .insert({
@@ -71,7 +83,7 @@ export async function createTask(data) {
 }
 
 // Aplica cambios a una tarea y devuelve el registro actualizado.
-export async function updateTask(id, data) {
+export async function updateTask(id: string, data: Partial<Task>) {
   const { data: task, error } = await supabase
     .from('tasks')
     .update(data)
@@ -83,7 +95,7 @@ export async function updateTask(id, data) {
 }
 
 // Marca la actividad de una tarea como iniciada o crea la entrada si aún no existe.
-export async function startTask(task, duration, userId) {
+export async function startTask(task: TaskReference, duration: number, userId: string) {
   const { data, error } = await supabase
     .from('activity')
     .update({ type: 'in_progress', duration })
@@ -97,7 +109,7 @@ export async function startTask(task, duration, userId) {
 }
 
 // Suma minutos a la duración registrada de la sesión activa de una tarea.
-export async function extendTask(task, duration, userId) {
+export async function extendTask(task: TaskReference, duration: number, userId: string) {
   const { data: currentActivity, error: readError } = await supabase
     .from('activity')
     .select('duration')
@@ -116,7 +128,7 @@ export async function extendTask(task, duration, userId) {
 }
 
 // Devuelve la actividad de la tarea a pendiente y elimina su duración en curso.
-export async function stopTask(task, userId) {
+export async function stopTask(task: TaskReference, userId: string) {
   const { error } = await supabase
     .from('activity')
     .update({ type: 'pending', duration: null })
@@ -127,9 +139,13 @@ export async function stopTask(task, userId) {
 }
 
 // Completa la tarea, registra su actividad y revierte el estado si falla ese registro.
-export async function completeTask(task, userId, fallbackDuration = 0) {
+export async function completeTask(
+  task: TaskReference | string,
+  userId: string,
+  fallbackDuration: number = 0
+) {
   const taskDetails = typeof task === 'object' && task !== null ? task : null
-  const taskId = taskDetails?.id || task
+  const taskId = (taskDetails?.id || task) as string
   if (!taskId || !userId) return { task: null, error: new Error('Falta la tarea o el usuario para finalizar la sesión.') }
 
   const { activity: activeActivity, error: readActivityError } = await getInProgressActivity(taskId, userId)
@@ -163,13 +179,13 @@ export async function completeTask(task, userId, fallbackDuration = 0) {
 }
 
 // Elimina una tarea por identificador.
-export async function deleteTask(id) {
+export async function deleteTask(id: string) {
   const { error } = await supabase.from('tasks').delete().eq('id', id)
   return { error }
 }
 
 // Elimina en una sola consulta el conjunto de tareas indicado.
-export async function deleteTasks(ids) {
+export async function deleteTasks(ids: string[]) {
   const { error } = await supabase.from('tasks').delete().in('id', ids)
   return { error }
 }

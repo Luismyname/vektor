@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { PostgrestError } from '@supabase/supabase-js'
 
 // Lee el tema persistido en el perfil de Supabase.
 /**
@@ -6,7 +7,9 @@ import { supabase } from './supabase'
  * @param {string} userId - ID del usuario
  * @returns {Promise<{theme: string|null, error: object|null}>}
  */
-export async function getUserTheme(userId) {
+export async function getUserTheme(
+  userId: string
+): Promise<{ theme: string | null | undefined; error: PostgrestError | null }> {
   const { data, error } = await supabase
     .from('profiles')
     .select('theme')
@@ -23,7 +26,10 @@ export async function getUserTheme(userId) {
  * @param {string} theme - Tema a guardar ('dark' o 'light')
  * @returns {Promise<{error: object|null}>}
  */
-export async function updateUserTheme(userId, theme) {
+export async function updateUserTheme(
+  userId: string,
+  theme: string
+): Promise<{ error: PostgrestError | null }> {
   const { error } = await supabase
     .from('profiles')
     .update({ theme })

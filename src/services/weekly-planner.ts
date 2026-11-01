@@ -1,16 +1,56 @@
 ﻿import { supabase } from './supabase';
 import { getCurrentProfile } from './auth';
 import { normalizeHabits } from '../lib/habits';
+import type { Habit, Task, TaskPriority } from '../types';
+
+type PlannerTask = Pick<Task, 'id' | 'user_id'> & Partial<Task>;
+
+interface ScheduleOptions {
+  energyLevel?: number | null;
+  isCreativeBlock?: boolean;
+  focusSessionId?: string | null;
+}
+
+interface TaskScheduleInput {
+  title: string;
+  description?: string;
+  priority?: TaskPriority;
+  relatedValue?: string | null;
+  notes?: string;
+}
+
+interface HabitScheduleInput {
+  title: string;
+  description?: string;
+  duration?: number;
+  color?: string;
+  frequency?: string;
+  notes?: string;
+}
+
+interface ReminderInput {
+  title?: string;
+  notes?: string;
+}
+
+interface CreativeBlockScheduleInput {
+  plannedTaskId?: string | null;
+  notes?: string;
+  energyLevel?: number | null;
+  blockType?: string;
+  qualityScore?: number | null;
+  interruptions?: number;
+}
 
 const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, status, notes, created_at, energy_level, is_creative_block, focus_session_id';
 
-const PRIORITY_SCORE = { high: 0, medium: 1, low: 2 };
+const PRIORITY_SCORE: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
-function toDate(value) {
+function toDate(value: Date | string) {
   return value instanceof Date ? new Date(value) : new Date(`${value}T12:00:00`);
 }
 
-export function formatDate(value) {
+export function formatDate(value: Date | string) {
   const date = toDate(value);
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
@@ -19,7 +59,7 @@ export function formatDate(value) {
  * Parsea una cadena de hora (HH:MM o HH:MM:SS) y devuelve { hours, minutes }.
  * Compatible con el tipo time without time zone de PostgreSQL/Supabase.
  */
-export function parseTime(timeString) {
+export function parseTime(timeString: string | null | undefined) {
   if (!timeString) return { hours: 0, minutes: 0 };
   const parts = String(timeString).split(':');
   const hours = Number.isFinite(Number(parts[0])) ? Number(parts[0]) : 0;
@@ -27,7 +67,7 @@ export function parseTime(timeString) {
   return { hours, minutes };
 }
 
-export function getTimeRange(startTime, durationMinutes = 30) {
+export function getTimeRange(startTime: string, durationMinutes: number = 30) {
   const normalized = String(startTime || '00:00');
   const [hours, minutes] = normalized.split(':').map(Number);
   const totalMinutes = hours * 60 + (Number.isFinite(minutes) ? minutes : 0) + Number(durationMinutes || 0);
@@ -46,7 +86,7 @@ export function getTimeRange(startTime, durationMinutes = 30) {
   };
 }
 
-export function getWeekDates(weekStart) {
+export function getWeekDates(weekStart: Date | string) {
   const start = new Date(weekStart);
   const dates = [];
   for (let i = 0; i < 7; i++) {
@@ -57,7 +97,7 @@ export function getWeekDates(weekStart) {
   return dates;
 }
 
-export function getWeekStart(date = new Date()) {
+export function getWeekStart(date: Date = new Date()) {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
@@ -66,7 +106,7 @@ export function getWeekStart(date = new Date()) {
   return d;
 }
 
-export function shiftWeek(weekStart, amount) {
+export function shiftWeek(weekStart: Date | string, amount: number) {
   const date = weekStart instanceof Date
     ? new Date(weekStart)
     : new Date(`${weekStart}T12:00:00`);
@@ -74,7 +114,7 @@ export function shiftWeek(weekStart, amount) {
   return getWeekStart(date);
 }
 
-export async function getWeeklyPlanner(userId, weekStart) {
+export async function getWeeklyPlanner(userId: string, weekStart: Date | string) {
   const dates = getWeekDates(weekStart);
   const { data, error } = await supabase
     .from('weekly_planner')
@@ -88,7 +128,7 @@ export async function getWeeklyPlanner(userId, weekStart) {
   return { entries: data || [], error };
 }
 
-export async function getPlannerContext(userId) {
+export async function getPlannerContext(userId: string) {
   const [
     { data: tasks, error: tasksError },
     { data: habitsData, error: habitsError },
@@ -119,7 +159,7 @@ export async function getPlannerContext(userId) {
   };
 }
 
-export async function getFocusSessions(userId, weekStart) {
+export async function getFocusSessions(userId: string, weekStart: Date | string) {
   const dates = getWeekDates(weekStart);
   const start = new Date(`${dates[0]}T00:00:00`).toISOString();
   const end = new Date(`${dates[dates.length - 1]}T23:59:59.999`).toISOString();
@@ -138,7 +178,15 @@ export async function getFocusSessions(userId, weekStart) {
   return { sessions: (data || []).map((session) => ({ ...session, started_at: session.created_at, ended_at: session.created_at, duration_minutes: session.duration || 0, status: 'completed' })), error };
 }
 
-export async function scheduleTask(task, date, startTime, endTime, userId = task.user_id, notes = '', options = {}) {
+export async function scheduleTask(
+  task: PlannerTask,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string = task.user_id,
+  notes: string = '',
+  options: ScheduleOptions = {}
+) {
   const { energyLevel, isCreativeBlock, focusSessionId } = options;
   const payload = {
     user_id: userId,
@@ -157,7 +205,15 @@ export async function scheduleTask(task, date, startTime, endTime, userId = task
   return { entry: data, error };
 }
 
-export async function scheduleHabit(habit, date, startTime, endTime, userId, notes = '', options = {}) {
+export async function scheduleHabit(
+  habit: Pick<Habit, 'id'>,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string,
+  notes: string = '',
+  options: ScheduleOptions = {}
+) {
   const { energyLevel, isCreativeBlock, focusSessionId } = options;
   const payload = {
     user_id: userId,
@@ -176,12 +232,12 @@ export async function scheduleHabit(habit, date, startTime, endTime, userId, not
   return { entry: data, error };
 }
 
-export async function updatePlannerEntry(id, changes) {
+export async function updatePlannerEntry(id: string, changes: Record<string, unknown>) {
   const { data, error } = await supabase.from('weekly_planner').update(changes).eq('id', id).select(PLANNER_FIELDS).single();
   return { entry: data, error };
 }
 
-export async function completeHabitOccurrence(entryId, userId) {
+export async function completeHabitOccurrence(entryId: string, userId: string) {
   if (!entryId || !userId) {
     return { entry: null, error: new Error('Falta la ocurrencia o el usuario para completar el hábito.') };
   }
@@ -204,12 +260,12 @@ export async function completeHabitOccurrence(entryId, userId) {
   return { entry: data, error: null };
 }
 
-export async function completePlannerAction(entryId, userId, type) {
+export async function completePlannerAction(entryId: string, userId: string, type: string) {
   if (!entryId || !userId || !['task', 'habit'].includes(type)) {
     return { entry: null, error: new Error('Falta la acción programada, el usuario o el tipo de acción.') };
   }
 
-  let query = supabase
+  const query = supabase
     .from('weekly_planner')
     .update({ status: 'completed' })
     .eq('id', entryId)
@@ -230,40 +286,40 @@ export async function completePlannerAction(entryId, userId, type) {
   return { entry: data, error: null };
 }
 
-export async function moveTask(entryId, taskId, newDate, newStart, newEnd) {
+export async function moveTask(entryId: string, taskId: string, newDate: Date | string, newStart: string, newEnd: string) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, task_id: taskId, status: 'moved' });
 }
 
-export async function movePlannerEntry(entryId, newDate, newStart, newEnd) {
+export async function movePlannerEntry(entryId: string, newDate: Date | string, newStart: string, newEnd: string) {
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, status: 'moved' });
 }
 
-export async function resizePlannerEntry(entryId, newStart, newEnd) {
+export async function resizePlannerEntry(entryId: string, newStart: string, newEnd: string) {
   return updatePlannerEntry(entryId, { start_time: newStart, end_time: newEnd });
 }
 
-export async function deletePlannerEntry(entryId) {
+export async function deletePlannerEntry(entryId: string) {
   const { error } = await supabase.from('weekly_planner').delete().eq('id', entryId);
   return { error };
 }
 
-export async function deletePlannerDay(userId, date) {
+export async function deletePlannerDay(userId: string, date: Date | string) {
   const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).eq('date', formatDate(date));
   return { error };
 }
 
-export async function deletePlannerWeek(userId, weekStart) {
+export async function deletePlannerWeek(userId: string, weekStart: Date | string) {
   const dates = getWeekDates(weekStart);
   const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).gte('date', dates[0]).lte('date', dates[dates.length - 1]);
   return { error };
 }
 
-export async function getOpenTasks(userId) {
+export async function getOpenTasks(userId: string) {
   const { data, error } = await supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at').eq('user_id', userId).neq('status', 'completed').order('created_at');
   return { tasks: data || [], error };
 }
 
-export async function autoReschedule(taskId, userId, weekStart = getWeekStart()) {
+export async function autoReschedule(taskId: string, userId: string, weekStart: Date | string = getWeekStart()) {
   const { tasks, error: tasksError } = await getOpenTasks(userId);
   if (tasksError) return { entry: null, error: tasksError };
   const task = tasks.find((item) => item.id === taskId);
@@ -281,7 +337,13 @@ export async function autoReschedule(taskId, userId, weekStart = getWeekStart())
   return scheduleTask(task, targetDate, startTime, endTime, userId, `Reprogramada automáticamente por prioridad ${task.priority || 'medium'}.`);
 }
 
-export async function createTaskAndSchedule(taskData, date, startTime, endTime, userId) {
+export async function createTaskAndSchedule(
+  taskData: TaskScheduleInput,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string
+) {
   const { data: task, error: taskError } = await supabase.from('tasks').insert({
     user_id: userId,
     title: taskData.title,
@@ -296,7 +358,13 @@ export async function createTaskAndSchedule(taskData, date, startTime, endTime, 
   return scheduleTask(task, date, startTime, endTime, userId, taskData.notes || '');
 }
 
-export async function createHabitAndSchedule(habitData, date, startTime, endTime, userId) {
+export async function createHabitAndSchedule(
+  habitData: HabitScheduleInput,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string
+) {
   const { data: habit, error: habitError } = await supabase
     .from('habits')
     .insert({
@@ -317,7 +385,13 @@ export async function createHabitAndSchedule(habitData, date, startTime, endTime
   return { ...await scheduleHabit(habit, date, startTime, endTime, userId, habitData.notes || ''), habit };
 }
 
-export async function createReminder(reminderData, date, startTime, endTime, userId) {
+export async function createReminder(
+  reminderData: ReminderInput,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string
+) {
   const payload = {
     user_id: userId,
     date: formatDate(date),
@@ -332,7 +406,13 @@ export async function createReminder(reminderData, date, startTime, endTime, use
   return { entry: data, error };
 }
 
-export async function scheduleCreativeBlock(blockData, date, startTime, endTime, userId) {
+export async function scheduleCreativeBlock(
+  blockData: CreativeBlockScheduleInput,
+  date: Date | string,
+  startTime: string,
+  endTime: string,
+  userId: string
+) {
   const payload = {
     user_id: userId,
     date: formatDate(date),
@@ -353,19 +433,19 @@ export async function scheduleCreativeBlock(blockData, date, startTime, endTime,
   return { entry: data, error };
 }
 
-export async function getWeeklySummary(userId, weekStart) {
+export async function getWeeklySummary(userId: string, weekStart: Date | string) {
   const [{ entries, error }, { sessions }] = await Promise.all([getWeeklyPlanner(userId, weekStart), getFocusSessions(userId, weekStart)]);
   const plannedEntries = entries.filter((entry) => entry.task_id || entry.habit_id);
   return { summary: { scheduled: plannedEntries.filter((entry) => entry.status === 'scheduled').length, completed: plannedEntries.filter((entry) => entry.status === 'completed').length, failed: plannedEntries.filter((entry) => entry.status === 'failed').length, moved: plannedEntries.filter((entry) => entry.status === 'moved').length, focusSessions: sessions.length }, error };
 }
 
-export async function getWeeklyProgress(userId, weekStart) {
+export async function getWeeklyProgress(userId: string, weekStart: Date | string) {
   const { summary, error } = await getWeeklySummary(userId, weekStart);
   const total = summary.completed + summary.failed + summary.moved + summary.scheduled;
   return { progress: { ...summary, completionRate: total ? Math.round((summary.completed / total) * 100) : 0 }, error };
 }
 
-export async function getHabitConsistency(userId, weekStart) {
+export async function getHabitConsistency(userId: string, weekStart: Date | string) {
   const [{ entries, error }, { data: habits }] = await Promise.all([getWeeklyPlanner(userId, weekStart), supabase.from('habits').select('*').eq('user_id', userId).eq('active', true).order('created_at', { ascending: false })]);
   const habitList = (habits || []).filter((habit) => habit.active !== false);
   const consistency = habitList.map((habit) => {
@@ -375,7 +455,7 @@ export async function getHabitConsistency(userId, weekStart) {
   return { consistency, error };
 }
 
-export async function getHabitStatusHistory(userId, startDate, endDate) {
+export async function getHabitStatusHistory(userId: string, startDate: Date | string, endDate: Date | string) {
   const { data, error } = await supabase
     .from('habit_status_history')
     .select('id, planner_entry_id, habit_id, habit_title, planned_date, previous_status, status, event_type, changed_at')
@@ -387,6 +467,6 @@ export async function getHabitStatusHistory(userId, startDate, endDate) {
   return { events: data || [], error };
 }
 
-export function sortTasksByPriority(tasks) {
+export function sortTasksByPriority(tasks: Array<Pick<Task, 'priority'>>) {
   return [...tasks].sort((left, right) => (PRIORITY_SCORE[left.priority] ?? 1) - (PRIORITY_SCORE[right.priority] ?? 1));
 }

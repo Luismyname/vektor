@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // Inicia sesión con email y contraseña, normalizando espacios del identificador.
-export async function signIn(identifier, password) {
+export async function signIn(identifier: string, password: string) {
   return supabase.auth.signInWithPassword({ email: identifier.trim(), password })
 }
 
@@ -12,7 +12,7 @@ export async function getAuthenticatedUser() {
 }
 
 // Busca el perfil de onboarding asociado al usuario autenticado.
-export async function getCurrentProfile(userId) {
+export async function getCurrentProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
     .select('id, user_id, answers, hidden_answers, dominant_value, secondary_value, habits, completed_onboarding, created_at')
@@ -35,7 +35,7 @@ export async function getOnboardingDestination() {
 }
 
 // Actualiza el perfil del usuario (onboarding, valores, cronotipo, hábitos)
-export async function updateProfile(userId, updates) {
+export async function updateProfile(userId: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -55,6 +55,14 @@ export async function registerUser({
   address,
   email,
   password,
+}: {
+  firstName: string
+  middleName?: string | null
+  lastName: string
+  birthDate: string
+  address: string
+  email: string
+  password: string
 }) {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
