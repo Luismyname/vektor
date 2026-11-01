@@ -655,50 +655,67 @@
 }
 
 /* ==========================================================
-   ENERGY MVP
+   ENERGY POPOVER V2
    ========================================================== */
 
 .energy-popover {
   position: fixed;
 
-  bottom: 24px;
-  left: 24px;
+  top: 50%;
+  left: 50%;
 
-  width: 280px;
+  transform: translate(-50%, -50%);
 
-  padding: 16px;
+  width: 320px;
+  max-width: 90vw;
+
+  padding: 24px;
 
   background: var(--bg-card);
 
   border: 1px solid var(--color-border);
 
-  border-radius: 12px;
+  border-radius: 16px;
 
   box-shadow:
-    0 12px 32px rgba(0,0,0,.35);
+    0 24px 80px rgba(0,0,0,.45);
+
+  backdrop-filter: blur(20px);
+
+  z-index: 10000;
 
   color: var(--text-primary);
 
-  z-index: 10000;
+  animation: energyFadeIn .18s ease-out;
 }
 
-/* Header */
+@keyframes energyFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
 
 .energy-popover__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .energy-popover__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
 
   color: var(--text-primary);
 }
@@ -711,98 +728,86 @@
 
   cursor: pointer;
 
-  font-size: 18px;
+  font-size: 22px;
+
+  transition: color .15s ease;
 }
 
-/* Description */
+.energy-popover__close:hover {
+  color: var(--accent);
+}
+
+/* ==========================================================
+   SUBTITLE
+   ========================================================== */
 
 .energy-popover__description {
-  margin-bottom: 16px;
-
-  font-size: 12px;
+  margin-bottom: 20px;
 
   color: var(--muted-text);
+
+  font-size: 13px;
 
   line-height: 1.5;
 }
 
-/* Energy selector */
+/* ==========================================================
+   RANGE
+   ========================================================== */
 
-.energy-scale {
-  display: grid;
+.energy-popover input[type="range"] {
+  width: 100%;
 
-  grid-template-columns: repeat(5, 1fr);
+  accent-color: var(--accent);
 
-  gap: 8px;
-
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
-.energy-scale button {
-  height: 40px;
+/* ==========================================================
+   VALUE
+   ========================================================== */
 
-  border-radius: 10px;
+.energy-popover__value {
+  text-align: center;
 
-  border: 1px solid var(--color-border);
+  font-size: 28px;
+  font-weight: 800;
 
-  background: var(--bg-main);
+  color: var(--accent);
 
-  color: var(--text-primary);
-
-  cursor: pointer;
-
-  transition:
-    transform .15s ease,
-    border-color .15s ease,
-    box-shadow .15s ease;
+  margin-bottom: 18px;
 }
 
-.energy-scale button:hover {
-  border-color: var(--accent);
-
-  box-shadow:
-    0 0 0 3px var(--color-accent-light);
-}
-
-.energy-scale button.active {
-  background: var(--accent);
-
-  color: white;
-
-  border-color: var(--accent);
-}
-
-/* Labels */
+/* ==========================================================
+   SCALE
+   ========================================================== */
 
 .energy-labels {
   display: flex;
 
   justify-content: space-between;
 
-  margin-bottom: 10px;
+  margin-bottom: 18px;
 
-  font-size: 11px;
+  font-size: 12px;
 
   color: var(--muted-text);
 }
 
-.energy-value {
-  text-align: center;
-
-  font-size: 18px;
-  font-weight: 700;
-
+.energy-labels span.active {
   color: var(--accent);
 
-  margin-bottom: 14px;
+  font-weight: 700;
 }
 
-/* Save */
+/* ==========================================================
+   SAVE BUTTON
+   ========================================================== */
 
 .energy-save {
   width: 100%;
 
-  height: 40px;
+  height: 42px;
 
   border: none;
 
@@ -812,40 +817,27 @@
 
   color: white;
 
-  font-weight: 600;
+  font-weight: 700;
 
   cursor: pointer;
+
+  transition:
+    transform .15s ease,
+    filter .15s ease;
 }
 
 .energy-save:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
+.energy-popover-overlay {
+  position: fixed;
 
-/* ==========================================================
-   FUTURE TASK ENERGY
-   ========================================================== */
+  inset: 0;
 
-.task-energy-state {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  background: rgba(0,0,0,.45);
 
-  margin-top: 4px;
+  backdrop-filter: blur(4px);
 
-  font-size: 11px;
-  font-weight: 600;
-
-  color: #fbbf24;
-}
-
-/* pendiente */
-
-.task-energy-state.pending {
-  color: var(--muted-text);
-}
-
-/* completada */
-
-.task-energy-state.complete {
-  color: #fbbf24;
+  z-index: 9999;
 }
