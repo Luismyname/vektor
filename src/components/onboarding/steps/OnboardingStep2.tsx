@@ -14,10 +14,22 @@ const VALUES = [
   { id: 'contribution', label: 'Contribución y Servicio', icon: '🤝', description: 'Voluntariado, mentoría, comunidad, impacto social' },
 ]
 
-export default function OnboardingStep2({ data, onUpdate, onNext, onPrev }) {
-  const [selected, setSelected] = useState(data.values || [])
+type OnboardingValueId = typeof VALUES[number]['id']
 
-  const toggleValue = (valueId) => {
+interface OnboardingStep2Props {
+  data: {
+    values: OnboardingValueId[]
+    dominantValue: string
+  }
+  onUpdate: (key: 'values' | 'dominantValue', value: OnboardingValueId[] | string) => void
+  onNext: () => void
+  onPrev: () => void
+}
+
+export default function OnboardingStep2({ data, onUpdate, onNext, onPrev }: OnboardingStep2Props) {
+  const [selected, setSelected] = useState<OnboardingValueId[]>(data.values || [])
+
+  const toggleValue = (valueId: OnboardingValueId) => {
     const next = selected.includes(valueId)
       ? selected.filter(v => v !== valueId)
       : [...selected, valueId]
@@ -26,9 +38,9 @@ export default function OnboardingStep2({ data, onUpdate, onNext, onPrev }) {
     if (next.length === 1) onUpdate('dominantValue', next[0])
   }
 
-  const isDominant = (valueId) => data.dominantValue === valueId
+  const isDominant = (valueId: OnboardingValueId) => data.dominantValue === valueId
 
-  const handleDominant = (valueId) => {
+  const handleDominant = (valueId: OnboardingValueId) => {
     onUpdate('dominantValue', valueId)
   }
 

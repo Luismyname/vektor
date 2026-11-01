@@ -15,10 +15,25 @@ const QUESTIONS = [
   { key: 'nap', text: '¿Necesitas siesta o bajón post-comida?', options: ['Nunca', 'A veces', 'Siempre', 'Solo si duermo mal'] },
 ]
 
-export default function OnboardingStep3({ data, onUpdate, onNext, onPrev, user }) {
-  const [answers, setAnswers] = useState({})
-  const [detected, setDetected] = useState(null)
-  const [manualChoice, setManualChoice] = useState(data.chronotype || null)
+type Chronotype = string
+type QuestionKey = typeof QUESTIONS[number]['key']
+type PeakHours = { morning: number[]; afternoon: number[]; evening: number[] }
+
+interface OnboardingStep3Props {
+  data: {
+    chronotype: Chronotype | null
+    peakHours: PeakHours
+  }
+  onUpdate: (key: 'chronotype' | 'peakHours', value: Chronotype | PeakHours) => void
+  onNext: () => void
+  onPrev: () => void
+  user?: { id: string } | null
+}
+
+export default function OnboardingStep3({ data, onUpdate, onNext, onPrev, user }: OnboardingStep3Props) {
+  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, number>>>({})
+  const [detected, setDetected] = useState<Chronotype | null | undefined>(null)
+  const [manualChoice, setManualChoice] = useState<Chronotype | null>(data.chronotype || null)
   const [showManual, setShowManual] = useState(false)
 
   useEffect(() => {
@@ -27,7 +42,7 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onPrev, user }
       import('../../../services/energy').then(({ getWeeklyEnergyLevels, detectChronotype }) => {
         const weekStart = new Date()
         weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (weekStart.getDay() === 0 ? -6 : 1))
-        getWeeklyEnergyLevels(user.id, weekStart).then(({ data }) => {
+        getWeeklyEnergyLevels(user.id, weekStart.toISOString()).then(({ data }) => {
           if (data?.length > 10) {
             const d = detectChronotype(data)
             if (d) setDetected(d)
@@ -37,10 +52,10 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onPrev, user }
     }
   }, [user])
 
-  const handleAnswer = (key, value) => {
+  const handleAnswer = (key: QuestionKey, value: number) => {
     setAnswers(prev => ({ ...prev, [key]: value }))
     // Simple scoring for detection
-    const scores = { morning: 0, afternoon: 0, evening: 0, night: 0 }
+    const scores: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 }
     Object.entries(answers).forEach(([k, v]) => {
       if (k === 'wake') { if (v <= 1) scores.morning += 2; else if (v === 2) scores.morning += 1; }
       if (k === 'sleep') { if (v <= 1) scores.evening += 2; else if (v === 2) scores.evening += 1; }
@@ -52,7 +67,7 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onPrev, user }
     setDetected(type)
   }
 
-  const confirmChronotype = (type) => {
+  const confirmChronotype = (type: Chronotype) => {
     setManualChoice(type)
     onUpdate('chronotype', type)
     onUpdate('peakHours', CHRONOTYPES.find(c => c.id === type)?.hours || { morning: [], afternoon: [], evening: [] })

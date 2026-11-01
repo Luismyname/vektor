@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
+interface BackgroundWord {
+  id: number;
+  word: string;
+  left: number;
+  top: number;
+}
+
+interface BackgroundWordsProps {
+  wordsList?: string[];
+}
+
 // Genera palabras decorativas en posiciones aleatorias y las retira tras animarse.
-export default function BackgroundWords({ wordsList }) {
-  const containerRef = useRef(null);
-  const [items, setItems] = useState([]);
+export default function BackgroundWords({ wordsList }: BackgroundWordsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [items, setItems] = useState<BackgroundWord[]>([]);
 
   useEffect(() => {
     const words = wordsList || [

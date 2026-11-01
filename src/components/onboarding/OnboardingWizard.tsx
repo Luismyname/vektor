@@ -1,5 +1,6 @@
-import { useState, useCallback, useContext } from 'react'
+import { useState, useCallback, useContext, type ComponentType, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { User } from '@supabase/supabase-js'
 import { updateProfile } from '../../services/auth'
 import { AuthContext } from '../../context/AuthContext'
 import OnboardingStep1 from './steps/OnboardingStep1'
@@ -7,6 +8,45 @@ import OnboardingStep2 from './steps/OnboardingStep2'
 import OnboardingStep3 from './steps/OnboardingStep3'
 import OnboardingStep4 from './steps/OnboardingStep4'
 import OnboardingStep5 from './steps/OnboardingStep5'
+
+type OnboardingValueId = 'health' | 'growth' | 'career' | 'relationships' | 'creativity' | 'finance' | 'mindfulness' | 'contribution'
+
+interface OnboardingHabit {
+  id: string
+  title: string
+  duration: number
+  frequency: 'daily' | 'weekly' | 'monthly'
+  color: string
+  active: boolean
+}
+
+interface OnboardingData {
+  values: OnboardingValueId[]
+  dominantValue: string
+  chronotype: string | null
+  peakHours: { morning: number[]; afternoon: number[]; evening: number[] }
+  energyCheckIn: number | null
+  selectedHabits: OnboardingHabit[]
+}
+
+interface AuthContextValue {
+  user: User
+  completeOnboarding: () => void
+}
+
+interface OnboardingWizardProps {
+  onComplete?: () => void
+}
+
+interface OnboardingStepComponentProps {
+  data: OnboardingData
+  onUpdate: (key: string, value: unknown) => void
+  onNext: () => void
+  onPrev: () => void
+  isFirst: boolean
+  isLast: boolean
+  user: User
+}
 
 const STEPS = [
   { id: 'welcome', title: 'Bienvenido', component: OnboardingStep1 },
@@ -16,11 +56,11 @@ const STEPS = [
   { step: 4, id: 'habits', title: 'Hábitos Sugeridos', component: OnboardingStep5 },
 ]
 
-export default function OnboardingWizard({ onComplete }) {
-  const { user, completeOnboarding } = useContext(AuthContext)
+export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
+  const { user, completeOnboarding } = useContext(AuthContext) as AuthContextValue
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
-  const [data, setData] = useState({
+  const [data, setData] = useState<OnboardingData>({
     values: [],
     dominantValue: '',
     chronotype: null,
@@ -31,7 +71,7 @@ export default function OnboardingWizard({ onComplete }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const updateData = useCallback((key, value) => {
+  const updateData = useCallback((key: string, value: unknown) => {
     setData(prev => ({ ...prev, [key]: value }))
   }, [])
 
@@ -79,13 +119,13 @@ export default function OnboardingWizard({ onComplete }) {
       if (onComplete) onComplete()
       else navigate('/dashboard-v2', { replace: true })
     } catch (err) {
-      setError(err.message || 'Error completando onboarding')
+      setError((err as { message?: string } | null)?.message || 'Error completando onboarding')
     } finally {
       setLoading(false)
     }
   }
 
-  const CurrentStepComponent = STEPS[currentStep].component
+  const CurrentStepComponent = STEPS[currentStep].component as ComponentType<OnboardingStepComponentProps>
 
   return (
     <div className="onboarding-wizard">
@@ -100,7 +140,7 @@ export default function OnboardingWizard({ onComplete }) {
           ))}
         </div>
         <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }} />
+          <div className="progress-fill" style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` } as CSSProperties} />
         </div>
       </div>
 

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../services/supabase'
+import type { User } from '@supabase/supabase-js'
 
 // Construye el nombre del usuario a partir de metadatos o datos de cuenta.
-function getUserName(user) {
+function getUserName(user: User): string {
   const metadata = user.user_metadata || {}
   const fullName = [metadata.first_name, metadata.middle_name, metadata.last_name]
     .filter(Boolean)
@@ -14,7 +15,7 @@ function getUserName(user) {
 }
 
 // Resuelve avatar existente o genera uno con iniciales a partir del nombre.
-function getAvatarUrl(user, name) {
+function getAvatarUrl(user: User, name: string): string {
   const metadata = user.user_metadata || {}
   if (metadata.avatar_url || metadata.picture) return metadata.avatar_url || metadata.picture
 

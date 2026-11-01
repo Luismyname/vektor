@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 import BackgroundWords from "./BackgroundWords";
 
+interface LayoutProps {
+  children: ReactNode;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
+}
+
 // Layout público heredado con navegación, llamadas a autenticación y pie.
-export default function Layout({ children, onOpenLogin, onOpenRegister }) {
+export default function Layout({ children, onOpenLogin, onOpenRegister }: LayoutProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);

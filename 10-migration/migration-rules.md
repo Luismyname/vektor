@@ -90,3 +90,17 @@ Está prohibido modificar:
 durante la migración.
 
 La migración debe limitarse exclusivamente al tipado.
+
+TS-003
+
+Si un componente funciona y TypeScript
+requiere más de 30 minutos para tiparlo
+correctamente:
+
+usar tipos temporales explícitos.
+
+No refactorizar.
+
+No reescribir.
+
+Continuar migración.

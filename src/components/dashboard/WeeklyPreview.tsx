@@ -3,13 +3,28 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getWeekDates, getWeekStart, getWeeklyPlanner } from '../../services/weekly-planner'
 
+type PlannerEntryStatus = 'completed' | 'failed' | 'moved' | 'scheduled'
+
+interface PlannerPreviewEntry {
+  id: string
+  date: string
+  task_id: string | null
+  habit_id: string | null
+  status: PlannerEntryStatus
+  start_time: string | null
+}
+
+interface WeeklyPreviewProps {
+  userId: string
+}
+
 // Etiquetas de estado usadas en la vista resumida del plan semanal.
-const STATUS_LABELS = { completed: 'Completada', failed: 'Fallida', moved: 'Movida', scheduled: 'Programada' }
+const STATUS_LABELS: Record<PlannerEntryStatus, string> = { completed: 'Completada', failed: 'Fallida', moved: 'Movida', scheduled: 'Programada' }
 
 // Carga los bloques de la semana actual y presenta un resumen enlazado al planner.
-export default function WeeklyPreview({ userId }) {
+export default function WeeklyPreview({ userId }: WeeklyPreviewProps) {
   const { user: authUser } = useAuth()
-  const [entries, setEntries] = useState([])
+  const [entries, setEntries] = useState<PlannerPreviewEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const weekStart = useMemo(() => getWeekStart(), [])

@@ -1,7 +1,13 @@
 import { useNotifications } from '../../hooks/useNotifications'
 import { NOTIFICATION_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../../services/notifications'
 
-const TYPE_LABELS = {
+type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES]
+
+interface NotificationSettingsProps {
+  user?: { id: string } | null
+}
+
+const TYPE_LABELS: Record<NotificationType, { label: string; icon: string; desc: string }> = {
   [NOTIFICATION_TYPES.ENERGY_CHECKIN]: { label: 'Check-in energía matutino', icon: '⚡', desc: 'Registra tu nivel de energía cada mañana' },
   [NOTIFICATION_TYPES.DEEP_WORK_START]: { label: 'Inicio Deep Work', icon: '🧠', desc: 'Aviso 5 min antes de tus bloques creativos' },
   [NOTIFICATION_TYPES.HABIT_REMINDER]: { label: 'Recordatorio hábitos', icon: '🌱', desc: 'Aviso 10 min antes de cada hábito programado' },
@@ -9,7 +15,7 @@ const TYPE_LABELS = {
   [NOTIFICATION_TYPES.FOCUS_SESSION_END]: { label: 'Fin sesión de enfoque', icon: '✅', desc: 'Pide quality score al terminar Pomodoro' },
 }
 
-const TYPE_ORDER = [
+const TYPE_ORDER: NotificationType[] = [
   NOTIFICATION_TYPES.ENERGY_CHECKIN,
   NOTIFICATION_TYPES.DEEP_WORK_START,
   NOTIFICATION_TYPES.HABIT_REMINDER,
@@ -17,7 +23,7 @@ const TYPE_ORDER = [
   NOTIFICATION_TYPES.FOCUS_SESSION_END,
 ]
 
-export default function NotificationSettings({ user }) {
+export default function NotificationSettings({ user }: NotificationSettingsProps) {
   const { permission, config, loading, askPermission, toggleEnabled, updateTime, updateDays, updateConfig } = useNotifications(user?.id)
 
   if (loading) return <div className="settings-loading">Cargando notificaciones...</div>

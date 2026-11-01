@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
+
+interface OnboardingStep4Props {
+  data: { energyCheckIn: number | null }
+  onUpdate: (key: 'energyCheckIn', value: number) => void
+  onNext: () => void
+  onPrev: () => void
+  user: { id: string }
+}
 
 /**
  * Paso 4: Check-in de energía base (mañana)
  */
-export default function OnboardingStep4({ data, onUpdate, onNext, onPrev, user }) {
+export default function OnboardingStep4({ data, onUpdate, onNext, onPrev, user }: OnboardingStep4Props) {
   const [energy, setEnergy] = useState(data.energyCheckIn || 5)
   const [hour, setHour] = useState(new Date().getHours())
   const [saved, setSaved] = useState(false)
@@ -35,7 +43,7 @@ export default function OnboardingStep4({ data, onUpdate, onNext, onPrev, user }
     }
   }
 
-  const getEnergyLabel = (level) => {
+  const getEnergyLabel = (level: number) => {
     if (level <= 2) return 'Muy baja 🔴'
     if (level <= 4) return 'Baja 🟠'
     if (level <= 6) return 'Media 🟡'
@@ -53,7 +61,7 @@ export default function OnboardingStep4({ data, onUpdate, onNext, onPrev, user }
 
       <div className="energy-slider-container">
         <div className="energy-visual">
-          <div className="energy-ring" style={{ '--energy': `${energy * 10}%` }}>
+          <div className="energy-ring" style={{ '--energy': `${energy * 10}%` } as CSSProperties}>
             <span className="energy-value">{energy}</span>
             <span className="energy-label">{getEnergyLabel(energy)}</span>
           </div>

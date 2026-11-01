@@ -1,5 +1,9 @@
 // Muestra una muestra visual del color recibido.
-export default function ColorBox({ color }) {
+interface ColorBoxProps {
+  color: string;
+}
+
+export default function ColorBox({ color }: ColorBoxProps) {
   return (
     <div
       className="color-box"

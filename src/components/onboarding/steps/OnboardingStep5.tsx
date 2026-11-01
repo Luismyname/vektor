@@ -1,6 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type CSSProperties } from 'react'
 
-const DEFAULT_HABITS = {
+interface SuggestedHabit {
+  id: string
+  title: string
+  duration: number
+  frequency: 'daily' | 'weekly' | 'monthly'
+  color: string
+  active?: boolean
+}
+
+const DEFAULT_HABITS: Record<string, SuggestedHabit[]> = {
   health: [
     { id: 'h1', title: 'Ejercicio 30 min', duration: 30, frequency: 'daily', color: '#ef4444' },
     { id: 'h2', title: 'Caminar 10k pasos', duration: 45, frequency: 'daily', color: '#f97316' },
@@ -51,9 +60,20 @@ const DEFAULT_HABITS = {
   ],
 }
 
-export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
-  const [allHabits, setAllHabits] = useState([])
-  const [selected, setSelected] = useState(data.selectedHabits || [])
+interface OnboardingStep5Props {
+  data: {
+    values: string[]
+    dominantValue: string
+    selectedHabits: SuggestedHabit[]
+  }
+  onUpdate: (key: 'selectedHabits', value: SuggestedHabit[]) => void
+  onNext: () => void
+  onPrev: () => void
+}
+
+export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }: OnboardingStep5Props) {
+  const [allHabits, setAllHabits] = useState<SuggestedHabit[]>([])
+  const [selected, setSelected] = useState<SuggestedHabit[]>(data.selectedHabits || [])
   const [loading, setLoading] = useState(true)
   const isInitialLoad = useRef(true)
 
@@ -62,7 +82,8 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
       isInitialLoad.current = false
       // Combine default habits for user's dominant value + all values
       const values = data.values || []
-      let combined = []
+      // eslint-disable-next-line prefer-const
+      let combined: SuggestedHabit[] = []
       values.forEach(v => {
         if (DEFAULT_HABITS[v]) combined.push(...DEFAULT_HABITS[v])
       })
@@ -76,7 +97,7 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
     }
   }, [data.values])
 
-  const toggleHabit = (habit) => {
+  const toggleHabit = (habit: SuggestedHabit) => {
     const next = selected.some(h => h.id === habit.id)
       ? selected.filter(h => h.id !== habit.id)
       : [...selected, { ...habit, active: true }]
@@ -84,9 +105,9 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
     onUpdate('selectedHabits', next)
   }
 
-  const isSelected = (habitId) => selected.some(h => h.id === habitId)
+  const isSelected = (habitId: string) => selected.some(h => h.id === habitId)
 
-  const formatDuration = (min) => {
+  const formatDuration = (min: number) => {
     if (min < 60) return `${min} min`
     const h = Math.floor(min / 60)
     const m = min % 60
@@ -113,7 +134,7 @@ export default function OnboardingStep5({ data, onUpdate, onNext, onPrev }) {
               onClick={() => toggleHabit(habit)}
               role="option"
               aria-selected={isSelected(habit.id)}
-              style={{ '--habit-color': habit.color }}
+              style={{ '--habit-color': habit.color } as CSSProperties}
             >
               <div className="habit-header">
                 <span className="habit-title">{habit.title}</span>

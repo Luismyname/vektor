@@ -1,8 +1,15 @@
 import { useMemo } from 'react'
 import { questions } from '../app/survey/questions'
 
+interface OnboardingAnswersProps {
+  profile?: { answers?: Record<number, unknown> } | null
+  hiddenAnswers?: Record<string, boolean>
+  onHide: (key: string) => void
+  onShow: (key: string) => void
+}
+
 // Muestra las respuestas guardadas y permite ocultarlas o volver a mostrarlas.
-export default function OnboardingAnswers({ profile, hiddenAnswers = {}, onHide, onShow }) {
+export default function OnboardingAnswers({ profile, hiddenAnswers = {}, onHide, onShow }: OnboardingAnswersProps) {
   const answers = useMemo(() => questions.map(([question], index) => ({
     key: String(index + 1),
     question,

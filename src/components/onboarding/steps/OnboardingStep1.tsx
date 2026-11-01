@@ -1,9 +1,14 @@
 import { useEffect } from 'react'
 
+interface OnboardingStep1Props {
+  onNext: () => void
+  isFirst: boolean
+}
+
 /**
  * Paso 1: Bienvenida y explicación del sistema
  */
-export default function OnboardingStep1({ onNext, isFirst }) {
+export default function OnboardingStep1({ onNext, isFirst }: OnboardingStep1Props) {
   useEffect(() => {
     if (isFirst) onNext()
   }, [isFirst, onNext])
