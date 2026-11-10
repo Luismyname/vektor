@@ -104,3 +104,20 @@ No refactorizar.
 No reescribir.
 
 Continuar migración.
+
+FASE 7.5
+
+Auditoría final de JavaScript.
+
+Buscar:
+
+*.js
+*.jsx
+
+Mostrar:
+
+- Archivos restantes.
+- Motivo por el que siguen en JS.
+- Bloqueadores TypeScript.
+
+No activar strict mode todavía.

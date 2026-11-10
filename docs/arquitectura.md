@@ -55,7 +55,7 @@ const { user, loading, isAuthenticated } = useAuth()
 ### 3. Enrutamiento: React Router con Lazy Loading
 
 ```javascript
-const Dashboard = lazy(() => import('./app/dashboard'))
+const DashboardV2 = lazy(() => import('./app/dashboard-v2'))
 ```
 
 **Beneficios:**
@@ -96,8 +96,8 @@ Usuario → Componente → Service → Supabase → Respuesta → Estado → UI
 
 ### Ejemplo: Cargar Dashboard
 
-1. `Dashboard` llama a `useDashboardData()`
-2. El hook llama a `getAuthenticatedUser()` y `getCurrentProfile()`
+1. `DashboardV2` carga los datos mediante `useDashboardV2Data()`
+2. El hook obtiene la sesión autenticada y consulta tareas, actividad, perfil, planner y sesiones de enfoque
 3. Los servicios hacen la petición a Supabase
 4. Se actualiza el estado del hook
 5. El componente se re-renderiza con los datos

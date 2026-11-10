@@ -6,7 +6,6 @@ import { AuthContext } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { EnergyPopoverProvider } from './context/EnergyPopoverContext'
 import Layout from './components/Layout'
-const Dashboard = lazy(() => import('./app/dashboard'))
 // const Survey = lazy(() => import('./app/survey')) // Replaced by OnboardingWizard
 const Login = lazy(() => import('./app/auth/login'))
 const Register = lazy(() => import('./app/auth/register'))
@@ -96,7 +95,6 @@ export default function App() {
               <Route path="/preferences" element={<Layout><Preferences /></Layout>} />
               <Route path="/help" element={<Layout><Help /></Layout>} />
               <Route path="/dashboard" element={<Navigate to="/dashboard-v2" replace />} />
-              <Route path="/dashboard-classic" element={<ProfileGate requireCompleted><PageLayout><Dashboard /></PageLayout></ProfileGate>} />
               <Route path="/dashboard-v2" element={<ProfileGate requireCompleted><PageLayout><DashboardV2 /></PageLayout></ProfileGate>} />
               <Route path="/onboarding" element={<ProfileGate><PageLayout showNavbar={false}><OnboardingWizard /></PageLayout></ProfileGate>} />
               <Route path="/survey" element={<Navigate to="/onboarding" replace />} />

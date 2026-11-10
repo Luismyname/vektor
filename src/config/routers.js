@@ -2,7 +2,6 @@
 export const ROUTES = {
   HOME: '/',
   DASHBOARD: '/dashboard-v2',
-  DASHBOARD_CLASSIC: '/dashboard-classic',
   SURVEY: '/survey',
   LOGIN: '/login',
   REGISTER: '/register',

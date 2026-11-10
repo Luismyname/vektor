@@ -32,8 +32,8 @@ npm run dev
 
 | Elemento | Convención | Ejemplo |
 |----------|-----------|---------|
-| Componentes | PascalCase | `DashboardTasks.jsx` |
-| Hooks | camelCase con prefijo `use` | `useDashboardData.js` |
+| Componentes | PascalCase | `DashboardV2Grid.jsx` |
+| Hooks | camelCase con prefijo `use` | `useDashboardV2Data.js` |
 | Servicios | camelCase | `auth.js`, `tasks.js` |
 | Constantes | UPPER_SNAKE_CASE | `DEFAULT_DURATION` |
 | Variables | camelCase | `userName`, `isLoading` |

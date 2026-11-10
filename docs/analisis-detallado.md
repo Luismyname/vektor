@@ -48,16 +48,16 @@ Flujo general:
 - `src/app/survey/`: flujo de encuesta y composicion de sus componentes.
 - `src/app/survey/questions.js`: definicion de preguntas/opciones usada por la encuesta.
 - `src/lib/habits.js` y `src/services/habits.js`: logica de habitos y persistencia relacionada.
-- `src/app/dashboard/components/DashboardAnswers.jsx`: presentacion y acciones relacionadas con las respuestas de onboarding.
+- `src/components/OnboardingAnswers.tsx`: presentacion y acciones relacionadas con las respuestas de onboarding en el perfil.
 
 ### Dashboard, tareas y enfoque
 
-- `src/app/dashboard/`: composicion del resumen y paneles de tareas, habitos y actividad.
-- `src/app/dashboard/hooks/useDashboardData.js`: carga y coordinacion de los datos que consume el dashboard.
+- `src/app/dashboard-v2/`: pagina y componentes del dashboard actual.
+- `src/app/dashboard-v2/hooks/useDashboardV2Data.js`: carga y coordinacion de datos del dashboard.
 - `src/app/tasks/` y `src/services/tasks.js`: interfaz de gestion de tareas y operaciones persistentes.
 - `src/hooks/useTaskTimer.js`: estado y ciclo temporal de una sesion de enfoque.
 - `src/services/focus-sessions.js`: registro de sesiones de enfoque.
-- `src/app/dashboard/components/TaskTimer.jsx`, `TaskStartModal.jsx` y `TaskEndModal.jsx`: interfaz del temporizador y transiciones de inicio/cierre.
+- `src/app/dashboard-v2/components/FocusTimerV2.jsx`: interfaz del temporizador del dashboard.
 
 ### Habitos y actividad
 
@@ -71,7 +71,6 @@ Flujo general:
 - `src/components/weekly-planner/`: columnas, bloques, intervalos y formularios de la cuadricula semanal.
 - `src/hooks/weekly-planner/`: estado del planificador, revision semanal y reprogramacion automatica.
 - `src/services/weekly-planner.js`: capa de consultas y mutaciones del planificador. Es el modulo con mas declaraciones detectadas (46 funciones y 64 variables), por lo que concentra una parte importante de la complejidad funcional.
-- `src/components/dashboard/WeeklyPreview.jsx`: vista previa compacta del plan semanal.
 
 ### Preferencias, tema y demo
 
@@ -109,7 +108,6 @@ El recuento incluye callbacks JSX y funciones flecha anidadas; sirve para compar
 | [`src/services/weekly-planner.js`](../src/services/weekly-planner.js) | 46 | 64 | Reglas de fecha/horario, CRUD, creaciones compuestas, reprogramación y métricas. |
 | [`src/hooks/weekly-planner/useWeeklyPlanner.js`](../src/hooks/weekly-planner/useWeeklyPlanner.js) | 36 | 30 | Carga y estado de agenda, múltiples operaciones remotas y actualizaciones locales. |
 | [`src/app/weekly-planner/index.jsx`](../src/app/weekly-planner/index.jsx) | 35 | 20 | Integra drag-and-drop, modales, edición, métricas y revisión semanal. |
-| [`src/app/dashboard/index.jsx`](../src/app/dashboard/index.jsx) | 19 | 42 | Coordina tareas y la máquina de estados temporal de sesiones de enfoque. |
 | [`src/app/tasks/index.jsx`](../src/app/tasks/index.jsx) | 27 | 16 | Carga, edición, selección, creación y borrado individual o masivo. |
 | [`src/App.jsx`](../src/App.jsx) | 18 | 18 | Rutas diferidas, composición de proveedores y protección de pantallas. |
 | [`src/app/demo/index.jsx`](../src/app/demo/index.jsx) | 22 | 10 | Simulación autónoma de varias funcionalidades y transiciones de demo. |
@@ -125,18 +123,13 @@ La anotación en el código se centra en componentes/hooks/servicios exportados,
 |---|---|
 | [`tests/ActivityHistoryItem.test.jsx`](../tests/ActivityHistoryItem.test.jsx) | Presentación de una entrada y apertura de su detalle. |
 | [`tests/completeTask.test.js`](../tests/completeTask.test.js) | Finalización de tarea e inserción de actividad con duración acumulada. |
-| [`tests/DashboardAnswers.test.jsx`](../tests/DashboardAnswers.test.jsx) | Respuestas disponibles/ausentes, ocultación y reaparición. |
-| [`tests/DashboardTasks.test.jsx`](../tests/DashboardTasks.test.jsx) | Exclusión de tareas ya completadas en el dashboard. |
 | [`tests/e2e/weekly-planner-modal.spec.js`](../tests/e2e/weekly-planner-modal.spec.js) | Presentación adaptable del modal del planificador y filtrado de tareas. |
 | [`tests/ErrorBoundary.test.jsx`](../tests/ErrorBoundary.test.jsx) | Render normal, fallback, detalles de desarrollo y recuperación. |
 | [`tests/focusSessions.test.js`](../tests/focusSessions.test.js) | Creación, transición y búsqueda de sesiones activas/pausadas. |
 | [`tests/login.test.jsx`](../tests/login.test.jsx) | Formulario de acceso, errores, carga y navegación posterior. |
 | [`tests/saveOnboarding.test.js`](../tests/saveOnboarding.test.js) | Persistencia del onboarding para el usuario autenticado. |
 | [`tests/SurveyForm.test.jsx`](../tests/SurveyForm.test.jsx) | Preguntas, selección, validación, envío y error de persistencia. |
-| [`tests/TaskEndModal.test.jsx`](../tests/TaskEndModal.test.jsx) | Acción de finalizar, estado ocupado y visualización de errores. |
 | [`tests/TaskForm.test.jsx`](../tests/TaskForm.test.jsx) | Altas/ediciones, valores, cancelación y estado de envío. |
-| [`tests/TaskTimer.test.jsx`](../tests/TaskTimer.test.jsx) | Presentación del contador y controles de pausa, reanudación y parada. |
-| [`tests/useDashboardData.test.js`](../tests/useDashboardData.test.js) | Carga de perfil/datos, errores y restauración de tarea/sesión activa. |
 | [`tests/usePreferences.test.js`](../tests/usePreferences.test.js) | Valores por defecto, lectura, actualización y persistencia local. |
 | [`tests/useTaskTimer.test.jsx`](../tests/useTaskTimer.test.jsx) | Cuenta atrás, expiración, pausa y recuperación desde `localStorage`. |
 | [`tests/useWeeklyReview.test.jsx`](../tests/useWeeklyReview.test.jsx) | Consulta de revisión con fecha ISO. |

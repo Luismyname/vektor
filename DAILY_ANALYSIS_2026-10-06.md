@@ -27,7 +27,6 @@
 
 ### Fixes Críticos
 - `useWeeklyPlanner`: Agregado return statement faltante (causaba `Cannot read properties of undefined (reading 'weekStart')`)
-- `WeeklyPreview`: Fixed infinite render loop con `useMemo(() => getWeekStart(), [])`
 - Form components: Limpiados exports duplicados
 - Theme context imports: Corregidos paths (`hooks/useTheme`)
 
