@@ -4,7 +4,14 @@ import { formatDate } from '../../services/weekly-planner'
 
 type WeeklyReviewAnswers = Record<string, string>
 
-// Preguntas que estructuran la revisión y sus claves almacenadas en notes.
+function isWeeklyReviewAnswers(value: unknown): value is WeeklyReviewAnswers {
+  return typeof value === 'object'
+    && value !== null
+    && !Array.isArray(value)
+    && Object.values(value).every((answer) => typeof answer === 'string')
+}
+
+// Preguntas que estructuran la revisión y sus claves almacenadas en answers.
 const QUESTIONS = [
   ['learned', '¿Qué aprendí esta semana?'],
   ['built', '¿Qué construí?'],
@@ -13,7 +20,7 @@ const QUESTIONS = [
   ['keptHabit', '¿Qué hábito mantuve?'],
 ]
 
-// Carga y guarda las respuestas de revisión semanal en una entrada del planificador.
+// Carga y guarda las respuestas de revisión semanal en weekly_reviews.
 export function useWeeklyReview(userId: string | null | undefined, weekStart: Date | string) {
   const [review, setReview] = useState<WeeklyReviewAnswers>({})
   const [saving, setSaving] = useState(false)
@@ -24,9 +31,22 @@ export function useWeeklyReview(userId: string | null | undefined, weekStart: Da
     let active = true
     async function loadReview() {
       if (!userId) return
-      const { data } = await supabase.from('weekly_planner').select('notes').eq('user_id', userId).eq('date', reviewDate).is('task_id', null).is('habit_id', null).maybeSingle()
-      if (active && data?.notes) {
-        try { setReview(JSON.parse(data.notes)) } catch { setReview({}) }
+      const { data, error } = await supabase
+        .from('weekly_reviews')
+        .select('answers')
+        .eq('user_id', userId)
+        .eq('review_date', reviewDate)
+        .maybeSingle()
+
+      if (error) {
+        console.error('No se pudo cargar la revisión semanal.', error)
+        return
+      }
+
+      if (active && isWeeklyReviewAnswers(data?.answers)) {
+        setReview(data.answers)
+      } else if (active) {
+        setReview({})
       }
     }
     loadReview()
@@ -36,17 +56,40 @@ export function useWeeklyReview(userId: string | null | undefined, weekStart: Da
   async function saveReview(nextReview: WeeklyReviewAnswers) {
     setSaving(true)
     setSaved(false)
-    const payload = { user_id: userId, date: reviewDate, start_time: '05:00', end_time: '23:00', status: 'scheduled', notes: JSON.stringify(nextReview), task_id: null, habit_id: null }
-    const { data: existing } = await supabase.from('weekly_planner').select('id').eq('user_id', userId).eq('date', reviewDate).is('task_id', null).is('habit_id', null).maybeSingle()
-    const { error } = existing
-      ? await supabase.from('weekly_planner').update(payload).eq('id', existing.id)
-      : await supabase.from('weekly_planner').insert(payload)
-    setSaving(false)
-    if (!error) {
-      setReview(nextReview)
-      setSaved(true)
+    if (!userId) {
+      setSaving(false)
+      return { error: new Error('No se puede guardar la revisión sin un usuario autenticado.') }
     }
-    return { error }
+
+    const payload = {
+      user_id: userId,
+      review_date: reviewDate,
+      answers: nextReview,
+      updated_at: new Date().toISOString(),
+    }
+
+    try {
+      const { data: existing, error: lookupError } = await supabase
+        .from('weekly_reviews')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('review_date', reviewDate)
+        .maybeSingle()
+
+      if (lookupError) return { error: lookupError }
+
+      const { error } = existing
+        ? await supabase.from('weekly_reviews').update(payload).eq('id', existing.id)
+        : await supabase.from('weekly_reviews').insert(payload)
+
+      if (!error) {
+        setReview(nextReview)
+        setSaved(true)
+      }
+      return { error }
+    } finally {
+      setSaving(false)
+    }
   }
 
   return { questions: QUESTIONS, review, setReview, saveReview, saving, saved }

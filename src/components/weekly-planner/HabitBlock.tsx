@@ -1,4 +1,7 @@
-import { useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent } from 'react'
+import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent, type MouseEvent } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import { useEnergyPopover } from '../../hooks/useEnergyPopover'
+import { saveEnergyAtHabitCompletion, saveEnergyAtMoment } from '../../services/energy'
 import WeeklyBlockModal from './WeeklyBlockModal'
 import { parseTime } from '../../services/weekly-planner'
 import type { Habit } from '../../types'
@@ -8,6 +11,7 @@ interface PlannerEntry {
   start_time: string
   end_time: string
   status: string
+  energy_level?: number | null
 }
 
 interface HabitBlockProps {
@@ -24,6 +28,10 @@ const STATUS_LABELS: Record<string, string> = { scheduled: 'Programado', complet
 
 // Dibuja el bloque de hábito y expone controles de duración, estado y borrado.
 export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, onDurationChange, onDelete }: HabitBlockProps) {
+  const { user } = useAuth()
+  const { openEnergyPopover } = useEnergyPopover()
+  const energyTriggerRef = useRef<HTMLButtonElement>(null)
+  const statusTriggerRef = useRef<HTMLSelectElement>(null)
   const [showModal, setShowModal] = useState(false)
   if (!habit) return null
   const startTime = parseTime(entry.start_time)
@@ -31,11 +39,57 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
   const startMinutes = startTime.hours * 60 + startTime.minutes
   const endMinutes = endTime.hours * 60 + endTime.minutes
   const duration = Math.max(endMinutes - startMinutes, 30)
+  const handleOpenEnergyPopover = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    if (entry.status !== 'scheduled' || !user?.id) return
+    openEnergyPopover({
+      value: entry.energy_level ?? 5,
+      label: 'Energía inicial',
+      triggerRef: energyTriggerRef,
+      onSave: async (energy) => {
+        const { error } = await saveEnergyAtMoment(user.id, energy, 'checkin')
+        if (error) throw error
+      },
+    })
+  }
+  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    event.stopPropagation()
+    const status = event.target.value
+    onStatusChange(entry, status)
+    if (!['completed', 'failed', 'moved'].includes(status) || !user?.id) return
+    openEnergyPopover({
+      value: entry.energy_level ?? 5,
+      label: 'Energía al finalizar',
+      triggerRef: statusTriggerRef,
+      onSave: async (energy) => {
+        const { error } = await saveEnergyAtHabitCompletion(user.id, energy)
+        if (error) throw error
+      },
+    })
+  }
   return (
     <>
-      <article style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir hábito ${habit.title}`}>
+      <article style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => {
+        if (energyTriggerRef.current?.contains(event.target as Node)) {
+          event.preventDefault()
+          return
+        }
+        onDragStart(event, entry)
+      }} onClick={() => setShowModal(true)} onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir hábito ${habit.title}`}>
         <strong>{habit.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
+        {entry.status === 'scheduled' && (
+          <button
+            ref={energyTriggerRef}
+            type="button"
+            className="task-energy-trigger"
+            onClick={handleOpenEnergyPopover}
+            aria-label="Registrar energía inicial"
+            title="Registrar energía inicial"
+          >
+            ⚡
+          </button>
+        )}
       </article>
       {showModal && <WeeklyBlockModal title={habit.title} description={habit.description} start={entry.start_time.slice(0, 5)} end={entry.end_time.slice(0, 5)} status={entry.status} statusLabel={STATUS_LABELS[entry.status]} onClose={() => setShowModal(false)}>
         <label className="weekly-modal-field">Duración
@@ -44,7 +98,7 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
           </select>
         </label>
         <label className="weekly-modal-field">Estado
-          <select value={entry.status} onChange={(event: ChangeEvent<HTMLSelectElement>) => onStatusChange(entry, event.target.value)} aria-label={`Estado de ${habit.title}`}>
+          <select ref={statusTriggerRef} value={entry.status} onChange={handleStatusChange} aria-label={`Estado de ${habit.title}`}>
             <option value="scheduled">Programado</option><option value="completed">Completado</option><option value="failed">Fallido</option><option value="moved">Movido</option>
           </select>
         </label>

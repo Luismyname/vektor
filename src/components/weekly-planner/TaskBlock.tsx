@@ -1,6 +1,6 @@
 import { useState, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent, type ChangeEvent } from 'react'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
-import { saveEnergyAtTaskStart } from '../../services/energy'
+import { saveEnergyAtTaskEnd, saveEnergyAtTaskStart } from '../../services/energy'
 import { parseTime } from '../../services/weekly-planner'
 import type { Task } from '../../types'
 import WeeklyBlockModal from './WeeklyBlockModal'
@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = { scheduled: 'Programada', complet
 export default function TaskBlock({ entry, task, onStatusChange, onDragStart, onAutoReschedule, onDurationChange, onDelete, onTaskUpdate, userId }: TaskBlockProps) {
   const { openEnergyPopover } = useEnergyPopover()
   const energyTriggerRef = useRef<HTMLButtonElement>(null)
+  const statusTriggerRef = useRef<HTMLSelectElement>(null)
   
   const [isEditing, setIsEditing] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -71,9 +72,32 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
     })
   }
 
+  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    event.stopPropagation()
+    const status = event.target.value
+    onStatusChange(entry, status)
+    if (!['completed', 'failed', 'moved'].includes(status)) return
+
+    openEnergyPopover({
+      value: entry.energy_level ?? 5,
+      label: 'Energía al finalizar',
+      triggerRef: statusTriggerRef,
+      onSave: async (energy) => {
+        const { error } = await saveEnergyAtTaskEnd(userId, energy)
+        if (error) throw error
+      },
+    })
+  }
+
   return (
     <>
-      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowModal(true)} onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
+      <article style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => {
+        if (energyTriggerRef.current?.contains(event.target as Node)) {
+          event.preventDefault()
+          return
+        }
+        onDragStart(event, entry)
+      }} onClick={() => setShowModal(true)} onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir tarea ${task.title}`}>
         <strong>{task.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
         {entry.status === 'scheduled' && (
@@ -102,7 +126,7 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
           </select>
         </label>
         <label className="weekly-modal-field">Estado
-          <select value={entry.status} onChange={(event: ChangeEvent<HTMLSelectElement>) => onStatusChange(entry, event.target.value)} aria-label={`Estado de ${task.title}`}>
+          <select ref={statusTriggerRef} value={entry.status} onChange={handleStatusChange} aria-label={`Estado de ${task.title}`}>
             {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { usePagination } from '../hooks/usePagination'
 import PaginationControls from './PaginationControls'
 import { useEnergyPopover } from '../../../hooks/useEnergyPopover'
-import { saveEnergyAtHabitCompletion } from '../../../services/energy'
+import { saveEnergyAtHabitCompletion, saveEnergyAtTaskEnd } from '../../../services/energy'
 
 const INCOMPLETE_STATUSES = new Set(['scheduled', 'failed', 'moved'])
 
@@ -71,6 +71,25 @@ export default function PlannerIncompleteSection({
     })
   }
 
+  const handleStatusChangeWithEnergy = (event, entry, status) => {
+    event.stopPropagation()
+    if (userId) {
+      const trigger = event.currentTarget
+      openEnergyPopover({
+        value: 5,
+        label: 'Energía al finalizar',
+        triggerRef: { current: trigger },
+        onSave: async (energy) => {
+          const saveEnergy = isTask ? saveEnergyAtTaskEnd : saveEnergyAtHabitCompletion
+          const { error } = await saveEnergy(userId, energy)
+          if (error) throw error
+        },
+        disabled: updatingEntryId === entry.id,
+      })
+    }
+    onStatusChange(entry, itemType, status)
+  }
+
   return (
     <section className="weekly-list-section" aria-label={title}>
       <div className="weekly-list-heading">
@@ -107,14 +126,14 @@ export default function PlannerIncompleteSection({
                 )}
                 <button
                   type="button"
-                  onClick={() => onStatusChange(entry, itemType, 'completed')}
+                  onClick={(event) => handleStatusChangeWithEnergy(event, entry, 'completed')}
                   disabled={updatingEntryId === entry.id}
                 >
                   Finalizada
                 </button>
                 <button
                   type="button"
-                  onClick={() => onStatusChange(entry, itemType, 'failed')}
+                  onClick={(event) => handleStatusChangeWithEnergy(event, entry, 'failed')}
                   disabled={updatingEntryId === entry.id}
                 >
                   No finalizada
