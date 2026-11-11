@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleHabit, scheduleTask, updatePlannerEntry, createTaskAndSchedule, createHabitAndSchedule, createReminder, scheduleCreativeBlock } from '../../services/weekly-planner'
+import { createObligation, createTaskAndSchedule, createHabitAndSchedule, createReminder, deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleCreativeBlock, scheduleHabit, scheduleTask, updateObligation, updatePlannerEntry } from '../../services/weekly-planner'
+import type { PlannerObligation } from '../../services/weekly-planner'
 import type { Habit, Task } from '../../types'
 
 type PlannerTask = Pick<Task, 'id' | 'user_id'> & Partial<Task>
@@ -12,6 +13,9 @@ interface PlannerEntry {
   end_time: string
   task_id: string | null
   habit_id: string | null
+  obligation_id?: string | null
+  obligation_occurrence_date?: string | null
+  obligation?: Pick<PlannerObligation, 'id' | 'title' | 'obligation_type'> | null
   status: string
   notes?: string | null
 }
@@ -78,7 +82,9 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     }
     setEntries((current) => {
       const exists = current.some((item) => item.id === entry.id)
-      return exists ? current.map((item) => item.id === entry.id ? entry : item) : [...current, entry]
+      return exists
+        ? current.map((item) => item.id === entry.id ? { ...item, ...entry, obligation: entry.obligation || item.obligation } : item)
+        : [...current, entry]
     })
     if (entry.task_id) {
       setPlannedTaskIds((current) => new Set(current).add(entry.task_id))
@@ -159,6 +165,38 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     return result.entry
   }
 
+  const createObligationWrapper = async (
+    obligationData: Parameters<typeof createObligation>[0],
+    date: Date | string
+  ) => {
+    const result = await createObligation(obligationData, date, userId)
+    if (result.error) {
+      setError(result.error.message || 'No se pudo crear la obligación.')
+      return null
+    }
+    await load()
+    return result.entry
+  }
+
+  const updateObligationWrapper = async (
+    obligationId: string,
+    changes: { title: string }
+  ) => {
+    const result = await updateObligation(obligationId, changes)
+    if (result.error || !result.obligation) {
+      setError(result.error?.message || 'No se pudo actualizar la obligación.')
+      return false
+    }
+    setEntries((current) => current.map((entry) => entry.obligation_id === obligationId
+      ? { ...entry, obligation: result.obligation }
+      : entry))
+    return true
+  }
+
+  const updateObligationOccurrence = (entryId: string, changes: Record<string, unknown>) => save(
+    () => updatePlannerEntry(entryId, changes),
+  )
+
   const createCreativeBlockWrapper = async (
     blockData: Parameters<typeof scheduleCreativeBlock>[0],
     date: Date | string,
@@ -208,6 +246,9 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     createTaskAndSchedule: createTaskAndScheduleWrapper,
     createHabitAndSchedule: createHabitAndScheduleWrapper,
     createReminder: createReminderWrapper,
+    createObligation: createObligationWrapper,
+    updateObligation: updateObligationWrapper,
+    updateObligationOccurrence,
     createCreativeBlock: createCreativeBlockWrapper,
   }
 }

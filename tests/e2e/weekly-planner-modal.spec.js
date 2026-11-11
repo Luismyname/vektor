@@ -55,7 +55,7 @@ test('Weekly Planner modal responsive styles and task filtering', async ({ page 
     await page.screenshot({ path: testInfo.outputPath(`weekly-planner-modal-${width}.png`), fullPage: true });
 
     const tabs = page.locator('.modal-tab');
-    await expect(tabs).toHaveCount(5);
+    await expect(tabs).toHaveCount(4);
 
     // Find the active tab (first tab is active by default)
     const activeTab = page.locator('.modal-tab.active');
@@ -75,7 +75,7 @@ test('Weekly Planner modal responsive styles and task filtering', async ({ page 
     expect(firstTabStyle.color).toContain('255, 255, 255');
 
     // Test tab switching
-    const tabNames = ['Tareas pendientes', 'Hábito existente', 'Nueva tarea', 'Nuevo hábito', 'Recordatorio'];
+    const tabNames = ['Tareas', 'Hábitos', 'Recordatorio', 'Obligaciones'];
     for (const name of tabNames) {
       const tab = page.getByRole('tab', { name });
       if (await tab.count()) {

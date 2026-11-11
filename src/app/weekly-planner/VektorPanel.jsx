@@ -18,6 +18,7 @@ function getUpcomingEntry(entries, currentTime) {
 function getEntryLabel(entry, taskById, habitById) {
   if (entry.task_id) return taskById[entry.task_id]?.title || 'Tarea'
   if (entry.habit_id) return habitById[entry.habit_id]?.title || 'Hábito'
+  if (entry.obligation_id) return entry.obligation?.title || 'Obligación'
   if (entry.is_creative_block) return entry.notes?.trim() || 'Bloque creativo'
   return entry.notes?.trim() || 'Evento fijo'
 }
@@ -25,6 +26,14 @@ function getEntryLabel(entry, taskById, habitById) {
 function getEntryType(entry) {
   if (entry.task_id) return 'Tarea'
   if (entry.habit_id) return 'Hábito'
+  if (entry.obligation_id) {
+    return {
+      work: 'Trabajo',
+      class: 'Clase',
+      sleep: 'Sueño',
+      appointment: 'Cita fija',
+    }[entry.obligation?.obligation_type] || 'Obligación'
+  }
   if (entry.is_creative_block) return 'Bloque creativo'
   return '🔒 Evento fijo'
 }

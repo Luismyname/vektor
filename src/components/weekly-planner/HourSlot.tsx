@@ -3,7 +3,7 @@ import type { DragEvent } from 'react'
 interface HourSlotProps {
   date: string
   hour: number
-  onDropTask: (itemId: string, entryId: string, itemType: 'task' | 'habit', date: string, startTime: string, endTime: string) => void
+  onDropTask: (itemId: string, entryId: string, itemType: 'task' | 'habit' | 'obligation', date: string, startTime: string, endTime: string) => void
   onClick?: (date: string, startTime: string, endTime: string) => void
 }
 
@@ -17,9 +17,11 @@ export default function HourSlot({ date, hour, onDropTask, onClick }: HourSlotPr
     event.preventDefault()
     const taskId = event.dataTransfer.getData('text/task')
     const habitId = event.dataTransfer.getData('text/habit')
+    const obligationId = event.dataTransfer.getData('text/obligation')
     const entryId = event.dataTransfer.getData('text/planner-entry')
-    const itemId = taskId || habitId
-    if (entryId || itemId) onDropTask(itemId, entryId, taskId ? 'task' : 'habit', date, startTime, endTime)
+    const itemId = taskId || habitId || obligationId
+    const itemType = taskId ? 'task' : habitId ? 'habit' : obligationId ? 'obligation' : 'habit'
+    if (entryId || itemId) onDropTask(itemId, entryId, itemType, date, startTime, endTime)
   }
 
   // Solicita al padre crear un bloque en la franja seleccionada.

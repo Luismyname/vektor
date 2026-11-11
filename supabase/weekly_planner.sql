@@ -13,7 +13,7 @@ create table if not exists public.weekly_planner (
 );
 
 create index if not exists weekly_planner_user_date_idx on public.weekly_planner(user_id, date, start_time);
-create unique index if not exists weekly_planner_review_idx on public.weekly_planner(user_id, date) where task_id is null and habit_id is null;
+drop index if exists public.weekly_planner_review_idx;
 alter table public.weekly_planner enable row level security;
 
 drop policy if exists "Users can read their own weekly planner" on public.weekly_planner;

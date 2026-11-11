@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getAuthenticatedUser } from '../../services/auth'
 import { updateTask } from '../../services/tasks'
 import { startFocusSession, updateFocusSessionQuality } from '../../services/focus-sessions'
-import { formatDate, getWeekDates, getWeekStart, shiftWeek, parseTime } from '../../services/weekly-planner'
+import { formatDate, getTimeRange, getWeekDates, getWeekStart, shiftWeek, parseTime } from '../../services/weekly-planner'
 import { useTaskAutoReschedule } from '../../hooks/weekly-planner/useTaskAutoReschedule'
 import { useWeeklyPlanner } from '../../hooks/weekly-planner/useWeeklyPlanner'
 import { useWeeklyReview } from '../../hooks/weekly-planner/useWeeklyReview'
@@ -95,14 +95,25 @@ export default function WeeklyPlannerPage() {
   // Escribe en el DataTransfer la identidad del bloque y su tipo al arrastrarlo.
   function handleDragStart(event, entry) {
     event.dataTransfer.setData('text/planner-entry', entry.id)
-    event.dataTransfer.setData(entry.task_id ? 'text/task' : 'text/habit', entry.task_id || entry.habit_id)
+    if (entry.task_id) event.dataTransfer.setData('text/task', entry.task_id)
+    else if (entry.habit_id) event.dataTransfer.setData('text/habit', entry.habit_id)
+    else if (entry.obligation_id) event.dataTransfer.setData('text/obligation', entry.obligation_id)
   }
 
   // Mueve un bloque existente o agenda una tarea/hábito arrastrado desde la barra.
   async function handleDropTask(itemId, entryId, itemType, date, start, end) {
     if (entryId) {
       const entry = planner.entries.find((item) => item.id === entryId)
-      if (entry) await planner.moveTask(entry, date, start, end)
+      if (entry?.obligation_id) {
+        const startParsed = parseTime(entry.start_time)
+        const endParsed = parseTime(entry.end_time)
+        const oldStart = startParsed.hours * 60 + startParsed.minutes
+        let duration = endParsed.hours * 60 + endParsed.minutes - oldStart
+        if (duration <= 0) duration += 24 * 60
+        await planner.moveTask(entry, date, start, getTimeRange(start, duration).endTime)
+      } else if (entry) {
+        await planner.moveTask(entry, date, start, end)
+      }
       return
     }
     if (itemType === 'task' && planner.taskById[itemId]) await planner.scheduleTask(planner.taskById[itemId], date, start, end)
@@ -126,6 +137,10 @@ export default function WeeklyPlannerPage() {
 
   // Redimensiona el bloque conservando la hora inicial y ajustando su final.
   async function handleDurationChange(entry, duration) {
+    if (entry.obligation_id) {
+      await planner.resizeEntry(entry, entry.start_time, getTimeRange(entry.start_time, duration).endTime)
+      return
+    }
     await planner.resizeEntry(entry, entry.start_time, addMinutes(entry.start_time, duration))
   }
 
@@ -139,6 +154,14 @@ export default function WeeklyPlannerPage() {
     const { task, error } = await updateTask(taskId, changes)
     if (error) return
     planner.updateTaskData(taskId, task)
+  }
+
+  async function handleObligationUpdate(obligationId, changes) {
+    return planner.updateObligation(obligationId, changes)
+  }
+
+  async function handleObligationOccurrenceUpdate(entry, changes) {
+    return planner.updateObligationOccurrence(entry.id, changes)
   }
 
   // Solicita al hook asignar automáticamente un nuevo hueco a una tarea.
@@ -214,6 +237,8 @@ export default function WeeklyPlannerPage() {
       await planner.createHabitAndSchedule(action, date, selectedStartTime, selectedEndTime)
     } else if (action.type === 'reminder') {
       await planner.createReminder(action, date, selectedStartTime, selectedEndTime)
+    } else if (action.type === 'obligation') {
+      await planner.createObligation(action, action.date || date)
     } else if (action.type === 'creative-block') {
       const blockEntry = await planner.createCreativeBlock(action, date, selectedStartTime, selectedEndTime)
       // Auto-start focus session for creative blocks (deep work)
@@ -318,6 +343,8 @@ export default function WeeklyPlannerPage() {
               onClickSlot={handleClickSlot}
               userId={user?.id}
               onStartTask={handleStartTask}
+              onObligationUpdate={handleObligationUpdate}
+              onObligationOccurrenceUpdate={handleObligationOccurrenceUpdate}
             />
           </div>
           <VektorPanel
@@ -395,6 +422,7 @@ export default function WeeklyPlannerPage() {
         date={modalSlot?.date}
         startTime={modalSlot?.startTime}
         endTime={modalSlot?.endTime}
+        date={modalSlot?.date}
         onSubmit={handleModalSubmit}
         onCancel={handleModalClose}
         tasks={planner.tasks}

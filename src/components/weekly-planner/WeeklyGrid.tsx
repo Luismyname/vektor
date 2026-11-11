@@ -1,5 +1,7 @@
 import { useEffect, useRef, type DragEvent } from 'react'
 import type { Habit, Task } from '../../types'
+import { getObligationSegments } from '../../services/weekly-planner'
+import type { PlannerObligation } from '../../services/weekly-planner'
 import DayColumn from './DayColumn'
 
 type PlannerTask = Pick<Task, 'id' | 'title'> & Partial<Task>
@@ -11,6 +13,9 @@ interface PlannerEntry {
   end_time: string
   task_id: string | null
   habit_id: string | null
+  obligation_id?: string | null
+  obligation_occurrence_date?: string | null
+  obligation?: Pick<PlannerObligation, 'id' | 'title' | 'obligation_type'> | null
   status: string
   notes?: string | null
   energy_level?: number | null
@@ -37,7 +42,7 @@ interface WeeklyGridProps {
   habitById: Record<string, Habit | undefined>
   focusSessions: FocusSession[]
   energyByDayHour?: Record<string, Record<number, number | null>>
-  onDropTask: (itemId: string, entryId: string, itemType: string, date: string, startTime: string, endTime: string) => void
+  onDropTask: (itemId: string, entryId: string, itemType: 'task' | 'habit' | 'obligation', date: string, startTime: string, endTime: string) => void
   onDragStart: (event: DragEvent<HTMLElement>, entry: PlannerEntry) => void
   onStatusChange: (entry: PlannerEntry, status: string) => void
   onDurationChange: (entry: PlannerEntry, duration: number) => void
@@ -48,10 +53,12 @@ interface WeeklyGridProps {
   onClickSlot: (date: string, startTime: string, endTime: string) => void
   userId: string
   onStartTask: (taskId: string) => void
+  onObligationUpdate: (id: string, changes: { title: string }) => Promise<boolean>
+  onObligationOccurrenceUpdate: (entry: PlannerEntry, changes: { start_time: string; end_time: string }) => Promise<unknown>
 }
 
 // Compone las 24 horas y siete columnas conectadas a las acciones del padre.
-export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot, userId, onStartTask }: WeeklyGridProps) {
+export default function WeeklyGrid({ dates, currentTime, today, entries, taskById, habitById, focusSessions, energyByDayHour, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClearDay, onClickSlot, userId, onStartTask, onObligationUpdate, onObligationOccurrenceUpdate }: WeeklyGridProps) {
   const gridRef = useRef(null)
   const currentHour = currentTime.getHours()
   const weekStart = dates[0]
@@ -91,7 +98,7 @@ export default function WeeklyGrid({ dates, currentTime, today, entries, taskByI
       </div>
       <div className="weekly-time-axis" aria-hidden="true">{Array.from({ length: 24 }, (_, index) => <span key={index}>{String(index).padStart(2, '0')}:00</span>)}</div>
       <div className="weekly-grid">
-        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} onClickSlot={onClickSlot} userId={userId} onStartTask={onStartTask} />)}
+        {dates.map((date) => <DayColumn key={date} date={date} today={today} currentTime={currentTime} entries={entries.filter((entry) => getObligationSegments(entry).some((segment) => segment.date === date) || entry.date === date)} taskById={taskById} habitById={habitById} sessions={focusSessions.filter((session) => session.started_at?.slice(0, 10) === date)} onDropTask={onDropTask} onDragStart={onDragStart} onStatusChange={onStatusChange} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} onClickSlot={onClickSlot} userId={userId} onStartTask={onStartTask} onObligationUpdate={onObligationUpdate} onObligationOccurrenceUpdate={onObligationOccurrenceUpdate} />)}
       </div>
     </div>
   )

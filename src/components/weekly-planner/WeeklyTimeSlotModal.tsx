@@ -4,7 +4,7 @@ import CreateHabitForm from './forms/CreateHabitForm'
 import CreateReminderForm from './forms/CreateReminderForm'
 import ExistingTaskSelector from './forms/ExistingTaskSelector'
 import ExistingHabitSelector from './forms/ExistingHabitSelector'
-import CreativeBlockModal from './forms/CreativeBlockModal'
+import ObligationForm, { type ObligationFormData } from './forms/ObligationForm'
 import type { Habit, Task } from '../../types'
 
 interface WeeklySlotAction {
@@ -27,18 +27,22 @@ interface WeeklyTimeSlotModalProps {
   user?: unknown
 }
 
-// Selector por pestañas para añadir tareas, hábitos o recordatorios a una franja.
+// Selector por pestañas para añadir tareas, hábitos, recordatorios u obligaciones.
 export default function WeeklyTimeSlotModal({
   isOpen,
   onClose,
   startTime,
+  endTime,
+  date,
   defaultDuration = 30,
   onSubmit,
   tasks = [],
   habits = [],
   plannedTaskIds = new Set(),
 }: WeeklyTimeSlotModalProps) {
-  const [activeTab, setActiveTab] = useState('existing-task')
+  const [activeTab, setActiveTab] = useState('tasks')
+  const [taskMode, setTaskMode] = useState<'existing' | 'new'>('existing')
+  const [habitMode, setHabitMode] = useState<'existing' | 'new'>('existing')
   const modalRef = useRef<HTMLDivElement>(null)
 
   // Focus trap and close on Escape
@@ -77,6 +81,11 @@ export default function WeeklyTimeSlotModal({
     onClose()
   }
 
+  const handleCreateObligation = (obligationData: ObligationFormData) => {
+    onSubmit({ type: 'obligation', ...obligationData })
+    onClose()
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
@@ -105,43 +114,23 @@ export default function WeeklyTimeSlotModal({
         <div className="modal-tabs" role="tablist" aria-label="Tipo de elemento a agendar">
           <button
             role="tab"
-            aria-selected={activeTab === 'existing-task'}
-            aria-controls="panel-existing-task"
-            id="tab-existing-task"
-            className={`modal-tab ${activeTab === 'existing-task' ? 'active' : ''}`}
-            onClick={() => setActiveTab('existing-task')}
+            aria-selected={activeTab === 'tasks'}
+            aria-controls="panel-tasks"
+            id="tab-tasks"
+            className={`modal-tab ${activeTab === 'tasks' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tasks')}
           >
-            Tareas pendientes
+            Tareas
           </button>
           <button
             role="tab"
-            aria-selected={activeTab === 'existing-habit'}
-            aria-controls="panel-existing-habit"
-            id="tab-existing-habit"
-            className={`modal-tab ${activeTab === 'existing-habit' ? 'active' : ''}`}
-            onClick={() => setActiveTab('existing-habit')}
+            aria-selected={activeTab === 'habits'}
+            aria-controls="panel-habits"
+            id="tab-habits"
+            className={`modal-tab ${activeTab === 'habits' ? 'active' : ''}`}
+            onClick={() => setActiveTab('habits')}
           >
-            Hábito existente
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'new-task'}
-            aria-controls="panel-new-task"
-            id="tab-new-task"
-            className={`modal-tab ${activeTab === 'new-task' ? 'active' : ''}`}
-            onClick={() => setActiveTab('new-task')}
-          >
-            Nueva tarea
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'new-habit'}
-            aria-controls="panel-new-habit"
-            id="tab-new-habit"
-            className={`modal-tab ${activeTab === 'new-habit' ? 'active' : ''}`}
-            onClick={() => setActiveTab('new-habit')}
-          >
-            Nuevo hábito
+            Hábitos
           </button>
           <button
             role="tab"
@@ -155,90 +144,66 @@ export default function WeeklyTimeSlotModal({
           </button>
           <button
             role="tab"
-            aria-selected={activeTab === 'creative-block'}
-            aria-controls="panel-creative-block"
-            id="tab-creative-block"
-            className={`modal-tab ${activeTab === 'creative-block' ? 'active' : ''}`}
-            onClick={() => setActiveTab('creative-block')}
+            aria-selected={activeTab === 'obligation'}
+            aria-controls="panel-obligation"
+            id="tab-obligation"
+            className={`modal-tab ${activeTab === 'obligation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('obligation')}
           >
-            🧠 Bloque Creativo
+            Obligaciones
           </button>
         </div>
 
         <div className="tab-panels">
           <div
             role="tabpanel"
-            id="panel-existing-task"
-            aria-labelledby="tab-existing-task"
-            hidden={activeTab !== 'existing-task'}
+            id="panel-tasks"
+            aria-labelledby="tab-tasks"
+            hidden={activeTab !== 'tasks'}
           >
-            <ExistingTaskSelector
-              tasks={tasks}
-              plannedTaskIds={plannedTaskIds}
-              onSelect={(task) => onSubmit({ type: 'task', task })}
-              onClose={onClose}
-            />
+            {taskMode === 'existing' ? (
+              <>
+                <ExistingTaskSelector
+                  tasks={tasks}
+                  plannedTaskIds={plannedTaskIds}
+                  onSelect={(task) => onSubmit({ type: 'task', task })}
+                  onClose={onClose}
+                />
+                <button type="button" className="primary-button" onClick={() => setTaskMode('new')}>Crear nueva tarea</button>
+              </>
+            ) : (
+              <CreateTaskForm
+                onSubmit={handleCreateTask}
+                onCancel={() => setTaskMode('existing')}
+                initialDuration={defaultDuration}
+                initialStartTime={startTime || '09:00'}
+              />
+            )}
           </div>
 
           <div
             role="tabpanel"
-            id="panel-existing-habit"
-            aria-labelledby="tab-existing-habit"
-            hidden={activeTab !== 'existing-habit'}
+            id="panel-habits"
+            aria-labelledby="tab-habits"
+            hidden={activeTab !== 'habits'}
           >
-            <ExistingHabitSelector
-              habits={habits}
-              onSelect={(habit) => onSubmit({ type: 'habit', habit })}
-              onClose={onClose}
-            />
-          </div>
-
-          <div
-            role="tabpanel"
-            id="panel-new-task"
-            aria-labelledby="tab-new-task"
-            hidden={activeTab !== 'new-task'}
-          >
-            <CreateTaskForm
-              onSubmit={handleCreateTask}
-              onCancel={onClose}
-              initialDuration={defaultDuration}
-              initialStartTime={startTime || '09:00'}
-            />
-          </div>
-
-          <div
-            role="tabpanel"
-            id="panel-new-habit"
-            aria-labelledby="tab-new-habit"
-            hidden={activeTab !== 'new-habit'}
-          >
-            <CreateHabitForm
-              onSubmit={handleCreateHabit}
-              onCancel={onClose}
-              initialDuration={defaultDuration}
-              initialStartTime={startTime || '09:00'}
-            />
-          </div>
-
-          <div
-            role="tabpanel"
-            id="panel-creative-block"
-            aria-labelledby="tab-creative-block"
-            hidden={activeTab !== 'creative-block'}
-          >
-            <CreativeBlockModal
-              isOpen={activeTab === 'creative-block'}
-              onClose={() => setActiveTab('existing-task')}
-              startTime={startTime || '09:00'}
-              defaultDuration={defaultDuration}
-              onSubmit={(action) => {
-                if (action.type === 'creative-block') {
-                  onSubmit({ type: 'creative-block', ...action })
-                }
-              }}
-              tasks={tasks}
-            />
+            {habitMode === 'existing' ? (
+              <>
+                <ExistingHabitSelector
+                  habits={habits}
+                  onSelect={(habit) => onSubmit({ type: 'habit', habit })}
+                  onClose={onClose}
+                />
+                <button type="button" className="primary-button" onClick={() => setHabitMode('new')}>Crear nuevo hábito</button>
+              </>
+            ) : (
+              <CreateHabitForm
+                onSubmit={handleCreateHabit}
+                onCancel={() => setHabitMode('existing')}
+                initialDuration={defaultDuration}
+                initialStartTime={startTime || '09:00'}
+              />
+            )}
           </div>
 
           <div
@@ -252,6 +217,23 @@ export default function WeeklyTimeSlotModal({
               onCancel={onClose}
               initialDuration={defaultDuration}
             />
+          </div>
+
+          <div
+            role="tabpanel"
+            id="panel-obligation"
+            aria-labelledby="tab-obligation"
+            hidden={activeTab !== 'obligation'}
+          >
+            {date && (
+              <ObligationForm
+                date={date}
+                startTime={startTime || '09:00'}
+                endTime={endTime || '09:30'}
+                onSubmit={handleCreateObligation}
+                onCancel={onClose}
+              />
+            )}
           </div>
         </div>
 

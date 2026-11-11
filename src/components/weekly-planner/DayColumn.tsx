@@ -4,6 +4,9 @@ import HourSlot from './HourSlot'
 import TaskBlock from './TaskBlock'
 import HabitBlock from './HabitBlock'
 import ReminderBlock from './ReminderBlock'
+import ObligationBlock from './ObligationBlock'
+import { getObligationSegments } from '../../services/weekly-planner'
+import type { PlannerObligation } from '../../services/weekly-planner'
 
 type PlannerTask = Pick<Task, 'id' | 'title'> & Partial<Task>
 
@@ -14,6 +17,9 @@ interface PlannerEntry {
   end_time: string
   task_id: string | null
   habit_id: string | null
+  obligation_id?: string | null
+  obligation_occurrence_date?: string | null
+  obligation?: Pick<PlannerObligation, 'id' | 'title' | 'obligation_type'> | null
   status: string
   notes?: string | null
   energy_level?: number | null
@@ -26,6 +32,18 @@ interface FocusSession {
   duration_minutes?: number
 }
 
+type ObligationEntry = PlannerEntry & {
+  obligation_id: string
+  obligation_occurrence_date: string
+  obligation: Pick<PlannerObligation, 'id' | 'title' | 'obligation_type'>
+}
+
+function isObligationEntry(entry: PlannerEntry): entry is ObligationEntry {
+  return entry.task_id === null
+    && entry.habit_id === null
+    && Boolean(entry.obligation_id && entry.obligation_occurrence_date && entry.obligation)
+}
+
 interface DayColumnProps {
   date: string
   today: string
@@ -34,7 +52,7 @@ interface DayColumnProps {
   taskById: Record<string, PlannerTask | undefined>
   habitById: Record<string, Habit | undefined>
   sessions: FocusSession[]
-  onDropTask: (itemId: string, entryId: string, itemType: string, date: string, startTime: string, endTime: string) => void
+  onDropTask: (itemId: string, entryId: string, itemType: 'task' | 'habit' | 'obligation', date: string, startTime: string, endTime: string) => void
   onDragStart: (event: DragEvent<HTMLElement>, entry: PlannerEntry) => void
   onStatusChange: (entry: PlannerEntry, status: string) => void
   onDurationChange: (entry: PlannerEntry, duration: number) => void
@@ -44,6 +62,8 @@ interface DayColumnProps {
   onClickSlot: (date: string, startTime: string, endTime: string) => void
   userId: string
   onStartTask: (taskId: string) => void
+  onObligationUpdate: (id: string, changes: { title: string }) => Promise<boolean>
+  onObligationOccurrenceUpdate: (entry: PlannerEntry, changes: { start_time: string; end_time: string }) => Promise<unknown>
 }
 
 // Horas visibles de cada columna, desde las 00:00 hasta las 23:00.
@@ -58,7 +78,7 @@ function getFocusLabel(session: FocusSession) {
 }
 
 // Renderiza slots y bloques de un día junto al indicador de hora actual.
-export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot, userId, onStartTask }: DayColumnProps) {
+export default function DayColumn({ date, today, currentTime, entries, taskById, habitById, sessions, onDropTask, onDragStart, onStatusChange, onDurationChange, onAutoReschedule, onDelete, onTaskUpdate, onClickSlot, userId, onStartTask, onObligationUpdate, onObligationOccurrenceUpdate }: DayColumnProps) {
   const startHour = 0
   const endHour = 24
   const totalHours = endHour - startHour
@@ -73,7 +93,22 @@ export default function DayColumn({ date, today, currentTime, entries, taskById,
         {date === today && <div className="current-time-line" style={{ top: `${percent}%` }} />}
         {entries.filter((entry) => entry.task_id).map((entry) => <TaskBlock key={entry.id} entry={entry} task={taskById[entry.task_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onAutoReschedule={onAutoReschedule} onDelete={onDelete} onTaskUpdate={onTaskUpdate} userId={userId} onStartTask={onStartTask} />)}
         {entries.filter((entry) => entry.habit_id).map((entry) => <HabitBlock key={entry.id} entry={entry} habit={habitById[entry.habit_id]} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
-        {entries.filter((entry) => !entry.task_id && !entry.habit_id && !entry.is_creative_block).map((entry) => <ReminderBlock key={entry.id} entry={entry} reminder={{ title: entry.notes?.trim() || 'Evento fijo' }} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
+        {entries.filter((entry) => !entry.task_id && !entry.habit_id && !entry.obligation_id && !entry.is_creative_block).map((entry) => <ReminderBlock key={entry.id} entry={entry} reminder={{ title: entry.notes?.trim() || 'Evento fijo' }} onStatusChange={onStatusChange} onDragStart={onDragStart} onDurationChange={onDurationChange} onDelete={onDelete} />)}
+        {entries.filter(isObligationEntry).flatMap((entry) =>
+          getObligationSegments(entry)
+            .filter((segment) => segment.date === date)
+            .map((segment) => (
+              <ObligationBlock
+                key={`${entry.id}-${segment.segment}`}
+                entry={entry}
+                segment={segment}
+                onDragStart={onDragStart}
+                onDurationChange={onDurationChange}
+                onOccurrenceUpdate={onObligationOccurrenceUpdate}
+                onObligationUpdate={onObligationUpdate}
+              />
+            )),
+        )}
         {sessions.map((session) => <div key={`focus-${session.id}`} className="weekly-focus-marker" title={getFocusLabel(session)}>{getFocusLabel(session)}</div>)}
       </div>
     </section>

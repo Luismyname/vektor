@@ -42,7 +42,38 @@ interface CreativeBlockScheduleInput {
   interruptions?: number;
 }
 
-const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, status, notes, created_at, energy_level, is_creative_block, focus_session_id';
+export type ObligationType = 'work' | 'class' | 'sleep' | 'appointment';
+
+export interface ObligationRecurrenceRule {
+  frequency: 'once' | 'weekly';
+  startsOn: string;
+  startTime: string;
+  endTime: string;
+  byDay: number[];
+}
+
+type ObligationInterval = Parameters<typeof getObligationSegments>[0] & { id?: string };
+
+export interface PlannerObligation {
+  id: string;
+  user_id: string;
+  title: string;
+  obligation_type: ObligationType;
+  active: boolean;
+  timezone: string;
+  recurrence_rule: ObligationRecurrenceRule;
+}
+
+interface CreateObligationInput {
+  title: string;
+  obligationType: ObligationType;
+  startTime: string;
+  endTime: string;
+  recurrence: 'once' | 'weekly';
+  byDay: number[];
+}
+
+const PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, obligation_id, obligation_occurrence_date, status, notes, created_at, energy_level, is_creative_block, focus_session_id';
 
 const PRIORITY_SCORE: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
@@ -67,6 +98,102 @@ export function parseTime(timeString: string | null | undefined) {
   return { hours, minutes };
 }
 
+function dateOffset(dateString: string, days: number) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getIsoWeekday(dateString: string) {
+  const weekday = new Date(`${dateString}T00:00:00Z`).getUTCDay();
+  return weekday === 0 ? 7 : weekday;
+}
+
+function isValidTime(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function isValidDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export function getObligationOccurrenceDates(
+  rule: ObligationRecurrenceRule,
+  dates: string[],
+) {
+  return dates.filter((date) => {
+    if (date < rule.startsOn) return false;
+    if (rule.frequency === 'once') return date === rule.startsOn;
+    return rule.byDay.includes(getIsoWeekday(date));
+  });
+}
+
+export interface ObligationSegment {
+  date: string;
+  segment: 'full' | 'start' | 'end';
+  startMinutes: number;
+  endMinutes: number;
+  label: string;
+}
+
+export function getObligationSegments(entry: {
+  date: string;
+  start_time: string;
+  end_time: string;
+  obligation?: Pick<PlannerObligation, 'obligation_type'> | null;
+}): ObligationSegment[] {
+  const start = parseTime(entry.start_time);
+  const end = parseTime(entry.end_time);
+  const startMinutes = start.hours * 60 + start.minutes;
+  const endMinutes = end.hours * 60 + end.minutes;
+
+  const formatMinutes = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  if (entry.obligation?.obligation_type !== 'sleep' || endMinutes >= startMinutes) {
+    return [{
+      date: entry.date,
+      segment: 'full',
+      startMinutes,
+      endMinutes,
+      label: `${formatMinutes(startMinutes)} - ${formatMinutes(endMinutes)}`,
+    }];
+  }
+
+  return [
+    {
+      date: entry.date,
+      segment: 'start',
+      startMinutes,
+      endMinutes: 1440,
+      label: `${formatMinutes(startMinutes)} - 24:00`,
+    },
+    {
+      date: dateOffset(entry.date, 1),
+      segment: 'end',
+      startMinutes: 0,
+      endMinutes,
+      label: `00:00 - ${formatMinutes(endMinutes)}`,
+    },
+  ];
+}
+
+export function findObligationConflicts(
+  candidate: ObligationInterval,
+  entries: ObligationInterval[],
+) {
+  const candidateSegments = getObligationSegments(candidate);
+  return entries.filter((entry) => {
+    if (entry.id && 'id' in candidate && entry.id === candidate.id) return false;
+    return candidateSegments.some((candidateSegment) =>
+      getObligationSegments(entry).some((entrySegment) =>
+        candidateSegment.date === entrySegment.date
+        && candidateSegment.startMinutes < entrySegment.endMinutes
+        && entrySegment.startMinutes < candidateSegment.endMinutes),
+    );
+  });
+}
+
 export function getTimeRange(startTime: string, durationMinutes: number = 30) {
   const normalized = String(startTime || '00:00');
   const [hours, minutes] = normalized.split(':').map(Number);
@@ -84,6 +211,76 @@ export function getTimeRange(startTime: string, durationMinutes: number = 30) {
     startTime: normalized.length === 5 ? normalized : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
     endTime: formatMinutes(endMinutes),
   };
+}
+
+async function loadObligations(userId: string) {
+  const { data, error } = await supabase
+    .from('obligations')
+    .select('id, user_id, title, obligation_type, active, timezone, recurrence_rule')
+    .eq('user_id', userId);
+
+  return { obligations: (data || []) as PlannerObligation[], error };
+}
+
+async function materializeObligations(
+  userId: string,
+  dates: string[],
+  obligations: PlannerObligation[],
+) {
+  const activeObligations = obligations.filter((obligation) => obligation.active);
+  if (!activeObligations.length) return { error: null };
+
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  const { data: existing, error: existingError } = await supabase
+    .from('weekly_planner')
+    .select('obligation_id, obligation_occurrence_date')
+    .eq('user_id', userId)
+    .in('obligation_id', activeObligations.map(({ id }) => id))
+    .gte('obligation_occurrence_date', firstDate)
+    .lte('obligation_occurrence_date', lastDate);
+
+  if (existingError) return { error: existingError };
+
+  const existingKeys = new Set((existing || []).map((entry) => `${entry.obligation_id}:${entry.obligation_occurrence_date}`));
+  for (const obligation of activeObligations) {
+    const rule = obligation.recurrence_rule;
+    const startMinutes = rule && isValidTime(rule.startTime) ? parseTime(rule.startTime).hours * 60 + parseTime(rule.startTime).minutes : -1;
+    const endMinutes = rule && isValidTime(rule.endTime) ? parseTime(rule.endTime).hours * 60 + parseTime(rule.endTime).minutes : -1;
+    if (!rule
+      || !['once', 'weekly'].includes(rule.frequency)
+      || !/^\d{4}-\d{2}-\d{2}$/.test(rule.startsOn)
+      || startMinutes < 0
+      || endMinutes < 0
+      || startMinutes === endMinutes
+      || (endMinutes < startMinutes && obligation.obligation_type !== 'sleep')
+      || (rule.frequency === 'weekly' && (!Array.isArray(rule.byDay) || !rule.byDay.length || rule.byDay.some((day) => day < 1 || day > 7)))) {
+      return { error: new Error(`La regla de repetición de "${obligation.title}" no es válida.`) };
+    }
+
+    for (const occurrenceDate of getObligationOccurrenceDates(rule, dates)) {
+      const key = `${obligation.id}:${occurrenceDate}`;
+      if (existingKeys.has(key)) continue;
+
+      const { error } = await supabase.from('weekly_planner').insert({
+        user_id: userId,
+        date: occurrenceDate,
+        start_time: rule.startTime,
+        end_time: rule.endTime,
+        task_id: null,
+        habit_id: null,
+        obligation_id: obligation.id,
+        obligation_occurrence_date: occurrenceDate,
+        status: 'scheduled',
+        notes: '',
+      });
+
+      if (error && error.code !== '23505') return { error };
+      existingKeys.add(key);
+    }
+  }
+
+  return { error: null };
 }
 
 export function getWeekDates(weekStart: Date | string) {
@@ -116,16 +313,45 @@ export function shiftWeek(weekStart: Date | string, amount: number) {
 
 export async function getWeeklyPlanner(userId: string, weekStart: Date | string) {
   const dates = getWeekDates(weekStart);
-  const { data, error } = await supabase
+  const { obligations, error: obligationsError } = await loadObligations(userId);
+  if (obligationsError) return { entries: [], error: obligationsError };
+
+  const { error: materializeError } = await materializeObligations(userId, dates, obligations);
+  if (materializeError) return { entries: [], error: materializeError };
+
+  const previousDate = dateOffset(dates[0], -1);
+  const [{ data, error }, { data: previousEntries, error: previousError }] = await Promise.all([
+    supabase
     .from('weekly_planner')
     .select(PLANNER_FIELDS)
     .eq('user_id', userId)
     .gte('date', dates[0])
     .lte('date', dates[dates.length - 1])
     .order('date')
-    .order('start_time');
+    .order('start_time'),
+    supabase
+      .from('weekly_planner')
+      .select(PLANNER_FIELDS)
+      .eq('user_id', userId)
+      .eq('date', previousDate)
+      .not('obligation_id', 'is', null),
+  ]);
 
-  return { entries: data || [], error };
+  if (error || previousError) return { entries: [], error: error || previousError };
+
+  const obligationById = new Map(obligations.map((obligation) => [obligation.id, obligation]));
+  const attachObligation = (entry) => ({
+    ...entry,
+    obligation: obligationById.get(entry.obligation_id) || null,
+  });
+  const currentEntries = (data || []).map(attachObligation);
+  const overnightEntries = (previousEntries || [])
+    .map(attachObligation)
+    .filter((entry) => entry.obligation?.obligation_type === 'sleep'
+      && parseTime(entry.end_time).hours * 60 + parseTime(entry.end_time).minutes
+        < parseTime(entry.start_time).hours * 60 + parseTime(entry.start_time).minutes);
+
+  return { entries: [...overnightEntries, ...currentEntries], error: null };
 }
 
 export async function getPlannerContext(userId: string) {
@@ -304,13 +530,13 @@ export async function deletePlannerEntry(entryId: string) {
 }
 
 export async function deletePlannerDay(userId: string, date: Date | string) {
-  const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).eq('date', formatDate(date));
+  const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).eq('date', formatDate(date)).is('obligation_id', null);
   return { error };
 }
 
 export async function deletePlannerWeek(userId: string, weekStart: Date | string) {
   const dates = getWeekDates(weekStart);
-  const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).gte('date', dates[0]).lte('date', dates[dates.length - 1]);
+  const { error } = await supabase.from('weekly_planner').delete().eq('user_id', userId).gte('date', dates[0]).lte('date', dates[dates.length - 1]).is('obligation_id', null);
   return { error };
 }
 
@@ -404,6 +630,100 @@ export async function createReminder(
   };
   const { data, error } = await supabase.from('weekly_planner').insert(payload).select(PLANNER_FIELDS).single();
   return { entry: data, error };
+}
+
+export async function createObligation(
+  input: CreateObligationInput,
+  date: Date | string,
+  userId: string
+) {
+  const occurrenceDate = formatDate(date);
+  if (!input.title.trim()) {
+    return { entry: null, error: new Error('El nombre de la obligación es obligatorio.') };
+  }
+  if (!isValidDate(occurrenceDate)) {
+    return { entry: null, error: new Error('La fecha de inicio de la obligación no es válida.') };
+  }
+  if (!isValidTime(input.startTime) || !isValidTime(input.endTime)
+    || !['once', 'weekly'].includes(input.recurrence)
+    || !['work', 'class', 'sleep', 'appointment'].includes(input.obligationType)
+    || (input.recurrence === 'weekly' && (!Array.isArray(input.byDay) || !input.byDay.length || input.byDay.some((day) => !Number.isInteger(day) || day < 1 || day > 7)))) {
+    return { entry: null, error: new Error('La fecha, el horario o la repetición de la obligación no son válidos.') };
+  }
+  const startMinutes = parseTime(input.startTime).hours * 60 + parseTime(input.startTime).minutes;
+  const endMinutes = parseTime(input.endTime).hours * 60 + parseTime(input.endTime).minutes;
+  const crossesMidnight = endMinutes < startMinutes;
+  if (startMinutes === endMinutes || (crossesMidnight && input.obligationType !== 'sleep')) {
+    return { entry: null, error: new Error('Solo una obligación de sueño puede cruzar la medianoche.') };
+  }
+
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const recurrenceRule: ObligationRecurrenceRule = {
+    frequency: input.recurrence,
+    startsOn: occurrenceDate,
+    startTime: input.startTime,
+    endTime: input.endTime,
+    byDay: input.recurrence === 'weekly' ? input.byDay : [],
+  };
+  const { data: obligation, error: obligationError } = await supabase
+    .from('obligations')
+    .insert({
+      user_id: userId,
+      title: input.title.trim(),
+      obligation_type: input.obligationType,
+      active: true,
+      timezone,
+      recurrence_rule: recurrenceRule,
+    })
+    .select('id, user_id, title, obligation_type, active, timezone, recurrence_rule')
+    .single();
+
+  if (obligationError) return { entry: null, error: obligationError };
+
+  const hasOccurrence = input.recurrence === 'once'
+    || input.byDay.includes(getIsoWeekday(occurrenceDate));
+  if (!hasOccurrence) return { entry: null, error: null };
+
+  const { data: entry, error } = await supabase
+    .from('weekly_planner')
+    .insert({
+      user_id: userId,
+      date: occurrenceDate,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      task_id: null,
+      habit_id: null,
+      obligation_id: obligation.id,
+      obligation_occurrence_date: occurrenceDate,
+      status: 'scheduled',
+      notes: '',
+    })
+    .select(PLANNER_FIELDS)
+    .single();
+
+  if (error) {
+    const { error: cleanupError } = await supabase.from('obligations').delete().eq('id', obligation.id);
+    if (cleanupError) {
+      return {
+        entry: null,
+        error: new Error(`${error.message} No se pudo revertir la definición creada: ${cleanupError.message}`),
+      };
+    }
+    return { entry: null, error };
+  }
+
+  return { entry: { ...entry, obligation }, error: null };
+}
+
+export async function updateObligation(id: string, changes: { title: string }) {
+  const { data, error } = await supabase
+    .from('obligations')
+    .update({ ...changes, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id, user_id, title, obligation_type, active, timezone, recurrence_rule')
+    .single();
+
+  return { obligation: data as PlannerObligation | null, error };
 }
 
 export async function scheduleCreativeBlock(
