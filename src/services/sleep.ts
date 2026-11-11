@@ -20,8 +20,6 @@ export interface SleepRecordInput {
   sleep_quality: number
   sleep_medication: boolean
   notes?: string | null
-  sleep_start?: string | null
-  sleep_end?: string | null
 }
 
 const SLEEP_RECORD_FIELDS = 'id, user_id, sleep_date, hours_slept, sleep_quality, sleep_medication, notes, sleep_start, sleep_end, created_at, updated_at'
@@ -34,14 +32,10 @@ function isValidDate(sleepDate: string) {
 }
 
 function validateSleepRecord(userId: string, input: SleepRecordInput) {
-  const validTime = (time: string | null | undefined) => !time
-    || /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)
-
   if (!userId || !isValidDate(input.sleep_date) || !Number.isFinite(input.hours_slept)
     || input.hours_slept <= 0 || input.hours_slept > 24
     || !Number.isInteger(input.sleep_quality) || input.sleep_quality < 1 || input.sleep_quality > 10
     || typeof input.sleep_medication !== 'boolean'
-    || !validTime(input.sleep_start) || !validTime(input.sleep_end)
     || (input.notes !== undefined && input.notes !== null && typeof input.notes !== 'string')) {
     return new Error('El usuario o los datos del registro de sueño no son válidos.')
   }
@@ -56,8 +50,8 @@ function toSleepRecordPayload(input: SleepRecordInput) {
     sleep_quality: input.sleep_quality,
     sleep_medication: input.sleep_medication,
     notes: input.notes?.trim() || null,
-    sleep_start: input.sleep_start || null,
-    sleep_end: input.sleep_end || null,
+    sleep_start: null,
+    sleep_end: null,
   }
 }
 

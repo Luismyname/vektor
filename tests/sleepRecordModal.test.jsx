@@ -60,8 +60,6 @@ describe('sleep record modal integration', () => {
     fireEvent.change(screen.getByLabelText('Calidad del sueño (1-10)'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('¿Tomaste medicación para dormir?'), { target: { value: 'true' } })
     fireEvent.change(screen.getByLabelText('Notas (opcional)'), { target: { value: 'Buen descanso' } })
-    fireEvent.change(screen.getByLabelText('Hora de inicio (opcional)'), { target: { value: '23:00' } })
-    fireEvent.change(screen.getByLabelText('Hora de fin (opcional)'), { target: { value: '06:30' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar registro' }))
 
     await waitFor(() => expect(sleepService.saveSleepRecord).toHaveBeenCalledWith('user-1', expect.objectContaining({
@@ -69,8 +67,6 @@ describe('sleep record modal integration', () => {
       sleep_quality: 8,
       sleep_medication: true,
       notes: 'Buen descanso',
-      sleep_start: '23:00',
-      sleep_end: '06:30',
     })))
     expect(sleepService.getSleepHistory).toHaveBeenCalledTimes(2)
     expect(await screen.findByRole('button', { name: /Actualizar registro/ })).toBeInTheDocument()
@@ -88,6 +84,8 @@ describe('sleep record modal integration', () => {
 
     await waitFor(() => expect(screen.getByLabelText('Horas dormidas')).toHaveValue(7.5))
     expect(screen.getByLabelText('¿Tomaste medicación para dormir?')).toHaveValue('true')
+    expect(screen.queryByLabelText('Hora de inicio (opcional)')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Hora de fin (opcional)')).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Notas (opcional)'), { target: { value: 'Sueño actualizado' } })
     fireEvent.click(screen.getByRole('button', { name: 'Actualizar registro' }))

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import SleepRecordModal from '../../components/weekly-planner/forms/SleepRecordModal'
+import { useEnergyInsights } from '../../hooks/useEnergyInsights'
+import { useLowEnergyDay } from '../../hooks/useLowEnergyDay'
 
 const MOTIVATIONAL_PHRASE = 'Los pequeños avances repetidos terminan creando grandes resultados.'
 
@@ -39,6 +41,10 @@ function getEntryType(entry) {
   return '🔒 Evento fijo'
 }
 
+function formatEnergyHour(hour) {
+  return `${String(hour).padStart(2, '0')}:00`
+}
+
 export function VektorPanel({ analytics, entries, taskById, habitById, currentTime, userId }) {
   const availableInsights = (analytics.insights || [])
     .filter((insight) => ['energy_peak', 'energy_low', 'creative_type', 'quality', 'correlation'].includes(insight.type))
@@ -61,6 +67,13 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
     : 0
   const [recommendationResponse, setRecommendationResponse] = useState(null)
   const [sleepModalOpen, setSleepModalOpen] = useState(false)
+  const today = getLocalDate(currentTime)
+  const lowEnergyDay = useLowEnergyDay(userId, today)
+  const energyInsights = useEnergyInsights(userId)
+  const [suggestionsDate, setSuggestionsDate] = useState(null)
+  const [dismissedDate, setDismissedDate] = useState(null)
+  const suggestionsShown = suggestionsDate === today
+  const showLowEnergyNotice = lowEnergyDay.isLowEnergy && dismissedDate !== today
 
   return (
     <aside className="vektor-panel" aria-label="Panel Vektor">
@@ -129,12 +142,76 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
         </ul>
       </section>
 
+      <section className="vektor-energy-insights" aria-labelledby="vektor-energy-insights-title">
+        <h2 id="vektor-energy-insights-title">⚡ Patrón energético</h2>
+        {energyInsights.loading ? (
+          <p role="status">Analizando registros de energía…</p>
+        ) : energyInsights.error ? (
+          <p role="alert">No se pudo cargar el patrón energético: {energyInsights.error}</p>
+        ) : energyInsights.bestWindow && energyInsights.worstWindow ? (
+          <dl>
+            <div>
+              <dt>Mejor franja</dt>
+              <dd>{formatEnergyHour(energyInsights.bestWindow.startHour)} - {formatEnergyHour(energyInsights.bestWindow.endHour)}</dd>
+            </div>
+            <div>
+              <dt>Peor franja</dt>
+              <dd>{formatEnergyHour(energyInsights.worstWindow.startHour)} - {formatEnergyHour(energyInsights.worstWindow.endHour)}</dd>
+            </div>
+            <div>
+              <dt>Número de muestras</dt>
+              <dd>{energyInsights.sampleCount}</dd>
+            </div>
+            <div>
+              <dt>Confianza</dt>
+              <dd>{energyInsights.confidence === 'high'
+                ? 'Alta'
+                : energyInsights.confidence === 'medium'
+                  ? 'Media'
+                  : 'Baja'}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p>Aún no hay suficientes muestras (mínimo 3 por hora) para identificar franjas de 4 horas.</p>
+        )}
+      </section>
+
       <section className="vektor-sleep" aria-labelledby="vektor-sleep-title">
         <h2 id="vektor-sleep-title">Descanso</h2>
         <button type="button" className="primary-button" onClick={() => setSleepModalOpen(true)} disabled={!userId}>
           Registrar sueño
         </button>
       </section>
+
+      {lowEnergyDay.error && (
+        <p className="vektor-low-energy-error" role="alert">
+          No se pudo comprobar el nivel de energía de hoy: {lowEnergyDay.error}
+        </p>
+      )}
+      {!lowEnergyDay.loading && showLowEnergyNotice && (
+        <section className="vektor-low-energy" aria-labelledby="low-energy-title">
+          <h2 id="low-energy-title">⚠ Día de energía baja detectado</h2>
+          <ul>
+            {lowEnergyDay.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+          </ul>
+          {suggestionsShown ? (
+            <div className="vektor-low-energy-suggestions" role="status">
+              <p>Para hoy, puedes:</p>
+              <ul>
+                <li>Dividir tareas grandes</li>
+                <li>Reducir la carga cognitiva</li>
+                <li>Priorizar tareas ligeras</li>
+              </ul>
+              <button type="button" onClick={() => setDismissedDate(today)}>Ignorar</button>
+            </div>
+          ) : (
+            <div className="vektor-low-energy-actions">
+              <button type="button" onClick={() => setSuggestionsDate(today)}>Aplicar sugerencias</button>
+              <button type="button" onClick={() => setDismissedDate(today)}>Ignorar</button>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="vektor-reflection" aria-labelledby="vektor-reflection-title">
         <h2 id="vektor-reflection-title">Vektor observa</h2>
@@ -158,6 +235,7 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
           isOpen={sleepModalOpen}
           onClose={() => setSleepModalOpen(false)}
           userId={userId}
+          onSaved={() => void lowEnergyDay.reload()}
         />
       )}
     </aside>

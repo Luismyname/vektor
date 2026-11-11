@@ -6,6 +6,7 @@ interface SleepRecordModalProps {
   isOpen: boolean
   onClose: () => void
   userId?: string
+  onSaved?: () => void
 }
 
 function getLocalDate() {
@@ -21,14 +22,12 @@ function formatSleepDate(date: string) {
   })
 }
 
-export default function SleepRecordModal({ isOpen, onClose, userId }: SleepRecordModalProps) {
+export default function SleepRecordModal({ isOpen, onClose, userId, onSaved }: SleepRecordModalProps) {
   const [sleepDate, setSleepDate] = useState(getLocalDate)
   const [hoursSlept, setHoursSlept] = useState('')
   const [sleepQuality, setSleepQuality] = useState('7')
   const [sleepMedication, setSleepMedication] = useState('false')
   const [notes, setNotes] = useState('')
-  const [sleepStart, setSleepStart] = useState('')
-  const [sleepEnd, setSleepEnd] = useState('')
   const modalRef = useRef<HTMLDivElement>(null)
   const {
     record,
@@ -66,8 +65,6 @@ export default function SleepRecordModal({ isOpen, onClose, userId }: SleepRecor
     setSleepQuality(record ? String(record.sleep_quality) : '7')
     setSleepMedication(record ? String(record.sleep_medication) : 'false')
     setNotes(record?.notes || '')
-    setSleepStart(record?.sleep_start?.slice(0, 5) || '')
-    setSleepEnd(record?.sleep_end?.slice(0, 5) || '')
   }, [record, sleepDate])
 
   if (!isOpen) return null
@@ -85,14 +82,14 @@ export default function SleepRecordModal({ isOpen, onClose, userId }: SleepRecor
       sleep_quality: Number(sleepQuality),
       sleep_medication: sleepMedication === 'true',
       notes,
-      sleep_start: sleepStart || null,
-      sleep_end: sleepEnd || null,
     }
 
-    if (record?.sleep_date === sleepDate) {
-      await updateRecord(record.id, input)
-    } else {
-      await saveRecord(input)
+    const savedRecord = record?.sleep_date === sleepDate
+      ? await updateRecord(record.id, input)
+      : await saveRecord(input)
+
+    if (savedRecord) {
+      onSaved?.()
     }
   }
 
@@ -172,14 +169,6 @@ export default function SleepRecordModal({ isOpen, onClose, userId }: SleepRecor
                   <option value="false">No</option>
                   <option value="true">Sí</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="sleep-start">Hora de inicio (opcional)</label>
-                <input id="sleep-start" className="form-input" type="time" value={sleepStart} onChange={(event) => setSleepStart(event.target.value)} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="sleep-end">Hora de fin (opcional)</label>
-                <input id="sleep-end" className="form-input" type="time" value={sleepEnd} onChange={(event) => setSleepEnd(event.target.value)} />
               </div>
               <div className="form-group">
                 <label htmlFor="sleep-notes">Notas (opcional)</label>

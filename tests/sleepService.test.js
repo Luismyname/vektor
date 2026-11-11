@@ -57,6 +57,8 @@ describe('sleep record service', () => {
       user_id: 'user-1',
       ...input,
       notes: 'Descanso tranquilo',
+      sleep_start: null,
+      sleep_end: null,
     })
     expect(result.data.id).toBe('sleep-1')
     expect(result.error).toBeNull()
@@ -67,7 +69,15 @@ describe('sleep record service', () => {
 
     await updateSleepRecord('user-1', 'sleep-1', input)
 
-    expect(query.update).toHaveBeenCalledWith(expect.objectContaining({ sleep_date: input.sleep_date }))
+    expect(query.update).toHaveBeenCalledWith(expect.objectContaining({
+      sleep_date: input.sleep_date,
+      hours_slept: input.hours_slept,
+      sleep_quality: input.sleep_quality,
+      sleep_medication: input.sleep_medication,
+      notes: 'Descanso tranquilo',
+      sleep_start: null,
+      sleep_end: null,
+    }))
     expect(query.eq).toHaveBeenCalledWith('id', 'sleep-1')
     expect(query.eq).toHaveBeenCalledWith('user_id', 'user-1')
   })
