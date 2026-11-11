@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import SleepRecordModal from '../../components/weekly-planner/forms/SleepRecordModal'
 
 const MOTIVATIONAL_PHRASE = 'Los pequeños avances repetidos terminan creando grandes resultados.'
 
@@ -38,7 +39,7 @@ function getEntryType(entry) {
   return '🔒 Evento fijo'
 }
 
-export function VektorPanel({ analytics, entries, taskById, habitById, currentTime }) {
+export function VektorPanel({ analytics, entries, taskById, habitById, currentTime, userId }) {
   const availableInsights = (analytics.insights || [])
     .filter((insight) => ['energy_peak', 'energy_low', 'creative_type', 'quality', 'correlation'].includes(insight.type))
   const recommendation = availableInsights.find((insight) => ['energy_peak', 'quality', 'creative_type'].includes(insight.type))
@@ -59,6 +60,7 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
     ? progress.scheduled + progress.completed + progress.failed + progress.moved
     : 0
   const [recommendationResponse, setRecommendationResponse] = useState(null)
+  const [sleepModalOpen, setSleepModalOpen] = useState(false)
 
   return (
     <aside className="vektor-panel" aria-label="Panel Vektor">
@@ -127,6 +129,13 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
         </ul>
       </section>
 
+      <section className="vektor-sleep" aria-labelledby="vektor-sleep-title">
+        <h2 id="vektor-sleep-title">Descanso</h2>
+        <button type="button" className="primary-button" onClick={() => setSleepModalOpen(true)} disabled={!userId}>
+          Registrar sueño
+        </button>
+      </section>
+
       <section className="vektor-reflection" aria-labelledby="vektor-reflection-title">
         <h2 id="vektor-reflection-title">Vektor observa</h2>
         {totalActivities ? (
@@ -144,6 +153,13 @@ export function VektorPanel({ analytics, entries, taskById, habitById, currentTi
       </section>
 
       <p className="vektor-motivational-phrase">{MOTIVATIONAL_PHRASE}</p>
+      {sleepModalOpen && (
+        <SleepRecordModal
+          isOpen={sleepModalOpen}
+          onClose={() => setSleepModalOpen(false)}
+          userId={userId}
+        />
+      )}
     </aside>
   )
 }

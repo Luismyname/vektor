@@ -453,6 +453,41 @@
   border-top: 1px solid var(--color-border-light);
 }
 
+.sleep-record-modal {
+  width: min(520px, 95vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+.sleep-record-history {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.sleep-record-history h4 {
+  margin: 0 0 8px;
+}
+
+.sleep-record-history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sleep-record-history button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+
 .vektor-panel h2 {
   margin: 0 0 10px;
   font-size: 17px;

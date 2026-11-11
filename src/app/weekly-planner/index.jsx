@@ -354,6 +354,7 @@ export default function WeeklyPlannerPage() {
             taskById={planner.taskById}
             habitById={planner.habitById}
             currentTime={currentTime}
+            userId={user?.id}
           />
         </div>
 
