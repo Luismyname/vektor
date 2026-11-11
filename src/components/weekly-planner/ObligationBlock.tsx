@@ -1,4 +1,7 @@
-import { useEffect, useState, type CSSProperties, type DragEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import { useEnergyPopover } from '../../hooks/useEnergyPopover'
+import { recordObligationImpact } from '../../services/energy-impact-engine'
 import { parseTime } from '../../services/weekly-planner'
 import type { ObligationSegment, ObligationType } from '../../services/weekly-planner'
 import WeeklyBlockModal from './WeeklyBlockModal'
@@ -52,6 +55,11 @@ function formatTime(time: string) {
 }
 
 export default function ObligationBlock({ entry, segment, onDragStart, onDurationChange, onOccurrenceUpdate, onObligationUpdate }: ObligationBlockProps) {
+  const { user } = useAuth()
+  const { openEnergyPopover } = useEnergyPopover()
+  const startEnergyTriggerRef = useRef<HTMLButtonElement>(null)
+  const finishEnergyTriggerRef = useRef<HTMLButtonElement>(null)
+  const impactIdRef = useRef<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [title, setTitle] = useState(entry.obligation.title)
   const [startTime, setStartTime] = useState(formatTime(entry.start_time))
@@ -70,6 +78,28 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
     setStartTime(formatTime(entry.start_time))
     setEndTime(formatTime(entry.end_time))
   }, [entry.obligation.title, entry.start_time, entry.end_time])
+
+  function handleOpenEnergyPopover(event: MouseEvent<HTMLButtonElement>, phase: 'start' | 'finish') {
+    event.stopPropagation()
+    if (!user?.id) return
+    openEnergyPopover({
+      value: 5,
+      label: phase === 'start' ? 'Energía antes de la obligación' : 'Energía después de la obligación',
+      triggerRef: phase === 'start' ? startEnergyTriggerRef : finishEnergyTriggerRef,
+      onSave: async (energy) => {
+        const result = await recordObligationImpact(
+          user.id,
+          entry.obligation_id,
+          phase,
+          energy,
+          phase === 'finish' ? impactIdRef.current || undefined : undefined,
+        )
+        if (result.error) throw result.error
+        if (phase === 'start') impactIdRef.current = result.data?.id || null
+        else impactIdRef.current = null
+      },
+    })
+  }
 
   async function handleSaveDetails() {
     const nextTitle = title.trim()
@@ -91,7 +121,13 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
         style={style}
         className={`weekly-block weekly-obligation-block obligation-${entry.obligation.obligation_type} obligation-segment-${segment.segment}`}
         draggable
-        onDragStart={(event) => onDragStart(event, entry)}
+        onDragStart={(event) => {
+          if (startEnergyTriggerRef.current?.contains(event.target as Node)) {
+            event.preventDefault()
+            return
+          }
+          onDragStart(event, entry)
+        }}
         onClick={() => setShowModal(true)}
         onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           if (event.key === 'Enter' || event.key === ' ') setShowModal(true)
@@ -102,6 +138,17 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
       >
         <strong>{entry.obligation.title}</strong>
         <span>{segmentLabel}</span>
+        <button
+          ref={startEnergyTriggerRef}
+          type="button"
+          className="task-energy-trigger"
+          onClick={(event) => handleOpenEnergyPopover(event, 'start')}
+          disabled={!user?.id}
+          aria-label="Registrar energía antes de la obligación"
+          title="Registrar energía antes de la obligación"
+        >
+          ⚡
+        </button>
       </article>
       {showModal && (
         <WeeklyBlockModal
@@ -126,6 +173,14 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
               {[30, 60, 90, 120, 240, 480].map((duration) => <option key={duration} value={duration}>{duration < 60 ? `${duration} min` : `${duration / 60} h`}</option>)}
             </select>
           </label>
+          <button
+            ref={finishEnergyTriggerRef}
+            type="button"
+            onClick={(event) => handleOpenEnergyPopover(event, 'finish')}
+            disabled={!user?.id}
+          >
+            Registrar energía final
+          </button>
           {formError && <p className="form-error" role="alert">{formError}</p>}
           <div className="weekly-modal-actions"><button type="button" onClick={handleSaveDetails}>Guardar cambios</button></div>
         </WeeklyBlockModal>

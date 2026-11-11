@@ -1,9 +1,19 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { useLowEnergyDay } = vi.hoisted(() => ({ useLowEnergyDay: vi.fn() }))
+const { useLowEnergyDay, useEnergyInsights, useRecommendations, useLearningPatterns, useEnergyImpacts } = vi.hoisted(() => ({
+  useLowEnergyDay: vi.fn(),
+  useEnergyInsights: vi.fn(),
+  useRecommendations: vi.fn(),
+  useLearningPatterns: vi.fn(),
+  useEnergyImpacts: vi.fn(() => ({ summaries: [], loading: false, error: '', reload: vi.fn() })),
+}))
 
 vi.mock('../src/hooks/useLowEnergyDay', () => ({ useLowEnergyDay }))
+vi.mock('../src/hooks/useEnergyInsights', () => ({ useEnergyInsights }))
+vi.mock('../src/hooks/useRecommendations', () => ({ useRecommendations }))
+vi.mock('../src/hooks/useLearningPatterns', () => ({ useLearningPatterns }))
+vi.mock('../src/hooks/useEnergyImpacts', () => ({ useEnergyImpacts }))
 
 import { VektorPanel } from '../src/app/weekly-planner/VektorPanel'
 
@@ -22,6 +32,21 @@ afterEach(() => {
 })
 
 describe('VektorPanel low-energy notice', () => {
+  beforeEach(() => {
+    useEnergyInsights.mockReturnValue({
+      hourlyProfile: [],
+      confidence: 'insufficient',
+      bestWindow: null,
+      worstWindow: null,
+      sampleCount: 0,
+      loading: false,
+      error: '',
+    })
+    useRecommendations.mockReturnValue({ recommendations: [], loading: false, error: '', reload: vi.fn() })
+    useLearningPatterns.mockReturnValue({ patterns: [], loading: false, error: '', reload: vi.fn() })
+    useEnergyImpacts.mockReturnValue({ summaries: [], loading: false, error: '', reload: vi.fn() })
+  })
+
   it('shows detection reasons and only displays suggestions after the user applies them', () => {
     useLowEnergyDay.mockReturnValue({
       isLowEnergy: true,

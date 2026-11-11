@@ -53,6 +53,13 @@ describe('energy service SQL compatibility', () => {
     expect(options).toEqual({ onConflict: 'user_id,date,hour' })
   })
 
+  it('maps habit start captures to the existing checkin source', async () => {
+    const { saveEnergyAtMoment } = await import('../src/services/energy')
+    await saveEnergyAtMoment('user-1', 6, 'habit_start')
+
+    expect(query.upsert.mock.calls[0][0].source).toBe('checkin')
+  })
+
   it('rejects values outside the persisted energy range', async () => {
     const result = await saveEnergyCheckIn('user-1', '2026-10-25', 9, 11, 'manual')
 

@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom'
 import { usePagination } from '../hooks/usePagination'
 import PaginationControls from './PaginationControls'
 import { useEnergyPopover } from '../../../hooks/useEnergyPopover'
-import { saveEnergyAtHabitCompletion, saveEnergyAtTaskEnd } from '../../../services/energy'
+import {
+  saveEnergyAtHabitCompletion,
+  saveEnergyAtMoment,
+  saveEnergyAtTaskEnd,
+  saveEnergyAtTaskStart,
+} from '../../../services/energy'
+import { recordHabitImpact, recordTaskImpact } from '../../../services/energy-impact-engine'
 
 const INCOMPLETE_STATUSES = new Set(['scheduled', 'failed', 'moved'])
 
@@ -55,17 +61,34 @@ export default function PlannerIncompleteSection({
 
   const { openEnergyPopover } = useEnergyPopover()
   const energyTriggerRefs = useMemo(() => new Map(), [])
+  const impactIdRefs = useMemo(() => new Map(), [])
 
-  const handleOpenHabitEnergyPopover = (e, entry) => {
+  const handleOpenEnergyPopover = (e, entry, phase, status) => {
     e.stopPropagation()
     if (!userId) return
     openEnergyPopover({
       value: 5,
-      label: 'Energía al completar',
+      label: phase === 'start' ? 'Energía inicial' : 'Energía al finalizar',
       triggerRef: { current: energyTriggerRefs.get(entry.id) },
       onSave: async (energy) => {
-        const { error } = await saveEnergyAtHabitCompletion(userId, energy)
+        const saveEnergy = phase === 'start'
+          ? (isTask ? saveEnergyAtTaskStart(userId, energy) : saveEnergyAtMoment(userId, energy, 'habit_start'))
+          : (isTask ? saveEnergyAtTaskEnd(userId, energy) : saveEnergyAtHabitCompletion(userId, energy))
+        const { error } = await saveEnergy
         if (error) throw error
+        const activityId = entry[`${itemType}_id`]
+        if (phase === 'start' || status === 'completed') {
+          const impact = await (isTask ? recordTaskImpact : recordHabitImpact)(
+            userId,
+            activityId,
+            phase,
+            energy,
+            phase === 'finish' ? impactIdRefs.get(entry.id) : undefined,
+          )
+          if (impact.error) throw impact.error
+          if (phase === 'start') impactIdRefs.set(entry.id, impact.data?.id)
+          else impactIdRefs.delete(entry.id)
+        }
       },
       disabled: updatingEntryId === entry.id,
     })
@@ -73,20 +96,7 @@ export default function PlannerIncompleteSection({
 
   const handleStatusChangeWithEnergy = (event, entry, status) => {
     event.stopPropagation()
-    if (userId) {
-      const trigger = event.currentTarget
-      openEnergyPopover({
-        value: 5,
-        label: 'Energía al finalizar',
-        triggerRef: { current: trigger },
-        onSave: async (energy) => {
-          const saveEnergy = isTask ? saveEnergyAtTaskEnd : saveEnergyAtHabitCompletion
-          const { error } = await saveEnergy(userId, energy)
-          if (error) throw error
-        },
-        disabled: updatingEntryId === entry.id,
-      })
-    }
+    if (userId) handleOpenEnergyPopover(event, entry, 'finish', status)
     onStatusChange(entry, itemType, status)
   }
 
@@ -108,22 +118,20 @@ export default function PlannerIncompleteSection({
                 <span>{formatDate(entry.date)} · {entry.start_time?.slice(0, 5) || '—'}</span>
               </div>
               <div className="weekly-status-actions">
-                {!isTask && (
-                  <button
-                    ref={(node) => {
-                      if (node) energyTriggerRefs.set(entry.id, node)
-                      else energyTriggerRefs.delete(entry.id)
-                    }}
-                    type="button"
-                    className="habit-energy-trigger"
-                    onClick={(e) => handleOpenHabitEnergyPopover(e, entry)}
-                    disabled={updatingEntryId === entry.id}
-                    aria-label="Registrar energía al completar"
-                    title="Registrar energía al completar"
-                  >
-                    ⚡
-                  </button>
-                )}
+                <button
+                  ref={(node) => {
+                    if (node) energyTriggerRefs.set(entry.id, node)
+                    else energyTriggerRefs.delete(entry.id)
+                  }}
+                  type="button"
+                  className="habit-energy-trigger"
+                  onClick={(event) => handleOpenEnergyPopover(event, entry, 'start')}
+                  disabled={updatingEntryId === entry.id}
+                  aria-label="Registrar energía inicial"
+                  title="Registrar energía inicial"
+                >
+                  ⚡
+                </button>
                 <button
                   type="button"
                   onClick={(event) => handleStatusChangeWithEnergy(event, entry, 'completed')}

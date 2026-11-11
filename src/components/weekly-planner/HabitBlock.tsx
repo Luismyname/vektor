@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEven
 import { useAuth } from '../../hooks/useAuth'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
 import { saveEnergyAtHabitCompletion, saveEnergyAtMoment } from '../../services/energy'
+import { recordHabitImpact } from '../../services/energy-impact-engine'
 import WeeklyBlockModal from './WeeklyBlockModal'
 import { parseTime } from '../../services/weekly-planner'
 import type { Habit } from '../../types'
@@ -32,6 +33,7 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
   const { openEnergyPopover } = useEnergyPopover()
   const energyTriggerRef = useRef<HTMLButtonElement>(null)
   const statusTriggerRef = useRef<HTMLSelectElement>(null)
+  const impactIdRef = useRef<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   if (!habit) return null
   const startTime = parseTime(entry.start_time)
@@ -47,8 +49,11 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
       label: 'Energía inicial',
       triggerRef: energyTriggerRef,
       onSave: async (energy) => {
-        const { error } = await saveEnergyAtMoment(user.id, energy, 'checkin')
+        const { error } = await saveEnergyAtMoment(user.id, energy, 'habit_start')
         if (error) throw error
+        const impact = await recordHabitImpact(user.id, habit.id, 'start', energy)
+        if (impact.error) throw impact.error
+        impactIdRef.current = impact.data?.id || null
       },
     })
   }
@@ -64,6 +69,11 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
       onSave: async (energy) => {
         const { error } = await saveEnergyAtHabitCompletion(user.id, energy)
         if (error) throw error
+        if (status === 'completed') {
+          const impact = await recordHabitImpact(user.id, habit.id, 'finish', energy, impactIdRef.current || undefined)
+          if (impact.error) throw impact.error
+          impactIdRef.current = null
+        }
       },
     })
   }

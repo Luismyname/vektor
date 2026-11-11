@@ -524,6 +524,239 @@
   font: inherit;
 }
 
+.vektor-recommendation-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vektor-recommendation-card {
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+.vektor-recommendation-card h3 {
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.vektor-recommendation-card p {
+  margin: 0 0 8px;
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vektor-recommendation-card .vektor-recommendation-confidence {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.vektor-recommendation-card .vektor-recommendation-actions {
+  margin-top: 10px;
+}
+
+.vektor-learning h2 {
+  color: var(--text-primary);
+}
+
+.vektor-learning ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vektor-learning li {
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.vektor-learning li:first-child {
+  border-top: 0;
+}
+
+.vektor-learning li p {
+  margin: 0 0 5px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.vektor-learning li span {
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.vektor-learning > p {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.vektor-learning .vektor-learning-error {
+  margin-top: 8px;
+  color: var(--color-danger);
+}
+
+.vektor-energy-impact h2 {
+  color: var(--text-primary);
+}
+
+.vektor-energy-impact ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vektor-energy-impact li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.vektor-energy-impact li:first-child {
+  border-top: 0;
+}
+
+.vektor-energy-impact li strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.vektor-energy-impact li p,
+.vektor-energy-impact li span,
+.vektor-energy-impact > p {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.vektor-energy-impact li p {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.vektor-energy-impact li .vektor-energy-impact-trend {
+  color: var(--accent);
+}
+
+.vektor-recommendation-card > button {
+  min-height: 36px;
+  margin: 0 0 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.vektor-recommendation-card > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.vektor-recommendation-card .vektor-recommendation-unavailable {
+  padding-left: 9px;
+  border-left: 2px solid var(--color-border);
+  font-size: 12px;
+}
+
+.vektor-confirm-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.vektor-confirm-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+}
+
+.vektor-confirm-dialog h3 {
+  margin: 0 0 18px;
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.vektor-confirm-dialog dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.vektor-confirm-dialog dl > div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+}
+
+.vektor-confirm-dialog dt {
+  color: var(--muted-text);
+}
+
+.vektor-confirm-dialog dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.vektor-confirm-dialog [role='alert'] {
+  margin: 14px 0 0;
+  color: var(--color-danger);
+}
+
+.vektor-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.vektor-confirm-actions button {
+  min-height: 38px;
+  padding: 7px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.vektor-confirm-actions button:last-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.vektor-confirm-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .vektor-low-energy-suggestions p {
   margin: 0 0 8px;
   color: var(--text-primary);

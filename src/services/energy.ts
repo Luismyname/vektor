@@ -196,7 +196,7 @@ export async function saveEnergyAtHabitCompletion(userId: string, energyLevel: n
 }
 
 function normalizeEnergySource(source: string) {
-  if (['task_start', 'task_end', 'habit_completion', 'onboarding'].includes(source)) return 'checkin'
+  if (['task_start', 'task_end', 'habit_start', 'habit_completion', 'onboarding'].includes(source)) return 'checkin'
   if (['manual', 'inferred', 'checkin'].includes(source)) return source
   throw new Error(`Origen de energía no permitido: ${source}`)
 }

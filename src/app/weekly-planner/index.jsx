@@ -16,6 +16,7 @@ import PlannerBacklogSection from './components/PlannerBacklogSection'
 import PlannerIncompleteSection from './components/PlannerIncompleteSection'
 import { updateHabitStatus } from './services/updateHabitStatus'
 import { updateTaskStatus } from './services/updateTaskStatus'
+import { applyRecommendation } from '../../services/recommendation-actions'
 import '../../styles/weekly-planner.css'
 import './weeklyPlanner.css'
 
@@ -29,6 +30,7 @@ export default function WeeklyPlannerPage() {
   const analytics = useWeeklyAnalytics(user?.id, planner.weekStart)
   const [statusError, setStatusError] = useState('')
   const [updatingEntryId, setUpdatingEntryId] = useState(null)
+  const [learningRefreshKey, setLearningRefreshKey] = useState(0)
   const dates = useMemo(() => getWeekDates(planner.weekStart), [planner.weekStart])
   const firstName = user?.user_metadata?.first_name
     || user?.user_metadata?.full_name?.split(' ')[0]
@@ -92,6 +94,25 @@ export default function WeeklyPlannerPage() {
 
   const { autoReschedule, isRescheduling } = useTaskAutoReschedule(user?.id, planner.weekStart, planner.reload)
 
+  async function handleApplyRecommendation(action, isLowEnergy) {
+    const result = await applyRecommendation(action, {
+      userId: user?.id || '',
+      today: formatDate(currentTime),
+      task: action.taskId ? planner.taskById[action.taskId] : undefined,
+      habit: action.habitId ? planner.habitById[action.habitId] : undefined,
+      isLowEnergy,
+    })
+    if (result.error) return result
+
+    const targetWeek = getWeekStart(action.suggestedDate)
+    if (formatDate(targetWeek) === formatDate(planner.weekStart)) {
+      await planner.reload()
+    } else {
+      planner.setWeekStart(targetWeek)
+    }
+    return result
+  }
+
   // Escribe en el DataTransfer la identidad del bloque y su tipo al arrastrarlo.
   function handleDragStart(event, entry) {
     event.dataTransfer.setData('text/planner-entry', entry.id)
@@ -146,7 +167,10 @@ export default function WeeklyPlannerPage() {
 
   // Persiste el nuevo estado de una entrada del planificador.
   async function handleStatusChange(entry, status) {
-    await planner.updateStatus(entry.id, status)
+    const updatedEntry = await planner.updateStatus(entry.id, status)
+    if (updatedEntry && entry.task_id && status === 'completed') {
+      setLearningRefreshKey((current) => current + 1)
+    }
   }
 
   // Guarda cambios de una tarea y sincroniza el índice de tareas del hook.
@@ -183,6 +207,9 @@ export default function WeeklyPlannerPage() {
       }
 
       await planner.reload()
+      if (itemType === 'task' && status === 'completed') {
+        setLearningRefreshKey((current) => current + 1)
+      }
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'No se pudo actualizar el estado.')
     } finally {
@@ -353,8 +380,11 @@ export default function WeeklyPlannerPage() {
             entries={planner.entries}
             taskById={planner.taskById}
             habitById={planner.habitById}
+            habits={[...planner.habits, ...planner.selectedHabits]}
             currentTime={currentTime}
             userId={user?.id}
+            onApplyRecommendation={handleApplyRecommendation}
+            learningRefreshKey={learningRefreshKey}
           />
         </div>
 

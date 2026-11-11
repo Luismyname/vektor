@@ -1,6 +1,7 @@
 import { useState, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent, type ChangeEvent } from 'react'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
 import { saveEnergyAtTaskEnd, saveEnergyAtTaskStart } from '../../services/energy'
+import { recordTaskImpact } from '../../services/energy-impact-engine'
 import { parseTime } from '../../services/weekly-planner'
 import type { Task } from '../../types'
 import WeeklyBlockModal from './WeeklyBlockModal'
@@ -36,6 +37,7 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
   const { openEnergyPopover } = useEnergyPopover()
   const energyTriggerRef = useRef<HTMLButtonElement>(null)
   const statusTriggerRef = useRef<HTMLSelectElement>(null)
+  const impactIdRef = useRef<string | null>(null)
   
   const [isEditing, setIsEditing] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -67,6 +69,9 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
       onSave: async (energy) => {
         const { error } = await saveEnergyAtTaskStart(userId, energy)
         if (error) throw error
+        const impact = await recordTaskImpact(userId, task.id, 'start', energy)
+        if (impact.error) throw impact.error
+        impactIdRef.current = impact.data?.id || null
       },
       disabled: entry.status !== 'scheduled',
     })
@@ -85,6 +90,11 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
       onSave: async (energy) => {
         const { error } = await saveEnergyAtTaskEnd(userId, energy)
         if (error) throw error
+        if (status === 'completed') {
+          const impact = await recordTaskImpact(userId, task.id, 'finish', energy, impactIdRef.current || undefined)
+          if (impact.error) throw impact.error
+          impactIdRef.current = null
+        }
       },
     })
   }

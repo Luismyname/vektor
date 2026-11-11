@@ -1,16 +1,47 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { sleepService } = vi.hoisted(() => ({
+const {
+  sleepService,
+  useLowEnergyDay,
+  useEnergyInsights,
+  useRecommendations,
+  useLearningPatterns,
+  useEnergyImpacts,
+} = vi.hoisted(() => ({
   sleepService: {
     getSleepHistory: vi.fn(),
     getSleepRecord: vi.fn(),
     saveSleepRecord: vi.fn(),
     updateSleepRecord: vi.fn(),
   },
+  useLowEnergyDay: vi.fn(() => ({
+    isLowEnergy: false,
+    reasons: [],
+    loading: false,
+    error: '',
+    reload: vi.fn(),
+  })),
+  useEnergyInsights: vi.fn(() => ({
+    hourlyProfile: [],
+    confidence: 'insufficient',
+    bestWindow: null,
+    worstWindow: null,
+    sampleCount: 0,
+    loading: false,
+    error: '',
+  })),
+  useRecommendations: vi.fn(() => ({ recommendations: [], loading: false, error: '', reload: vi.fn() })),
+  useLearningPatterns: vi.fn(() => ({ patterns: [], loading: false, error: '', reload: vi.fn() })),
+  useEnergyImpacts: vi.fn(() => ({ summaries: [], loading: false, error: '', reload: vi.fn() })),
 }))
 
 vi.mock('../src/services/sleep', () => sleepService)
+vi.mock('../src/hooks/useLowEnergyDay', () => ({ useLowEnergyDay }))
+vi.mock('../src/hooks/useEnergyInsights', () => ({ useEnergyInsights }))
+vi.mock('../src/hooks/useRecommendations', () => ({ useRecommendations }))
+vi.mock('../src/hooks/useLearningPatterns', () => ({ useLearningPatterns }))
+vi.mock('../src/hooks/useEnergyImpacts', () => ({ useEnergyImpacts }))
 
 import { VektorPanel } from '../src/app/weekly-planner/VektorPanel'
 

@@ -9,11 +9,17 @@ const {
   saveEnergyAtMoment,
   saveEnergyAtTaskEnd,
   saveEnergyAtTaskStart,
+  recordHabitImpact,
+  recordObligationImpact,
+  recordTaskImpact,
 } = vi.hoisted(() => ({
   saveEnergyAtHabitCompletion: vi.fn(async () => ({ error: null })),
   saveEnergyAtMoment: vi.fn(async () => ({ error: null })),
   saveEnergyAtTaskEnd: vi.fn(async () => ({ error: null })),
   saveEnergyAtTaskStart: vi.fn(async () => ({ error: null })),
+  recordTaskImpact: vi.fn(async () => ({ data: { id: 'impact-1' }, error: null })),
+  recordHabitImpact: vi.fn(async () => ({ data: { id: 'impact-1' }, error: null })),
+  recordObligationImpact: vi.fn(async () => ({ data: { id: 'impact-1' }, error: null })),
 }))
 
 vi.mock('../src/services/energy', () => ({
@@ -22,9 +28,15 @@ vi.mock('../src/services/energy', () => ({
   saveEnergyAtTaskEnd,
   saveEnergyAtTaskStart,
 }))
+vi.mock('../src/services/energy-impact-engine', () => ({
+  recordHabitImpact,
+  recordObligationImpact,
+  recordTaskImpact,
+}))
 
 import TaskBlock from '../src/components/weekly-planner/TaskBlock'
 import HabitBlock from '../src/components/weekly-planner/HabitBlock'
+import ObligationBlock from '../src/components/weekly-planner/ObligationBlock'
 import PlannerIncompleteSection from '../src/app/weekly-planner/components/PlannerIncompleteSection'
 
 afterEach(() => {
@@ -92,13 +104,115 @@ describe('planner energy check-ins', () => {
     await waitFor(() => expect(saveEnergyAtTaskStart).toHaveBeenCalledWith('user-1', 7))
   })
 
-  it('opens the existing popover from a habit start trigger and saves a check-in', async () => {
+  it('opens the existing popover from a habit start trigger and records habit_start energy', async () => {
     renderWithProviders(<HabitBlock {...habitBlockProps()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
     await saveEnergy()
 
-    await waitFor(() => expect(saveEnergyAtMoment).toHaveBeenCalledWith('user-1', 7, 'checkin'))
+    await waitFor(() => {
+      expect(saveEnergyAtMoment).toHaveBeenCalledWith('user-1', 7, 'habit_start')
+      expect(recordHabitImpact).toHaveBeenCalledWith('user-1', 'habit-1', 'start', 7)
+    })
+  })
+
+  it('pairs task start and completion captures into one impact record', async () => {
+    renderWithProviders(<TaskBlock {...taskBlockProps()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    await saveEnergy(8)
+    await waitFor(() => expect(recordTaskImpact).toHaveBeenCalledWith('user-1', 'task-1', 'start', 8))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir tarea Preparar informe' }))
+    fireEvent.change(screen.getByLabelText('Estado de Preparar informe'), { target: { value: 'completed' } })
+    await saveEnergy(4)
+
+    await waitFor(() => expect(recordTaskImpact).toHaveBeenLastCalledWith(
+      'user-1',
+      'task-1',
+      'finish',
+      4,
+      'impact-1',
+    ))
+  })
+
+  it('records habit_completion against the captured habit_start energy', async () => {
+    renderWithProviders(<HabitBlock {...habitBlockProps()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    await saveEnergy(8)
+    await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
+      'user-1',
+      'habit-1',
+      'start',
+      8,
+    ))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir hábito Meditar' }))
+    fireEvent.change(screen.getByLabelText('Estado de Meditar'), { target: { value: 'completed' } })
+    await saveEnergy(6)
+
+    await waitFor(() => expect(recordHabitImpact).toHaveBeenLastCalledWith(
+      'user-1',
+      'habit-1',
+      'finish',
+      6,
+      'impact-1',
+    ))
+  })
+
+  it('records before and after energy for obligation occurrences', async () => {
+    const obligationEntry = {
+      id: 'planner-obligation-1',
+      date: '2026-11-11',
+      start_time: '09:00:00',
+      end_time: '10:00:00',
+      task_id: null,
+      habit_id: null,
+      status: 'scheduled',
+      obligation_id: 'obligation-1',
+      obligation_occurrence_date: '2026-11-11',
+      obligation: { id: 'obligation-1', title: 'Trabajo', obligation_type: 'work' },
+    }
+    const segment = {
+      date: '2026-11-11',
+      segment: 'single',
+      label: '09:00 - 10:00',
+      startMinutes: 540,
+      endMinutes: 600,
+    }
+    renderWithProviders(
+      <ObligationBlock
+        entry={obligationEntry}
+        segment={segment}
+        onDragStart={vi.fn()}
+        onDurationChange={vi.fn()}
+        onOccurrenceUpdate={vi.fn()}
+        onObligationUpdate={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía antes de la obligación' }))
+    await saveEnergy(7)
+    await waitFor(() => expect(recordObligationImpact).toHaveBeenCalledWith(
+      'user-1',
+      'obligation-1',
+      'start',
+      7,
+      undefined,
+    ))
+
+    fireEvent.click(screen.getByRole('button', { name: /Abrir obligación Trabajo/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía final' }))
+    await saveEnergy(5)
+
+    await waitFor(() => expect(recordObligationImpact).toHaveBeenLastCalledWith(
+      'user-1',
+      'obligation-1',
+      'finish',
+      5,
+      'impact-1',
+    ))
   })
 
   it.each(['task', 'habit'])('does not start drag from the %s energy trigger', (itemType) => {
