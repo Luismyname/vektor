@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect, type CSSProperties } from 'react'
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, type CSSProperties, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { Zap } from 'lucide-react'
 
 interface EnergyPopoverProps {
   isOpen: boolean
   onClose: () => void
   onSave?: (value: number) => void | { error?: unknown } | Promise<void | { error?: unknown }>
-  value?: number
+  value?: number | null
   label?: string
   triggerRef?: { current: HTMLElement | null }
   position?: 'auto' | 'top'
@@ -21,18 +22,19 @@ export function EnergyPopover({
   isOpen,
   onClose,
   onSave,
-  value = 5,
+  value,
   label = 'Energía',
   triggerRef,
   position = 'auto',
   disabled = false,
 }: EnergyPopoverProps) {
-  const [localValue, setLocalValue] = useState(value ?? 5)
+  const [localValue, setLocalValue] = useState<number | null>(value ?? null)
   const popoverRef = useRef<HTMLDivElement>(null)
-  const sliderRef = useRef<HTMLInputElement>(null)
+  const levelRefs = useRef<Array<HTMLButtonElement | null>>([])
   const [positionStyles, setPositionStyles] = useState<CSSProperties>({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [hoverValue, setHoverValue] = useState<number | null>(null)
 
   const handleClickOutside = useCallback((e: globalThis.PointerEvent) => {
     const target = e.target as Node
@@ -56,6 +58,13 @@ export function EnergyPopover({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  useEffect(() => {
+    if (!isOpen) return
+    setLocalValue(value ?? null)
+    setHoverValue(null)
+    setSaveError('')
+  }, [isOpen, value])
+
   const positionPopover = useCallback(() => {
     if (!isOpen || !popoverRef.current) return
     const rect = popoverRef.current.getBoundingClientRect()
@@ -77,13 +86,14 @@ export function EnergyPopover({
 
   useLayoutEffect(() => {
     if (!isOpen) return undefined
-    sliderRef.current?.focus()
+    levelRefs.current[(localValue ?? 1) - 1]?.focus()
     positionPopover()
     window.addEventListener('resize', positionPopover)
     return () => window.removeEventListener('resize', positionPopover)
-  }, [isOpen, positionPopover])
+  }, [isOpen, localValue, positionPopover])
 
   const handleSelect = async () => {
+    if (localValue === null) return
     setSaving(true)
     setSaveError('')
     try {
@@ -97,8 +107,21 @@ export function EnergyPopover({
     }
   }
 
+  const handleLevelKeyDown = (event: KeyboardEvent<HTMLButtonElement>, level: number) => {
+    let nextLevel: number | null = null
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextLevel = Math.min(level + 1, 10)
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextLevel = Math.max(level - 1, 1)
+    if (event.key === 'Home') nextLevel = 1
+    if (event.key === 'End') nextLevel = 10
+    if (nextLevel === null) return
+    event.preventDefault()
+    setLocalValue(nextLevel)
+    levelRefs.current[nextLevel - 1]?.focus()
+  }
+
   if (!isOpen) return null
 
+  const previewValue = hoverValue ?? localValue ?? 0
   const popoverContent = (
     <div
       ref={popoverRef}
@@ -120,25 +143,45 @@ export function EnergyPopover({
         </button>
       </div>
 
-      <div className="energy-popover__slider">
-        <input
-          type="range"
-          ref={sliderRef}
-          min="1"
-          max="10"
-          value={localValue}
-          aria-label="Nivel de energía"
-          onChange={(e) => setLocalValue(Number(e.target.value))}
-          className="energy-popover__slider"
-          disabled={disabled}
-        />
-        <div className="energy-popover__labels">
-          {[1,2,3,4,5,6,7,8,9,10].map(n => (
-            <span key={n} className={localValue === n ? 'active' : ''}>{n}</span>
-          ))}
+      <div
+        className="energy-popover__scale"
+        role="radiogroup"
+        aria-label="Nivel de energía"
+        onPointerLeave={() => setHoverValue(null)}
+      >
+        <div className="energy-popover__rays">
+          {Array.from({ length: 10 }, (_, index) => {
+            const level = index + 1
+            const isSelected = localValue === level
+            return (
+              <button
+                key={level}
+                ref={(node) => { levelRefs.current[index] = node }}
+                type="button"
+                role="radio"
+                aria-label={`Energía ${level} de 10`}
+                aria-checked={isSelected}
+                tabIndex={localValue === null ? (level === 1 ? 0 : -1) : isSelected ? 0 : -1}
+                className={`energy-popover__ray${level <= previewValue ? ' is-lit' : ''}${isSelected ? ' is-selected' : ''}`}
+                onPointerEnter={() => setHoverValue(level)}
+                onFocus={() => setHoverValue(null)}
+                onClick={() => setLocalValue(level)}
+                onKeyDown={(event) => handleLevelKeyDown(event, level)}
+                disabled={disabled}
+              >
+                <Zap size={20} strokeWidth={2} aria-hidden="true" />
+              </button>
+            )
+          })}
         </div>
-        <output className="energy-popover__value">{localValue}/10</output>
+        <div className="energy-popover__range-labels" aria-hidden="true">
+          <span>1</span>
+          <span>10</span>
+        </div>
       </div>
+      <output className="energy-popover__value" aria-live="polite">
+        {localValue === null ? 'Selecciona energía' : `Energía: ${localValue} / 10`}
+      </output>
 
       {saveError && <p className="energy-popover__error" role="alert">{saveError}</p>}
 
@@ -146,7 +189,7 @@ export function EnergyPopover({
         type="button"
         className="energy-popover__save"
         onClick={handleSelect}
-        disabled={disabled || saving}
+        disabled={disabled || saving || localValue === null}
       >
         {saving ? 'Guardando...' : 'Guardar'}
       </button>

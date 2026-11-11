@@ -52,7 +52,7 @@ interface WeeklyGridProps {
   onClearDay: (date: string) => void
   onClickSlot: (date: string, startTime: string, endTime: string) => void
   userId: string
-  onStartTask: (taskId: string) => void
+  onStartTask: (entry: PlannerEntry, task: PlannerTask) => void
   onObligationUpdate: (id: string, changes: { title: string }) => Promise<boolean>
   onObligationOccurrenceUpdate: (entry: PlannerEntry, changes: { start_time: string; end_time: string }) => Promise<unknown>
 }

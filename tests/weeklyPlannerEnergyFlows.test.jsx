@@ -67,6 +67,7 @@ function taskBlockProps(overrides = {}) {
     onDurationChange: vi.fn(),
     onDelete: vi.fn(),
     onTaskUpdate: vi.fn(),
+    onStartTask: vi.fn(),
     userId: 'user-1',
     ...overrides,
   }
@@ -85,29 +86,28 @@ function habitBlockProps(overrides = {}) {
 }
 
 async function saveEnergy(value = 7) {
-  fireEvent.change(screen.getByRole('slider', { name: 'Nivel de energía' }), {
-    target: { value: String(value) },
-  })
+  fireEvent.click(screen.getByRole('radio', { name: `Energía ${value} de 10` }))
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 }
 
 describe('planner energy check-ins', () => {
-  it('opens the existing popover from a task start trigger and saves task-start energy', async () => {
+  it('opens the task action menu and saves task-start energy through its energy action', async () => {
     renderWithProviders(<TaskBlock {...taskBlockProps()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
 
     expect(screen.getByRole('dialog', { name: 'Seleccionar Energía inicial' })).toBeInTheDocument()
-    expect(screen.queryByRole('dialog', { name: 'Preparar informe' })).not.toBeInTheDocument()
     await saveEnergy()
 
     await waitFor(() => expect(saveEnergyAtTaskStart).toHaveBeenCalledWith('user-1', 7))
   })
 
-  it('opens the existing popover from a habit start trigger and records habit_start energy', async () => {
+  it('opens the habit action menu and records habit_start energy', async () => {
     renderWithProviders(<HabitBlock {...habitBlockProps()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
     await saveEnergy()
 
     await waitFor(() => {
@@ -119,11 +119,13 @@ describe('planner energy check-ins', () => {
   it('pairs task start and completion captures into one impact record', async () => {
     renderWithProviders(<TaskBlock {...taskBlockProps()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
     await saveEnergy(8)
     await waitFor(() => expect(recordTaskImpact).toHaveBeenCalledWith('user-1', 'task-1', 'start', 8))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir tarea Preparar informe' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     fireEvent.change(screen.getByLabelText('Estado de Preparar informe'), { target: { value: 'completed' } })
     await saveEnergy(4)
 
@@ -134,12 +136,14 @@ describe('planner energy check-ins', () => {
       4,
       'impact-1',
     ))
+
   })
 
   it('records habit_completion against the captured habit_start energy', async () => {
     renderWithProviders(<HabitBlock {...habitBlockProps()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
     await saveEnergy(8)
     await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
       'user-1',
@@ -148,7 +152,8 @@ describe('planner energy check-ins', () => {
       8,
     ))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir hábito Meditar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     fireEvent.change(screen.getByLabelText('Estado de Meditar'), { target: { value: 'completed' } })
     await saveEnergy(6)
 
@@ -181,18 +186,23 @@ describe('planner energy check-ins', () => {
       startMinutes: 540,
       endMinutes: 600,
     }
+    const onStatusChange = vi.fn()
+    const onDelete = vi.fn()
     renderWithProviders(
       <ObligationBlock
         entry={obligationEntry}
         segment={segment}
         onDragStart={vi.fn()}
+        onStatusChange={onStatusChange}
+        onDelete={onDelete}
         onDurationChange={vi.fn()}
         onOccurrenceUpdate={vi.fn()}
         onObligationUpdate={vi.fn()}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía antes de la obligación' }))
+    fireEvent.click(screen.getByRole('button', { name: /Acciones de obligación Trabajo/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
     await saveEnergy(7)
     await waitFor(() => expect(recordObligationImpact).toHaveBeenCalledWith(
       'user-1',
@@ -202,7 +212,8 @@ describe('planner energy check-ins', () => {
       undefined,
     ))
 
-    fireEvent.click(screen.getByRole('button', { name: /Abrir obligación Trabajo/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Acciones de obligación Trabajo/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Registrar energía final' }))
     await saveEnergy(5)
 
@@ -213,21 +224,79 @@ describe('planner energy check-ins', () => {
       5,
       'impact-1',
     ))
+
+    fireEvent.click(screen.getByRole('button', { name: /Acciones de obligación Trabajo/ }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Marcar como completada',
+      '⚡ Registrar energía',
+      'Editar',
+      'Eliminar',
+    ])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Marcar como completada' }))
+    expect(onStatusChange).toHaveBeenCalledWith(obligationEntry, 'completed')
+
+    fireEvent.click(screen.getByRole('button', { name: /Acciones de obligación Trabajo/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Eliminar' }))
+    expect(onDelete).toHaveBeenCalledWith(obligationEntry.id)
   })
 
-  it.each(['task', 'habit'])('does not start drag from the %s energy trigger', (itemType) => {
+  it.each(['task', 'habit'])('opens %s actions on click while keeping drag on the activity block', (itemType) => {
     const onDragStart = vi.fn()
     const element = itemType === 'task'
       ? <TaskBlock {...taskBlockProps({ onDragStart })} />
       : <HabitBlock {...habitBlockProps({ onDragStart })} />
-    const blockLabel = itemType === 'task' ? 'Abrir tarea Preparar informe' : 'Abrir hábito Meditar'
+    const blockLabel = itemType === 'task'
+      ? 'Acciones de tarea Preparar informe'
+      : 'Acciones de hábito Meditar'
     renderWithProviders(element)
 
-    fireEvent.dragStart(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    fireEvent.click(screen.getByRole('button', { name: blockLabel }))
+    expect(screen.getByRole('menu', { name: /Acciones para/ })).toBeInTheDocument()
+    fireEvent.dragStart(screen.getByRole('menuitem', { name: '⚡ Registrar energía' }))
     expect(onDragStart).not.toHaveBeenCalled()
 
     fireEvent.dragStart(screen.getByRole('button', { name: blockLabel }))
     expect(onDragStart).toHaveBeenCalledOnce()
+  })
+
+  it('shows the five contextual task actions and reuses focus start and existing deletion handlers', () => {
+    const onStatusChange = vi.fn()
+    const onDelete = vi.fn()
+    const onStartTask = vi.fn()
+    renderWithProviders(<TaskBlock {...taskBlockProps({ onStatusChange, onDelete, onStartTask })} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Marcar como en curso',
+      'Marcar como completada',
+      '⚡ Registrar energía',
+      'Editar',
+      'Eliminar',
+    ])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Marcar como en curso' }))
+    expect(onStartTask).toHaveBeenCalledWith(entry, task)
+    expect(onStatusChange).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Eliminar' }))
+    expect(onDelete).toHaveBeenCalledWith(entry.id)
+  })
+
+  it('shows only habit actions and completes through its existing status handler', () => {
+    const onStatusChange = vi.fn()
+    renderWithProviders(<HabitBlock {...habitBlockProps({ onStatusChange })} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Marcar como completado',
+      '⚡ Registrar energía',
+      'Editar',
+      'Eliminar',
+    ])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Marcar como completado' }))
+
+    expect(onStatusChange).toHaveBeenCalledWith(entry, 'completed')
+    expect(screen.getByRole('dialog', { name: 'Seleccionar Energía al finalizar' })).toBeInTheDocument()
   })
 
   it.each(['completed', 'failed', 'moved'])(
@@ -236,7 +305,8 @@ describe('planner energy check-ins', () => {
       const onStatusChange = vi.fn()
       renderWithProviders(<TaskBlock {...taskBlockProps({ onStatusChange })} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'Abrir tarea Preparar informe' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Acciones de tarea Preparar informe' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
       fireEvent.change(screen.getByLabelText('Estado de Preparar informe'), { target: { value: status } })
 
       expect(onStatusChange).toHaveBeenCalledWith(entry, status)
@@ -253,7 +323,8 @@ describe('planner energy check-ins', () => {
       const onStatusChange = vi.fn()
       renderWithProviders(<HabitBlock {...habitBlockProps({ onStatusChange })} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'Abrir hábito Meditar' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
       fireEvent.change(screen.getByLabelText('Estado de Meditar'), { target: { value: status } })
 
       expect(onStatusChange).toHaveBeenCalledWith(entry, status)

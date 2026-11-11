@@ -61,7 +61,7 @@ interface DayColumnProps {
   onTaskUpdate: (taskId: string, changes: Partial<Task>) => void | Promise<void>
   onClickSlot: (date: string, startTime: string, endTime: string) => void
   userId: string
-  onStartTask: (taskId: string) => void
+  onStartTask: (entry: PlannerEntry, task: PlannerTask) => void
   onObligationUpdate: (id: string, changes: { title: string }) => Promise<boolean>
   onObligationOccurrenceUpdate: (entry: PlannerEntry, changes: { start_time: string; end_time: string }) => Promise<unknown>
 }
@@ -103,6 +103,8 @@ export default function DayColumn({ date, today, currentTime, entries, taskById,
                 entry={entry}
                 segment={segment}
                 onDragStart={onDragStart}
+                onStatusChange={onStatusChange}
+                onDelete={onDelete}
                 onDurationChange={onDurationChange}
                 onOccurrenceUpdate={onObligationOccurrenceUpdate}
                 onObligationUpdate={onObligationUpdate}

@@ -15,7 +15,7 @@ export function EnergyPopoverProvider({ children }) {
     setPopoverState({
       isOpen: true,
       config: {
-        value: config.value ?? 5,
+        value: config.value ?? null,
         label: config.label ?? 'Energía',
         onSave: config.onSave,
         triggerRef: config.triggerRef,

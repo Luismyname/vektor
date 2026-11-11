@@ -2,7 +2,7 @@ import { useContext } from 'react'
 import { EnergyPopoverContext } from '../context/EnergyPopoverContext'
 
 interface EnergyPopoverConfig {
-  value?: number
+  value?: number | null
   label?: string
   onSave?: (value: number) => void | Promise<void>
   triggerRef?: { current: HTMLElement | null }

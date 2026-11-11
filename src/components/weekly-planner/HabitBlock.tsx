@@ -1,8 +1,9 @@
-import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent, type MouseEvent } from 'react'
+import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent, type RefObject } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
 import { saveEnergyAtHabitCompletion, saveEnergyAtMoment } from '../../services/energy'
 import { recordHabitImpact } from '../../services/energy-impact-engine'
+import ActivityContextMenu from './ActivityContextMenu'
 import WeeklyBlockModal from './WeeklyBlockModal'
 import { parseTime } from '../../services/weekly-planner'
 import type { Habit } from '../../types'
@@ -31,45 +32,37 @@ const STATUS_LABELS: Record<string, string> = { scheduled: 'Programado', complet
 export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, onDurationChange, onDelete }: HabitBlockProps) {
   const { user } = useAuth()
   const { openEnergyPopover } = useEnergyPopover()
-  const energyTriggerRef = useRef<HTMLButtonElement>(null)
+  const articleRef = useRef<HTMLElement>(null)
   const statusTriggerRef = useRef<HTMLSelectElement>(null)
   const impactIdRef = useRef<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showContextMenu, setShowContextMenu] = useState(false)
   if (!habit) return null
   const startTime = parseTime(entry.start_time)
   const endTime = parseTime(entry.end_time)
   const startMinutes = startTime.hours * 60 + startTime.minutes
   const endMinutes = endTime.hours * 60 + endTime.minutes
   const duration = Math.max(endMinutes - startMinutes, 30)
-  const handleOpenEnergyPopover = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    if (entry.status !== 'scheduled' || !user?.id) return
+  const openEnergyCapture = (
+    phase: 'start' | 'finish',
+    triggerRef = articleRef,
+    recordCompletedImpact = entry.status === 'completed',
+  ) => {
+    if (!user?.id) return
     openEnergyPopover({
-      value: entry.energy_level ?? 5,
-      label: 'Energía inicial',
-      triggerRef: energyTriggerRef,
+      value: entry.energy_level,
+      label: phase === 'start' ? 'Energía inicial' : 'Energía al finalizar',
+      triggerRef,
       onSave: async (energy) => {
-        const { error } = await saveEnergyAtMoment(user.id, energy, 'habit_start')
+        const { error } = phase === 'start'
+          ? await saveEnergyAtMoment(user.id, energy, 'habit_start')
+          : await saveEnergyAtHabitCompletion(user.id, energy)
         if (error) throw error
-        const impact = await recordHabitImpact(user.id, habit.id, 'start', energy)
-        if (impact.error) throw impact.error
-        impactIdRef.current = impact.data?.id || null
-      },
-    })
-  }
-  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    event.stopPropagation()
-    const status = event.target.value
-    onStatusChange(entry, status)
-    if (!['completed', 'failed', 'moved'].includes(status) || !user?.id) return
-    openEnergyPopover({
-      value: entry.energy_level ?? 5,
-      label: 'Energía al finalizar',
-      triggerRef: statusTriggerRef,
-      onSave: async (energy) => {
-        const { error } = await saveEnergyAtHabitCompletion(user.id, energy)
-        if (error) throw error
-        if (status === 'completed') {
+        if (phase === 'start') {
+          const impact = await recordHabitImpact(user.id, habit.id, 'start', energy)
+          if (impact.error) throw impact.error
+          impactIdRef.current = impact.data?.id || null
+        } else if (recordCompletedImpact) {
           const impact = await recordHabitImpact(user.id, habit.id, 'finish', energy, impactIdRef.current || undefined)
           if (impact.error) throw impact.error
           impactIdRef.current = null
@@ -77,30 +70,38 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
       },
     })
   }
+  const changeStatus = (status: string, triggerRef: RefObject<HTMLElement | null> = articleRef) => {
+    onStatusChange(entry, status)
+    if (!['completed', 'failed', 'moved'].includes(status)) return
+    openEnergyCapture('finish', triggerRef, status === 'completed')
+  }
+  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    event.stopPropagation()
+    changeStatus(event.target.value)
+  }
+  const handleActivityKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setShowContextMenu(true)
+    }
+  }
   return (
     <>
-      <article style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => {
-        if (energyTriggerRef.current?.contains(event.target as Node)) {
-          event.preventDefault()
-          return
-        }
-        onDragStart(event, entry)
-      }} onClick={() => setShowModal(true)} onKeyDown={(event: KeyboardEvent<HTMLElement>) => { if (event.key === 'Enter' || event.key === ' ') setShowModal(true) }} role="button" tabIndex={0} aria-label={`Abrir hábito ${habit.title}`}>
+      <article ref={articleRef} style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowContextMenu(true)} onKeyDown={handleActivityKeyDown} role="button" tabIndex={0} aria-label={`Acciones de hábito ${habit.title}`} aria-haspopup="menu" aria-expanded={showContextMenu}>
         <strong>{habit.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
-        {entry.status === 'scheduled' && (
-          <button
-            ref={energyTriggerRef}
-            type="button"
-            className="task-energy-trigger"
-            onClick={handleOpenEnergyPopover}
-            aria-label="Registrar energía inicial"
-            title="Registrar energía inicial"
-          >
-            ⚡
-          </button>
-        )}
       </article>
+      <ActivityContextMenu
+        open={showContextMenu}
+        label={habit.title}
+        anchorRef={articleRef}
+        completeLabel="Marcar como completado"
+        onClose={() => setShowContextMenu(false)}
+        onComplete={() => changeStatus('completed', articleRef)}
+        onEnergy={() => openEnergyCapture(entry.status === 'scheduled' ? 'start' : 'finish')}
+        onEdit={() => setShowModal(true)}
+        onDelete={() => onDelete(entry.id)}
+      />
       {showModal && <WeeklyBlockModal title={habit.title} description={habit.description} start={entry.start_time.slice(0, 5)} end={entry.end_time.slice(0, 5)} status={entry.status} statusLabel={STATUS_LABELS[entry.status]} onClose={() => setShowModal(false)}>
         <label className="weekly-modal-field">Duración
           <select value={duration} onChange={(event: ChangeEvent<HTMLSelectElement>) => onDurationChange(entry, Number(event.target.value))} aria-label={`Duración de ${habit.title}`}>

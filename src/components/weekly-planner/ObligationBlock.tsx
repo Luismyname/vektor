@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
 import { recordObligationImpact } from '../../services/energy-impact-engine'
 import { parseTime } from '../../services/weekly-planner'
 import type { ObligationSegment, ObligationType } from '../../services/weekly-planner'
+import ActivityContextMenu from './ActivityContextMenu'
 import WeeklyBlockModal from './WeeklyBlockModal'
 
 export interface ObligationDetails {
@@ -29,6 +30,8 @@ interface ObligationBlockProps {
   entry: ObligationPlannerEntry
   segment: ObligationSegment
   onDragStart: (event: DragEvent<HTMLElement>, entry: ObligationPlannerEntry) => void
+  onStatusChange: (entry: ObligationPlannerEntry, status: string) => void
+  onDelete: (entryId: string) => void
   onDurationChange: (entry: ObligationPlannerEntry, duration: number) => void
   onOccurrenceUpdate: (entry: ObligationPlannerEntry, changes: { start_time: string; end_time: string }) => Promise<unknown>
   onObligationUpdate: (id: string, changes: { title: string }) => Promise<boolean>
@@ -54,13 +57,14 @@ function formatTime(time: string) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-export default function ObligationBlock({ entry, segment, onDragStart, onDurationChange, onOccurrenceUpdate, onObligationUpdate }: ObligationBlockProps) {
+export default function ObligationBlock({ entry, segment, onDragStart, onStatusChange, onDelete, onDurationChange, onOccurrenceUpdate, onObligationUpdate }: ObligationBlockProps) {
   const { user } = useAuth()
   const { openEnergyPopover } = useEnergyPopover()
-  const startEnergyTriggerRef = useRef<HTMLButtonElement>(null)
+  const articleRef = useRef<HTMLElement>(null)
   const finishEnergyTriggerRef = useRef<HTMLButtonElement>(null)
   const impactIdRef = useRef<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showContextMenu, setShowContextMenu] = useState(false)
   const [title, setTitle] = useState(entry.obligation.title)
   const [startTime, setStartTime] = useState(formatTime(entry.start_time))
   const [endTime, setEndTime] = useState(formatTime(entry.end_time))
@@ -79,13 +83,12 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
     setEndTime(formatTime(entry.end_time))
   }, [entry.obligation.title, entry.start_time, entry.end_time])
 
-  function handleOpenEnergyPopover(event: MouseEvent<HTMLButtonElement>, phase: 'start' | 'finish') {
-    event.stopPropagation()
+  function handleOpenEnergyPopover(phase: 'start' | 'finish', triggerRef = articleRef) {
     if (!user?.id) return
     openEnergyPopover({
-      value: 5,
+      value: null,
       label: phase === 'start' ? 'Energía antes de la obligación' : 'Energía después de la obligación',
-      triggerRef: phase === 'start' ? startEnergyTriggerRef : finishEnergyTriggerRef,
+      triggerRef,
       onSave: async (energy) => {
         const result = await recordObligationImpact(
           user.id,
@@ -115,41 +118,45 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
     setShowModal(false)
   }
 
+  function handleActivityKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setShowContextMenu(true)
+    }
+  }
+
   return (
     <>
       <article
+        ref={articleRef}
         style={style}
         className={`weekly-block weekly-obligation-block obligation-${entry.obligation.obligation_type} obligation-segment-${segment.segment}`}
         draggable
         onDragStart={(event) => {
-          if (startEnergyTriggerRef.current?.contains(event.target as Node)) {
-            event.preventDefault()
-            return
-          }
           onDragStart(event, entry)
         }}
-        onClick={() => setShowModal(true)}
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
-          if (event.key === 'Enter' || event.key === ' ') setShowModal(true)
-        }}
+        onClick={() => setShowContextMenu(true)}
+        onKeyDown={handleActivityKeyDown}
         role="button"
         tabIndex={0}
-        aria-label={`Abrir obligación ${entry.obligation.title}, ${segmentLabel}`}
+        aria-label={`Acciones de obligación ${entry.obligation.title}, ${segmentLabel}`}
+        aria-haspopup="menu"
+        aria-expanded={showContextMenu}
       >
         <strong>{entry.obligation.title}</strong>
         <span>{segmentLabel}</span>
-        <button
-          ref={startEnergyTriggerRef}
-          type="button"
-          className="task-energy-trigger"
-          onClick={(event) => handleOpenEnergyPopover(event, 'start')}
-          disabled={!user?.id}
-          aria-label="Registrar energía antes de la obligación"
-          title="Registrar energía antes de la obligación"
-        >
-          ⚡
-        </button>
       </article>
+      <ActivityContextMenu
+        open={showContextMenu}
+        label={entry.obligation.title}
+        anchorRef={articleRef}
+        completeLabel="Marcar como completada"
+        onClose={() => setShowContextMenu(false)}
+        onComplete={() => onStatusChange(entry, 'completed')}
+        onEnergy={() => handleOpenEnergyPopover('start')}
+        onEdit={() => setShowModal(true)}
+        onDelete={() => onDelete(entry.id)}
+      />
       {showModal && (
         <WeeklyBlockModal
           title={entry.obligation.title}
@@ -176,7 +183,7 @@ export default function ObligationBlock({ entry, segment, onDragStart, onDuratio
           <button
             ref={finishEnergyTriggerRef}
             type="button"
-            onClick={(event) => handleOpenEnergyPopover(event, 'finish')}
+            onClick={() => handleOpenEnergyPopover('finish', finishEnergyTriggerRef)}
             disabled={!user?.id}
           >
             Registrar energía final
