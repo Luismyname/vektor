@@ -7,7 +7,7 @@ const { state, supabase } = vi.hoisted(() => {
       state.queries.push({ table, methods: [] })
       const current = state.queries[state.queries.length - 1]
       const query = {}
-      for (const method of ['select', 'eq', 'gte', 'lte', 'not']) {
+      for (const method of ['select', 'eq', 'gte', 'lte', 'not', 'order', 'range']) {
         query[method] = vi.fn((...args) => {
           current.methods.push([method, ...args])
           return query
@@ -55,6 +55,24 @@ function makeContext(overrides = {}) {
   }
 }
 
+function makeEvidence(activityId = 'task-1', activityType = 'task', overrides = {}) {
+  return {
+    activityId,
+    activityType,
+    attemptCount: 8,
+    completedCount: 6,
+    bestHour: 9,
+    bestCompletionRate: 0.9,
+    worstCompletionRate: 0.5,
+    averageEnergyDelta: 1.5,
+    energyImpactCount: 6,
+    frictionCount: 2,
+    adapted: true,
+    sleepAverageHours: 7,
+    ...overrides,
+  }
+}
+
 function makeTask(overrides = {}) {
   return {
     id: 'task-1',
@@ -94,28 +112,40 @@ describe('recommendation engine', () => {
   it.each([
     ['medium', 'medium'],
     ['high', 'high'],
-  ])('supports %s confidence for reliable energy-based recommendations', (energyConfidence, expected) => {
+  ])('supports %s confidence when activity history supports the proposal', (energyConfidence, expected) => {
     const [recommendation] = generateTaskRecommendations(
       [makeTask()],
-      makeContext({ confidence: energyConfidence }),
+      makeContext({
+        confidence: energyConfidence,
+        activityEvidence: [makeEvidence()],
+      }),
     )
 
     expect(recommendation.confidence).toBe(expected)
-    expect(recommendation.recommendedWindow).toEqual({ start: '00:00', end: '04:00' })
+    expect(recommendation.recommendedWindow).toEqual({ start: '09:00', end: '10:00' })
   })
 
-  it('recommends only pending, high-priority or high-energy tasks', () => {
+  it('requires activity-specific evidence and recommends only pending, high-priority or high-energy tasks', () => {
+    expect(generateTaskRecommendations([makeTask()], makeContext())).toEqual([])
     const recommendations = generateTaskRecommendations([
       makeTask(),
       makeTask({ id: 'completed', status: 'completed' }),
       makeTask({ id: 'in-progress', status: 'in_progress' }),
       makeTask({ id: 'medium-energy', priority: 'medium', energy_cost: 3 }),
       makeTask({ id: 'high-cost', priority: 'medium', energy_cost: 4 }),
-    ], makeContext())
+    ], makeContext({
+      activityEvidence: [
+        makeEvidence(),
+        makeEvidence('high-cost'),
+      ],
+    }))
 
     expect(recommendations.map(({ id }) => id)).toEqual(['task-task-1', 'task-high-cost'])
-    expect(recommendations[0].reason).toContain('requiere mucha energía')
-    expect(recommendations[0].recommendedWindow).toEqual({ start: '00:00', end: '04:00' })
+    expect(recommendations[0].reason).toContain('alto coste energético')
+    expect(recommendations[0].reason).toContain('impacto energético medio')
+    expect(recommendations[0].reason).toContain('señales de fricción')
+    expect(recommendations[0].reason).toContain('adaptación')
+    expect(recommendations[0].recommendedWindow).toEqual({ start: '09:00', end: '10:00' })
   })
 
   it('does not recommend high-energy tasks on low-energy days and explains task splitting', () => {
@@ -123,7 +153,10 @@ describe('recommendation engine', () => {
       ...generateTaskRecommendations([
         makeTask(),
         makeTask({ id: 'light', priority: 'high', energy_cost: 2 }),
-      ], makeContext({ isLowEnergy: true })),
+      ], makeContext({
+        isLowEnergy: true,
+        activityEvidence: [makeEvidence('light')],
+      })),
       ...generateLowEnergyRecommendations(
         { isLowEnergy: true, reasons: ['Has dormido menos de 6 horas'] },
         null,
@@ -161,7 +194,7 @@ describe('recommendation engine', () => {
     )).toEqual([])
   })
 
-  it('respects recurring obligations and existing planner occurrences when selecting a window', () => {
+  it('does not recommend an activity window blocked by recurring obligations or planner entries', () => {
     const profile = makeProfile(4).map((entry) => ({
       ...entry,
       average: entry.hour >= 8 && entry.hour < 12
@@ -185,46 +218,42 @@ describe('recommendation engine', () => {
       },
     }
 
-    const [recommendation] = generateTaskRecommendations([makeTask()], makeContext({
+    const recurringConflict = generateTaskRecommendations([makeTask()], makeContext({
       hourlyProfile: profile,
       obligations: [weeklyWork],
+      activityEvidence: [makeEvidence()],
     }))
-    expect(recommendation.recommendedWindow).toEqual({ start: '12:00', end: '16:00' })
+    expect(recurringConflict).toEqual([])
 
     const blockedPlannerWindow = generateTaskRecommendations([makeTask()], makeContext({
       hourlyProfile: profile,
+      activityEvidence: [makeEvidence()],
       plannerEntries: [{
         date: today,
-        start_time: '12:00',
-        end_time: '16:00',
+        start_time: '09:00',
+        end_time: '10:00',
         obligation_id: 'appointment',
         obligation_occurrence_date: today,
       }],
-      obligations: [
-        weeklyWork,
-        {
-          id: 'appointment',
-          active: true,
-          obligation_type: 'appointment',
-          recurrence_rule: { frequency: 'once', startsOn: today, startTime: '12:00', endTime: '16:00', byDay: [] },
-        },
-      ],
+      obligations: [],
     }))
-    expect(blockedPlannerWindow[0].recommendedWindow).toEqual({ start: '16:00', end: '20:00' })
+    expect(blockedPlannerWindow).toEqual([])
   })
 
-  it('recommends active habits only with reliable profile data and an obligation-free window', () => {
+  it('recommends active habits only with activity history and reliable profile data', () => {
     const recommendations = generateHabitRecommendations([
       { id: 'active', title: 'Leer', active: true },
       { id: 'inactive', title: 'Meditar', active: false },
-    ], makeContext())
+    ], makeContext({
+      activityEvidence: [makeEvidence('active', 'habit')],
+    }))
 
     expect(recommendations).toHaveLength(1)
     expect(recommendations[0]).toMatchObject({
       id: 'habit-active',
       type: 'habit',
       confidence: 'medium',
-      recommendedWindow: { start: '00:00', end: '04:00' },
+      recommendedWindow: { start: '09:00', end: '10:00' },
     })
   })
 
@@ -243,7 +272,14 @@ describe('recommendation engine', () => {
     const result = await getRecommendationAvailability('user-1', today)
 
     expect(result.error).toBeNull()
-    expect(state.queries.map(({ table }) => table).sort()).toEqual(['obligations', 'weekly_planner'])
+    expect(state.queries.map(({ table }) => table).sort()).toEqual([
+      'energy_impacts',
+      'habit_status_history',
+      'obligations',
+      'sleep_records',
+      'user_patterns',
+      'weekly_planner',
+    ])
     expect(state.queries.flatMap(({ methods }) => methods).some(([method]) => method === 'insert' || method === 'update' || method === 'delete')).toBe(false)
   })
 })

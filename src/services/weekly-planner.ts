@@ -2,6 +2,7 @@
 import { getCurrentProfile } from './auth';
 import { normalizeHabits } from '../lib/habits';
 import type { Habit, Task, TaskPriority } from '../types';
+import { findNextAvailablePlannerSlot, findPlannerConflicts, hasHabitOnDate } from './planner-automation';
 
 type PlannerTask = Pick<Task, 'id' | 'user_id'> & Partial<Task>;
 
@@ -102,6 +103,58 @@ function dateOffset(dateString: string, days: number) {
   const date = new Date(`${dateString}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+const AUTOMATION_PLANNER_FIELDS = 'id, user_id, date, start_time, end_time, task_id, habit_id, obligation_id, status, notes, is_creative_block';
+
+async function validatePlannerSlot(
+  userId: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  activity: { task_id?: string | null; habit_id?: string | null },
+  excludeEntryId?: string,
+) {
+  if (!isValidDate(date) || !isValidTime(startTime) || !isValidTime(endTime)
+    || parseTime(endTime).hours * 60 + parseTime(endTime).minutes
+      <= parseTime(startTime).hours * 60 + parseTime(startTime).minutes) {
+    return new Error('La fecha y el intervalo horario deben ser válidos y finalizar el mismo día.');
+  }
+
+  const { data, error } = await supabase
+    .from('weekly_planner')
+    .select(AUTOMATION_PLANNER_FIELDS)
+    .eq('user_id', userId)
+    .gte('date', dateOffset(date, -1))
+    .lte('date', dateOffset(date, 1));
+  if (error) return error;
+
+  const entries = (data || []) as Array<{
+    id: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    task_id: string | null;
+    habit_id: string | null;
+    obligation_id: string | null;
+    status: string;
+  }>;
+  if (activity.habit_id && hasHabitOnDate(activity.habit_id, date, entries, excludeEntryId)) {
+    return new Error('Este hábito ya está programado para ese día.');
+  }
+
+  const candidate = {
+    id: excludeEntryId,
+    date,
+    start_time: startTime,
+    end_time: endTime,
+    ...activity,
+  };
+  const conflicts = findPlannerConflicts(candidate, entries);
+  if (conflicts.length) {
+    return new Error('La franja ya está ocupada. Elige un horario sin solapamientos.');
+  }
+  return null;
 }
 
 function getIsoWeekday(dateString: string) {
@@ -414,6 +467,8 @@ export async function scheduleTask(
   options: ScheduleOptions = {}
 ) {
   const { energyLevel, isCreativeBlock, focusSessionId } = options;
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, { task_id: task.id });
+  if (slotError) return { entry: null, error: slotError };
   const payload = {
     user_id: userId,
     date: formatDate(date),
@@ -441,6 +496,8 @@ export async function scheduleHabit(
   options: ScheduleOptions = {}
 ) {
   const { energyLevel, isCreativeBlock, focusSessionId } = options;
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, { habit_id: habit.id });
+  if (slotError) return { entry: null, error: slotError };
   const payload = {
     user_id: userId,
     date: formatDate(date),
@@ -520,6 +577,33 @@ export async function movePlannerEntry(entryId: string, newDate: Date | string, 
   return updatePlannerEntry(entryId, { date: formatDate(newDate), start_time: newStart, end_time: newEnd, status: 'moved' });
 }
 
+export async function getPlannerConflicts(userId: string) {
+  if (!userId) return { conflicts: [], error: new Error('El usuario es obligatorio para consultar conflictos.') };
+  const { data, error } = await supabase
+    .from('planner_conflicts')
+    .select('id, user_id, source_entry_id, conflicting_entry_id, source_title, source_type, conflicting_title, conflicting_type, status, detected_at, grace_until, resolution_message')
+    .eq('user_id', userId)
+    .order('detected_at', { ascending: false });
+  return { conflicts: data || [], error };
+}
+
+export async function resolvePlannerConflict(conflictId: string, mode: 'manual' | 'automatic') {
+  if (!conflictId || !['manual', 'automatic'].includes(mode)) {
+    return { movedCount: 0, error: new Error('El conflicto o el modo de resolución no son válidos.') };
+  }
+  const { data, error } = await supabase.rpc('resolve_planner_conflict', {
+    conflict_id: conflictId,
+    resolution_mode: mode,
+  });
+  return { movedCount: Number(data) || 0, error };
+}
+
+export async function dismissPlannerConflict(conflictId: string) {
+  if (!conflictId) return { error: new Error('El conflicto es obligatorio para cerrar el aviso.') };
+  const { error } = await supabase.rpc('dismiss_planner_conflict', { conflict_id: conflictId });
+  return { error };
+}
+
 export async function resizePlannerEntry(entryId: string, newStart: string, newEnd: string) {
   return updatePlannerEntry(entryId, { start_time: newStart, end_time: newEnd });
 }
@@ -541,7 +625,7 @@ export async function deletePlannerWeek(userId: string, weekStart: Date | string
 }
 
 export async function getOpenTasks(userId: string) {
-  const { data, error } = await supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at').eq('user_id', userId).neq('status', 'completed').order('created_at');
+  const { data, error } = await supabase.from('tasks').select('id, user_id, title, description, priority, status, related_value, created_at, estimated_duration').eq('user_id', userId).neq('status', 'completed').order('created_at');
   return { tasks: data || [], error };
 }
 
@@ -551,16 +635,52 @@ export async function autoReschedule(taskId: string, userId: string, weekStart: 
   const task = tasks.find((item) => item.id === taskId);
   if (!task) return { entry: null, error: new Error('No se encontró la tarea pendiente.') };
 
-  const dates = getWeekDates(weekStart).slice(1);
-  const { entries, error: entriesError } = await getWeeklyPlanner(userId, weekStart);
-  if (entriesError) return { entry: null, error: entriesError };
-  const occupiedDates = new Set(entries.filter((entry) => entry.task_id).map((entry) => entry.date));
-  const targetDate = dates.find((date) => !occupiedDates.has(date)) || dates[dates.length - 1];
-  const durationMinutes = 60;
-  const startMinutes = task.priority === 'high' ? 9 * 60 : 11 * 60;
-  const startTime = `${String(Math.floor(startMinutes / 60)).padStart(2, '0')}:00`;
-  const endTime = `${String(Math.floor((startMinutes + durationMinutes) / 60)).padStart(2, '0')}:00`;
-  return scheduleTask(task, targetDate, startTime, endTime, userId, `Reprogramada automáticamente por prioridad ${task.priority || 'medium'}.`);
+  const dates = getWeekDates(weekStart);
+  const [{ data, error: entriesError }, { obligations, error: obligationsError }] = await Promise.all([
+    supabase.from('weekly_planner')
+      .select(PLANNER_FIELDS)
+      .eq('user_id', userId)
+      .gte('date', dates[0])
+      .lte('date', dateOffset(dates[dates.length - 1], 2)),
+    loadObligations(userId),
+  ]);
+  if (entriesError || obligationsError) return { entry: null, error: entriesError || obligationsError };
+  const obligationById = new Map(obligations.map((obligation) => [obligation.id, obligation]));
+  const entries = (data || []).map((entry) => ({
+    ...entry,
+    obligation: obligationById.get(entry.obligation_id) || null,
+  }));
+  const existingEntry = entries
+    .filter((entry) => entry.task_id === taskId && ['scheduled', 'failed', 'moved'].includes(entry.status))
+    .sort((left, right) => `${right.date}T${right.start_time}`.localeCompare(`${left.date}T${left.start_time}`))[0];
+  const nextSlot = existingEntry
+    ? findNextAvailablePlannerSlot(existingEntry, entries, 48 * 60, {
+      date: formatDate(new Date()),
+      time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
+    }, true)
+    : null;
+
+  if (existingEntry && nextSlot) {
+    return movePlannerEntry(existingEntry.id, nextSlot.date, nextSlot.startTime, nextSlot.endTime);
+  }
+
+  const now = new Date();
+  const startTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const duration = Number(task.estimated_duration) > 0 ? Number(task.estimated_duration) : 60;
+  const endMinute = duration;
+  const candidate = {
+    date: formatDate(now),
+    start_time: '00:00',
+    end_time: `${String(Math.floor(endMinute / 60)).padStart(2, '0')}:${String(endMinute % 60).padStart(2, '0')}`,
+    task_id: taskId,
+  };
+  const nowMinute = parseTime(startTime).hours * 60 + parseTime(startTime).minutes;
+  const nextSlotFromNow = findNextAvailablePlannerSlot(candidate, entries, 48 * 60 - nowMinute, {
+    date: formatDate(now),
+    time: startTime,
+  });
+  if (!nextSlotFromNow) return { entry: null, error: new Error('No se encontró un hueco válido en las próximas 48 horas.') };
+  return scheduleTask(task, nextSlotFromNow.date, nextSlotFromNow.startTime, nextSlotFromNow.endTime, userId);
 }
 
 export async function createTaskAndSchedule(
@@ -570,6 +690,9 @@ export async function createTaskAndSchedule(
   endTime: string,
   userId: string
 ) {
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, { task_id: 'pending' });
+  if (slotError) return { entry: null, error: slotError };
+
   const { data: task, error: taskError } = await supabase.from('tasks').insert({
     user_id: userId,
     title: taskData.title,
@@ -591,6 +714,9 @@ export async function createHabitAndSchedule(
   endTime: string,
   userId: string
 ) {
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, { habit_id: 'pending' });
+  if (slotError) return { entry: null, error: slotError };
+
   const { data: habit, error: habitError } = await supabase
     .from('habits')
     .insert({
@@ -618,6 +744,8 @@ export async function createReminder(
   endTime: string,
   userId: string
 ) {
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, {});
+  if (slotError) return { entry: null, error: slotError };
   const payload = {
     user_id: userId,
     date: formatDate(date),
@@ -733,6 +861,10 @@ export async function scheduleCreativeBlock(
   endTime: string,
   userId: string
 ) {
+  const slotError = await validatePlannerSlot(userId, formatDate(date), startTime, endTime, {
+    task_id: blockData.plannedTaskId || null,
+  });
+  if (slotError) return { entry: null, error: slotError };
   const payload = {
     user_id: userId,
     date: formatDate(date),

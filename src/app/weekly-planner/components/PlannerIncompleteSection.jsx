@@ -4,8 +4,6 @@ import { usePagination } from '../hooks/usePagination'
 import PaginationControls from './PaginationControls'
 import { useEnergyPopover } from '../../../hooks/useEnergyPopover'
 import {
-  saveEnergyAtHabitCompletion,
-  saveEnergyAtMoment,
   saveEnergyAtTaskEnd,
   saveEnergyAtTaskStart,
 } from '../../../services/energy'
@@ -71,13 +69,14 @@ export default function PlannerIncompleteSection({
       label: phase === 'start' ? 'Energía inicial' : 'Energía al finalizar',
       triggerRef: { current: energyTriggerRefs.get(entry.id) },
       onSave: async (energy) => {
-        const saveEnergy = phase === 'start'
-          ? (isTask ? saveEnergyAtTaskStart(userId, energy) : saveEnergyAtMoment(userId, energy, 'habit_start'))
-          : (isTask ? saveEnergyAtTaskEnd(userId, energy) : saveEnergyAtHabitCompletion(userId, energy))
-        const { error } = await saveEnergy
-        if (error) throw error
+        if (isTask) {
+          const { error } = await (phase === 'start'
+            ? saveEnergyAtTaskStart(userId, energy)
+            : saveEnergyAtTaskEnd(userId, energy))
+          if (error) throw error
+        }
         const activityId = entry[`${itemType}_id`]
-        if (phase === 'start' || status === 'completed') {
+        if (phase === 'start' || (isTask ? status === 'completed' : status !== 'moved')) {
           const impact = await (isTask ? recordTaskImpact : recordHabitImpact)(
             userId,
             activityId,

@@ -12,6 +12,8 @@ import type {
   HourlyEnergyProfileEntry,
 } from './energy-insights'
 import type { ObligationRecurrenceRule, PlannerObligation } from './weekly-planner'
+import { getEnergyImpactHistoryStart, getEnergyImpacts } from './energy-impact-engine'
+import type { EnergyImpact } from './energy-impact-engine'
 
 export interface Recommendation {
   id: string
@@ -38,10 +40,47 @@ export interface RecommendationPlannerEntry {
   obligation_id?: string | null
   obligation_occurrence_date?: string | null
   status?: string
+  is_creative_block?: boolean
+  notes?: string | null
   obligation?: Pick<PlannerObligation, 'obligation_type'> | null
 }
 
 export type RecommendationObligation = Pick<PlannerObligation, 'id' | 'obligation_type' | 'active' | 'recurrence_rule'>
+
+export interface ActivityLearningEvidence {
+  activityId: string
+  activityType: 'task' | 'habit'
+  attemptCount: number
+  completedCount: number
+  bestHour: number
+  bestCompletionRate: number
+  worstCompletionRate: number
+  averageEnergyDelta: number
+  energyImpactCount: number
+  frictionCount: number
+  adapted: boolean
+  sleepAverageHours: number | null
+}
+
+interface HabitStatusHistoryRecord {
+  habit_id: string
+  planner_entry_id: string | null
+  planned_date: string
+  status: string
+  event_type: string
+}
+
+interface LearningPatternRecord {
+  pattern_type: string
+  pattern_data: Record<string, unknown>
+  confidence: number
+}
+
+interface RecommendationSleepRecord {
+  sleep_date: string
+  hours_slept: number
+  sleep_quality: number
+}
 
 interface EnergyWindowContext {
   hourlyProfile: HourlyEnergyProfileEntry[]
@@ -49,6 +88,8 @@ interface EnergyWindowContext {
   obligations: RecommendationObligation[]
   plannerEntries: RecommendationPlannerEntry[]
   today: string
+  activityEvidence?: ActivityLearningEvidence[]
+  sleepRecords?: RecommendationSleepRecord[]
 }
 
 interface TaskRecommendationContext extends EnergyWindowContext {
@@ -145,12 +186,12 @@ function getBlockedObligationIntervals(
   const entriesByOccurrence = new Map<string, RecommendationPlannerEntry[]>()
 
   for (const entry of plannerEntries) {
+    addInterval(intervalsByDate, entry.date, entry.start_time, entry.end_time)
     if (!entry.obligation_id || !activeIds.has(entry.obligation_id)) continue
     const key = `${entry.obligation_id}:${entry.obligation_occurrence_date || entry.date}`
     const entries = entriesByOccurrence.get(key) || []
     entries.push(entry)
     entriesByOccurrence.set(key, entries)
-    addInterval(intervalsByDate, entry.date, entry.start_time, entry.end_time)
   }
 
   for (const obligation of activeObligations) {
@@ -229,8 +270,64 @@ function getBestUnobstructedWindow(context: EnergyWindowContext): EnergyWindow |
   )
 }
 
-function toRecommendedWindow(window: EnergyWindow) {
-  return { start: formatTime(window.startHour), end: formatTime(window.endHour) }
+function getActivityEvidence(
+  context: EnergyWindowContext,
+  activityId: string,
+  activityType: ActivityLearningEvidence['activityType'],
+) {
+  return context.activityEvidence?.find((item) =>
+    item.activityId === activityId && item.activityType === activityType,
+  )
+}
+
+function getEvidenceRecommendationWindow(evidence: ActivityLearningEvidence) {
+  if (evidence.bestHour < 0 || evidence.bestHour >= 23) return null
+  return { start: formatTime(evidence.bestHour), end: formatTime(evidence.bestHour + 1) }
+}
+
+function isEvidenceWindowAvailable(
+  context: EnergyWindowContext,
+  window: Pick<EnergyWindow, 'startHour' | 'endHour'>,
+) {
+  const upcomingDates = Array.from({ length: 7 }, (_, index) => offsetDate(context.today, index))
+  const recurrenceDates = [offsetDate(context.today, -1), ...upcomingDates]
+  const blockedIntervals = getBlockedObligationIntervals(
+    context.obligations,
+    context.plannerEntries,
+    recurrenceDates,
+  )
+  return upcomingDates.every((date) =>
+    !overlapsObligation(window.startHour, window.endHour - window.startHour, [date], blockedIntervals),
+  )
+}
+
+function getEvidenceConfidence(
+  evidence: ActivityLearningEvidence,
+  energyConfidence: EnergyConfidence,
+): Recommendation['confidence'] | null {
+  const sampleCount = evidence.attemptCount + evidence.energyImpactCount
+  return sampleCount < 4
+    ? null
+    : calculateRecommendationConfidence({ energyConfidence, evidenceCount: sampleCount })
+}
+
+function getEvidenceReason(evidence: ActivityLearningEvidence, sleepRecords: RecommendationSleepRecord[] = []) {
+  const energyText = `${evidence.averageEnergyDelta > 0 ? '+' : ''}${evidence.averageEnergyDelta.toFixed(1)}`
+  const frictionText = evidence.frictionCount
+    ? ` Se registraron ${evidence.frictionCount} señales de fricción.`
+    : ''
+  const adaptationText = evidence.adapted ? ' La tendencia reciente muestra adaptación.' : ''
+  const recentSleep = sleepRecords
+    .filter((record) => Number.isFinite(record.hours_slept) && record.hours_slept > 0)
+    .sort((left, right) => left.sleep_date.localeCompare(right.sleep_date))
+    .slice(-7)
+  const sleepAverage = recentSleep.length
+    ? recentSleep.reduce((sum, record) => sum + record.hours_slept, 0) / recentSleep.length
+    : evidence.sleepAverageHours
+  const sleepText = sleepAverage === null
+    ? ' No hay historial de sueño suficiente para ajustar la lectura.'
+    : ` Sueño medio reciente: ${sleepAverage.toFixed(1)} h.`
+  return `En ${evidence.attemptCount} bloques, el mejor horario registró ${Math.round(evidence.bestCompletionRate * 100)}% de cumplimiento frente a ${Math.round(evidence.worstCompletionRate * 100)}% en el menos favorable. El impacto energético medio fue ${energyText} (${evidence.energyImpactCount} registros).${frictionText}${adaptationText}${sleepText}`
 }
 
 export function generateTaskRecommendations(
@@ -238,28 +335,35 @@ export function generateTaskRecommendations(
   context: TaskRecommendationContext,
 ): Recommendation[] {
   const confidence = calculateRecommendationConfidence({ energyConfidence: context.confidence })
-  const window = getBestUnobstructedWindow(context)
-  if (!confidence || !window) return []
+  if (!confidence || !getBestUnobstructedWindow(context)) return []
 
   return tasks
     .filter((task) => task.status === 'pending')
     .filter((task) => task.priority === 'high' || (Number.isFinite(task.energy_cost) && task.energy_cost >= 4))
     .filter((task) => !(context.isLowEnergy && Number.isFinite(task.energy_cost) && task.energy_cost >= 4))
-    .map((task) => {
+    .flatMap((task) => {
+      const evidence = getActivityEvidence(context, task.id, 'task')
+      const evidenceConfidence = evidence && getEvidenceConfidence(evidence, context.confidence)
+      const recommendedWindow = evidence && getEvidenceRecommendationWindow(evidence)
+      if (!evidence || !evidenceConfidence || !recommendedWindow
+        || !isEvidenceWindowAvailable(context, {
+          startHour: evidence.bestHour,
+          endHour: evidence.bestHour + 1,
+        })
+        || evidence.bestCompletionRate <= evidence.worstCompletionRate
+        || evidence.energyImpactCount < 2) return []
       const highEnergy = Number.isFinite(task.energy_cost) && task.energy_cost >= 4
-      const reason = highEnergy
-        ? `La tarea requiere mucha energía y tu mejor franja histórica disponible es ${formatTime(window.startHour)}-${formatTime(window.endHour)}.`
-        : `La tarea es prioritaria y tu mejor franja energética histórica disponible es ${formatTime(window.startHour)}-${formatTime(window.endHour)}.`
-      return {
+      const reason = `${task.priority === 'high' ? 'Tarea prioritaria' : 'Tarea'}${highEnergy ? ' de alto coste energético' : ''}. ${getEvidenceReason(evidence, context.sleepRecords)}`
+      return [{
         id: `task-${task.id}`,
         type: 'task' as const,
         taskId: task.id,
         title: task.title,
         reason,
-        confidence,
+        confidence: evidenceConfidence,
         priority: (task.priority === 'high' ? 80 : 50) + (highEnergy ? 20 : 0) + (Number(task.energy_cost) || 0),
-        recommendedWindow: toRecommendedWindow(window),
-      }
+        recommendedWindow,
+      }]
     })
 }
 
@@ -268,21 +372,32 @@ export function generateHabitRecommendations(
   context: EnergyWindowContext,
 ): Recommendation[] {
   const confidence = calculateRecommendationConfidence({ energyConfidence: context.confidence })
-  const window = getBestUnobstructedWindow(context)
-  if (!confidence || !window) return []
+  if (!confidence || !getBestUnobstructedWindow(context)) return []
 
   return habits
     .filter((habit) => habit.active)
-    .map((habit) => ({
-      id: `habit-${habit.id}`,
-      type: 'habit' as const,
-      habitId: habit.id,
-      title: `Reserva tu mejor franja para ${habit.title}`,
-      reason: `Tu perfil energético registrado es más alto entre ${formatTime(window.startHour)} y ${formatTime(window.endHour)}.`,
-      confidence,
-      priority: 30,
-      recommendedWindow: toRecommendedWindow(window),
-    }))
+    .flatMap((habit) => {
+      const evidence = getActivityEvidence(context, habit.id, 'habit')
+      const evidenceConfidence = evidence && getEvidenceConfidence(evidence, context.confidence)
+      const recommendedWindow = evidence && getEvidenceRecommendationWindow(evidence)
+      if (!evidence || !evidenceConfidence || !recommendedWindow
+        || !isEvidenceWindowAvailable(context, {
+          startHour: evidence.bestHour,
+          endHour: evidence.bestHour + 1,
+        })
+        || evidence.bestCompletionRate <= evidence.worstCompletionRate
+        || evidence.energyImpactCount < 2) return []
+      return [{
+        id: `habit-${habit.id}`,
+        type: 'habit' as const,
+        habitId: habit.id,
+        title: `Propuesta de horario para ${habit.title}`,
+        reason: getEvidenceReason(evidence, context.sleepRecords),
+        confidence: evidenceConfidence,
+        priority: 30 + Math.round((evidence.bestCompletionRate - evidence.worstCompletionRate) * 100),
+        recommendedWindow,
+      }]
+    })
 }
 
 export function generateLowEnergyRecommendations(
@@ -333,14 +448,146 @@ export function generateLowEnergyRecommendations(
   return recommendations
 }
 
+function getActivityLearningEvidence(
+  plannerEntries: RecommendationPlannerEntry[],
+  energyImpacts: EnergyImpact[],
+  habitHistory: HabitStatusHistoryRecord[],
+  userPatterns: LearningPatternRecord[],
+  sleepRecords: RecommendationSleepRecord[],
+): ActivityLearningEvidence[] {
+  const grouped = new Map<string, {
+    activityId: string
+    activityType: 'task' | 'habit'
+    attempts: Array<{ hour: number; completed: boolean }>
+    impacts: EnergyImpact[]
+    frictionCount: number
+  }>()
+  const getGroup = (activityId: string, activityType: 'task' | 'habit') => {
+    const key = `${activityType}:${activityId}`
+    const current = grouped.get(key) || {
+      activityId,
+      activityType,
+      attempts: [],
+      impacts: [],
+      frictionCount: 0,
+    }
+    grouped.set(key, current)
+    return current
+  }
+
+  for (const entry of plannerEntries) {
+    if (!['completed', 'failed', 'moved'].includes(entry.status || '')) continue
+    const activityType = entry.task_id ? 'task' : entry.habit_id ? 'habit' : null
+    const activityId = entry.task_id || entry.habit_id
+    const hour = parseTime(entry.start_time)
+    if (!activityType || !activityId || hour === null) continue
+    const group = getGroup(activityId, activityType)
+    group.attempts.push({ hour: Math.floor(hour / 60), completed: entry.status === 'completed' })
+  }
+
+  const seenHistoricalHabitEvents = new Set<string>()
+  for (const event of habitHistory) {
+    if (event.planner_entry_id || !['completed', 'failed', 'moved'].includes(event.status)) continue
+    const key = `${event.habit_id}:${event.planned_date}:${event.status}`
+    if (seenHistoricalHabitEvents.has(key)) continue
+    seenHistoricalHabitEvents.add(key)
+    const group = getGroup(event.habit_id, 'habit')
+    if (event.status === 'failed' || event.status === 'moved') group.frictionCount += 1
+  }
+
+  for (const impact of energyImpacts) {
+    const activityId = impact.task_id || impact.habit_id
+    if (!activityId || !['task', 'habit'].includes(impact.impact_type)
+      || !Number.isFinite(impact.energy_delta)
+      || impact.energy_before === null
+      || impact.energy_after === null) continue
+    getGroup(activityId, impact.impact_type as 'task' | 'habit').impacts.push(impact)
+  }
+
+  return [...grouped.values()].flatMap((group) => {
+    const outcomeByHour = new Map<number, { completed: number; attempts: number; friction: number }>()
+    for (const attempt of group.attempts) {
+      const current = outcomeByHour.get(attempt.hour) || { completed: 0, attempts: 0, friction: 0 }
+      current.attempts += 1
+      if (attempt.completed) current.completed += 1
+      else current.friction += 1
+      outcomeByHour.set(attempt.hour, current)
+    }
+    const energyByHour = new Map<number, number[]>()
+    for (const impact of group.impacts) {
+      const hour = new Date(impact.started_at).getHours()
+      const values = energyByHour.get(hour) || []
+      values.push(Number(impact.energy_delta))
+      energyByHour.set(hour, values)
+    }
+    const activityPattern = userPatterns.find((pattern) =>
+      pattern.pattern_data.source === 'energy-impact-engine'
+      && pattern.pattern_data.activity_id === group.activityId
+      && pattern.pattern_data.activity_type === group.activityType,
+    )
+    const adapted = activityPattern?.pattern_data.kind === 'energy_adaptation'
+    const recentAverage = Number(activityPattern?.pattern_data.recent_average)
+    const candidates = [...outcomeByHour.entries()]
+      .filter(([hour, outcomes]) => outcomes.attempts >= 2 && (energyByHour.get(hour)?.length || 0) > 0)
+      .map(([hour, outcomes]) => {
+        const hourlyEnergy = energyByHour.get(hour) || []
+        const energyDelta = adapted && Number.isFinite(recentAverage)
+          ? recentAverage
+          : hourlyEnergy.reduce((sum, value) => sum + value, 0) / hourlyEnergy.length
+        const completionRate = outcomes.completed / outcomes.attempts
+        const energyScore = Math.max(0, Math.min(1, (energyDelta + 9) / 18))
+        const frictionRate = (outcomes.friction + group.frictionCount) / Math.max(1, outcomes.attempts + group.frictionCount)
+        const score = completionRate * 0.7 + energyScore * 0.3 - frictionRate * 0.1
+        return { hour, outcomes, energyDelta, completionRate, score }
+      })
+    if (candidates.length < 2 || group.impacts.length < 2) return []
+
+    const best = [...candidates].sort((left, right) =>
+      right.score - left.score || left.hour - right.hour,
+    )[0]
+    const worst = [...candidates].sort((left, right) =>
+      left.score - right.score || left.hour - right.hour,
+    )[0]
+    if (!best || !worst || best.hour === worst.hour || best.score <= worst.score) return []
+    const sleepSamples = sleepRecords.filter((record) =>
+      Number.isFinite(record.hours_slept) && record.hours_slept > 0,
+    )
+    const sleepAverageHours = sleepSamples.length
+      ? sleepSamples.reduce((sum, record) => sum + record.hours_slept, 0) / sleepSamples.length
+      : null
+    return [{
+      activityId: group.activityId,
+      activityType: group.activityType,
+      attemptCount: group.attempts.length + group.frictionCount,
+      completedCount: group.attempts.filter((attempt) => attempt.completed).length,
+      bestHour: best.hour,
+      bestCompletionRate: best.completionRate,
+      worstCompletionRate: worst.completionRate,
+      averageEnergyDelta: best.energyDelta,
+      energyImpactCount: group.impacts.length,
+      frictionCount: group.frictionCount + best.outcomes.friction,
+      adapted,
+      sleepAverageHours,
+    }]
+  })
+}
+
 export async function getRecommendationAvailability(userId: string, today: string) {
   if (!userId || !isValidDate(today)) {
-    return { obligations: [], plannerEntries: [], error: new Error('El usuario o la fecha para verificar obligaciones no son válidos.') }
+    return { obligations: [], plannerEntries: [], activityEvidence: [], sleepRecords: [], error: new Error('El usuario o la fecha para verificar obligaciones no son válidos.') }
   }
 
   const lastDate = offsetDate(today, 6)
-  const previousDate = offsetDate(today, -1)
-  const [{ data: obligations, error: obligationsError }, { data: plannerEntries, error: plannerError }] = await Promise.all([
+  const historyStart = offsetDate(today, -90)
+  const impactStart = getEnergyImpactHistoryStart(new Date(`${today}T12:00:00.000Z`))
+  const [
+    { data: obligations, error: obligationsError },
+    { data: plannerEntries, error: plannerError },
+    { data: habitHistory, error: habitHistoryError },
+    { data: sleepRecords, error: sleepError },
+    { data: userPatterns, error: patternsError },
+    { data: energyImpacts, error: impactsError },
+  ] = await Promise.all([
     supabase
       .from('obligations')
       .select('id, obligation_type, active, recurrence_rule')
@@ -350,14 +597,50 @@ export async function getRecommendationAvailability(userId: string, today: strin
       .from('weekly_planner')
       .select('id, date, start_time, end_time, task_id, habit_id, obligation_id, obligation_occurrence_date, status')
       .eq('user_id', userId)
-      .gte('date', previousDate)
+      .gte('date', historyStart)
       .lte('date', lastDate),
+    supabase
+      .from('habit_status_history')
+      .select('planner_entry_id, habit_id, planned_date, status, event_type')
+      .eq('user_id', userId)
+      .gte('planned_date', historyStart)
+      .lte('planned_date', today),
+    supabase
+      .from('sleep_records')
+      .select('sleep_date, hours_slept, sleep_quality')
+      .eq('user_id', userId)
+      .gte('sleep_date', historyStart)
+      .lte('sleep_date', today),
+    supabase
+      .from('user_patterns')
+      .select('pattern_type, pattern_data, confidence')
+      .eq('user_id', userId),
+    getEnergyImpacts(userId, impactStart),
   ])
 
+  const resolvedObligations = (obligations || []) as RecommendationObligation[]
+  const obligationById = new Map(resolvedObligations.map((obligation) => [obligation.id, obligation]))
+  const resolvedPlannerEntries = (plannerEntries || []).map((entry) => ({
+    ...entry,
+    obligation: obligationById.get(entry.obligation_id)?.obligation_type
+      ? { obligation_type: obligationById.get(entry.obligation_id)?.obligation_type }
+      : null,
+  })) as RecommendationPlannerEntry[]
+  const resolvedSleepRecords = (sleepRecords || []) as RecommendationSleepRecord[]
+  const activityEvidence = getActivityLearningEvidence(
+    resolvedPlannerEntries,
+    energyImpacts || [],
+    (habitHistory || []) as HabitStatusHistoryRecord[],
+    (userPatterns || []) as LearningPatternRecord[],
+    resolvedSleepRecords,
+  )
+
   return {
-    obligations: (obligations || []) as RecommendationObligation[],
-    plannerEntries: (plannerEntries || []) as RecommendationPlannerEntry[],
-    error: obligationsError || plannerError,
+    obligations: resolvedObligations,
+    plannerEntries: resolvedPlannerEntries,
+    activityEvidence,
+    sleepRecords: resolvedSleepRecords,
+    error: obligationsError || plannerError || habitHistoryError || sleepError || patternsError || impactsError,
   }
 }
 

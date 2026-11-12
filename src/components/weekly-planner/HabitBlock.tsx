@@ -1,7 +1,6 @@
 import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ChangeEvent, type RefObject } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useEnergyPopover } from '../../hooks/useEnergyPopover'
-import { saveEnergyAtHabitCompletion, saveEnergyAtMoment } from '../../services/energy'
 import { recordHabitImpact } from '../../services/energy-impact-engine'
 import ActivityContextMenu from './ActivityContextMenu'
 import WeeklyBlockModal from './WeeklyBlockModal'
@@ -46,7 +45,7 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
   const openEnergyCapture = (
     phase: 'start' | 'finish',
     triggerRef = articleRef,
-    recordCompletedImpact = entry.status === 'completed',
+    recordCompletedImpact = entry.status !== 'moved',
   ) => {
     if (!user?.id) return
     openEnergyPopover({
@@ -54,10 +53,6 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
       label: phase === 'start' ? 'Energía inicial' : 'Energía al finalizar',
       triggerRef,
       onSave: async (energy) => {
-        const { error } = phase === 'start'
-          ? await saveEnergyAtMoment(user.id, energy, 'habit_start')
-          : await saveEnergyAtHabitCompletion(user.id, energy)
-        if (error) throw error
         if (phase === 'start') {
           const impact = await recordHabitImpact(user.id, habit.id, 'start', energy)
           if (impact.error) throw impact.error
@@ -73,7 +68,7 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
   const changeStatus = (status: string, triggerRef: RefObject<HTMLElement | null> = articleRef) => {
     onStatusChange(entry, status)
     if (!['completed', 'failed', 'moved'].includes(status)) return
-    openEnergyCapture('finish', triggerRef, status === 'completed')
+    openEnergyCapture('finish', triggerRef, status !== 'moved')
   }
   const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
     event.stopPropagation()

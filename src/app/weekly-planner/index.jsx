@@ -13,6 +13,7 @@ import WeeklyTimeSlotModal from '../../components/weekly-planner/WeeklyTimeSlotM
 import FocusQualityModal from '../../components/weekly-planner/forms/FocusQualityModal'
 import { VektorPanel } from './VektorPanel'
 import PlannerBacklogSection from './components/PlannerBacklogSection'
+import PlannerConflictNotice from './components/PlannerConflictNotice'
 import PlannerIncompleteSection from './components/PlannerIncompleteSection'
 import { updateHabitStatus } from './services/updateHabitStatus'
 import { updateTaskStatus } from './services/updateTaskStatus'
@@ -350,6 +351,16 @@ export default function WeeklyPlannerPage() {
                 <button type="button" className="weekly-clear-week-button" onClick={planner.clearWeek}>Limpiar semana</button>
               </div>
             </header>
+            <PlannerConflictNotice
+              conflicts={planner.conflicts}
+              entries={planner.entries}
+              taskById={planner.taskById}
+              habitById={planner.habitById}
+              error={planner.conflictError}
+              busyId={planner.resolvingConflictId}
+              onResolve={planner.resolveConflict}
+              onDismiss={planner.dismissConflict}
+            />
             <WeeklyGrid
               dates={dates}
               currentTime={currentTime}

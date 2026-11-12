@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createObligation, createTaskAndSchedule, createHabitAndSchedule, createReminder, deletePlannerDay, deletePlannerEntry, deletePlannerWeek, getFocusSessions, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resizePlannerEntry, scheduleCreativeBlock, scheduleHabit, scheduleTask, updateObligation, updatePlannerEntry } from '../../services/weekly-planner'
+import { createObligation, createTaskAndSchedule, createHabitAndSchedule, createReminder, deletePlannerDay, deletePlannerEntry, deletePlannerWeek, dismissPlannerConflict, getFocusSessions, getPlannerConflicts, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resolvePlannerConflict, resizePlannerEntry, scheduleCreativeBlock, scheduleHabit, scheduleTask, updateObligation, updatePlannerEntry } from '../../services/weekly-planner'
 import type { PlannerObligation } from '../../services/weekly-planner'
 import type { Habit, Task } from '../../types'
 
@@ -36,6 +36,21 @@ interface SaveResult {
   error: { message?: string } | null
 }
 
+interface PlannerConflict {
+  id: string
+  user_id: string
+  source_entry_id: string
+  conflicting_entry_id: string | null
+  source_title: string
+  source_type: string
+  conflicting_title: string
+  conflicting_type: string
+  status: 'pending' | 'manual' | 'automatic' | 'resolved' | 'backlog' | 'unscheduled' | 'dismissed'
+  detected_at: string
+  grace_until: string | null
+  resolution_message: string | null
+}
+
 // Coordina datos, mutaciones y operaciones de agenda que consume la vista semanal.
 export function useWeeklyPlanner(userId: string, initialWeek: Date | string = getWeekStart()) {
   const [weekStart, setWeekStart] = useState(initialWeek)
@@ -47,6 +62,9 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
   const [focusSessions, setFocusSessions] = useState<PlannerFocusSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [conflicts, setConflicts] = useState<PlannerConflict[]>([])
+  const [conflictError, setConflictError] = useState('')
+  const [resolvingConflictId, setResolvingConflictId] = useState('')
 
   const load = useCallback(async () => {
     if (!userId) return
@@ -54,10 +72,12 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
       { entries: plannerEntries, error: plannerError },
       { tasks: currentTasks, habits: currentHabits, selectedHabits: currentSelectedHabits, plannedTaskIds: currentPlannedTaskIds, error: contextError },
       { sessions },
+      { conflicts: currentConflicts, error: conflictsLoadError },
     ] = await Promise.all([
       getWeeklyPlanner(userId, weekStart),
       getPlannerContext(userId),
       getFocusSessions(userId, weekStart),
+      getPlannerConflicts(userId),
     ])
     setEntries(plannerEntries)
     setTasks(currentPlannedTaskIds === null ? [] : currentTasks)
@@ -65,6 +85,10 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     setSelectedHabits(currentSelectedHabits || [])
     setPlannedTaskIds(new Set(currentPlannedTaskIds || []))
     setFocusSessions(sessions)
+    setConflicts(currentConflicts as PlannerConflict[])
+    setConflictError(conflictsLoadError
+      ? 'No se pudieron cargar los conflictos. Aplica la migración planner_automation.sql y verifica los permisos de Supabase.'
+      : '')
     setError(plannerError || contextError ? 'No se pudo cargar el planificador. Revisa tu conexión y los permisos de acceso.' : '')
     setLoading(false)
   }, [userId, weekStart])
@@ -73,6 +97,40 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     const timer = setTimeout(load, 0)
     return () => clearTimeout(timer)
   }, [load])
+
+  useEffect(() => {
+    if (!conflicts.some((conflict) => ['pending', 'manual', 'automatic'].includes(conflict.status))) return undefined
+    const timer = setInterval(() => { void load() }, 60_000)
+    return () => clearInterval(timer)
+  }, [conflicts, load])
+
+  async function resolveConflict(conflictId: string, mode: 'manual' | 'automatic') {
+    setResolvingConflictId(conflictId)
+    setConflictError('')
+    const result = await resolvePlannerConflict(conflictId, mode)
+    if (result.error) {
+      setConflictError(result.error.message || 'No se pudo iniciar la resolución del conflicto.')
+      setResolvingConflictId('')
+      return false
+    }
+    await load()
+    setResolvingConflictId('')
+    return true
+  }
+
+  async function dismissConflict(conflictId: string) {
+    setResolvingConflictId(conflictId)
+    setConflictError('')
+    const result = await dismissPlannerConflict(conflictId)
+    if (result.error) {
+      setConflictError(result.error.message || 'No se pudo cerrar el aviso de conflicto.')
+      setResolvingConflictId('')
+      return false
+    }
+    await load()
+    setResolvingConflictId('')
+    return true
+  }
 
   const save = async (operation: () => Promise<SaveResult>) => {
     const { entry, error: operationError } = await operation()
@@ -228,6 +286,11 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
     focusSessions,
     loading,
     error,
+    conflicts,
+    conflictError,
+    resolvingConflictId,
+    resolveConflict,
+    dismissConflict,
     reload: load,
     schedule,
     scheduleExistingHabit,

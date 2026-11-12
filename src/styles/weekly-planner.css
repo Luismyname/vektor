@@ -562,6 +562,14 @@
 .weekly-review-actions { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
 .weekly-review-actions span { color: #2dd4bf; font-size: 13px; }
 .weekly-error { padding: 12px; border: 1px solid #fb7185; border-radius: 6px; color: #fb7185; }
+.planner-conflict-notice { margin: 12px 0; padding: 14px; border: 1px solid #f59e0b; border-radius: 8px; background: color-mix(in srgb, #f59e0b 8%, var(--bg-card)); }
+.planner-conflict-notice h2 { margin: 0 0 10px; font-size: 15px; }
+.planner-conflict-notice ul { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
+.planner-conflict-notice li { padding-left: 2px; }
+.planner-conflict-notice p { margin: 6px 0; }
+.planner-conflict-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.planner-conflict-actions button, .planner-conflict-notice li > button { padding: 6px 9px; border: 1px solid rgba(127,127,160,.4); border-radius: 5px; background: var(--bg-main); color: var(--text-primary); cursor: pointer; }
+.planner-conflict-actions button:disabled, .planner-conflict-notice li > button:disabled { opacity: .6; cursor: wait; }
 
 .weekly-clear-week-button { border-color: #ef4444 !important; color: #ef4444 !important; }
 

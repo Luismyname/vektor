@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { recordHabitImpact } from '../../services/energy-impact-engine'
 
 type EnergyCallback = (value: number) => void | Promise<void>
 
@@ -24,6 +25,13 @@ interface FocusEnergySelectorProps {
   userId: string
   taskId?: string
   focusSessionId?: string
+  disabled?: boolean
+}
+
+interface HabitEnergySelectorProps {
+  userId: string
+  habitId: string
+  onEnergySelect?: (value: number) => void
   disabled?: boolean
 }
 
@@ -268,15 +276,15 @@ export function FocusEnergySelector({
 // Componente para PlannerIncompleteSection - selector compacto para hábitos
 export function HabitEnergySelector({ 
   userId, 
+  habitId,
   onEnergySelect,
   disabled = false 
-}: UserEnergySelectorProps) {
+}: HabitEnergySelectorProps) {
   const [showSelector, setShowSelector] = useState(false)
 
   const handleSave = async (value: number) => {
     try {
-      const { saveEnergyAtHabitCompletion } = await import('../../services/energy')
-      const { error } = await saveEnergyAtHabitCompletion(userId, value)
+      const { error } = await recordHabitImpact(userId, habitId, 'finish', value)
       if (error) throw error
       onEnergySelect?.(value)
       setShowSelector(false)

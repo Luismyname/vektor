@@ -60,6 +60,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
 const SLOT_STEP_MINUTES = 15
 const DAYS_TO_SEARCH = 7
+const MAX_DISPLACEMENT_MINUTES = 48 * 60
 
 function isValidDate(value: string) {
   if (!DATE_PATTERN.test(value)) return false
@@ -233,12 +234,26 @@ export function validateRecommendedSlot(
     if (sourceDuration !== action.durationMinutes) {
       return { valid: false, reason: 'La duración del bloque cambió. Actualiza la recomendación antes de aplicarla.' }
     }
+    const sourceStart = Date.parse(`${source.date}T${source.start_time}Z`)
+    const targetStart = Date.parse(`${action.suggestedDate}T${action.suggestedStartTime}Z`)
+    if (!Number.isFinite(sourceStart) || !Number.isFinite(targetStart)
+      || Math.abs(targetStart - sourceStart) > MAX_DISPLACEMENT_MINUTES * 60_000) {
+      return { valid: false, reason: 'La actividad no puede desplazarse más de 48 horas de su horario original.' }
+    }
   } else if (action.habitId) {
     return { valid: false, reason: 'Solo se pueden mover ocurrencias de hábito ya programadas.' }
   } else if (options.entries.some((entry) =>
     entry.task_id === action.taskId && isMovableEntry(entry),
   )) {
     return { valid: false, reason: 'La tarea ya tiene un bloque programado. Actualiza la recomendación antes de aplicarla.' }
+  }
+
+  if (action.habitId && options.entries.some((entry) =>
+    entry.habit_id === action.habitId
+    && entry.date === action.suggestedDate
+    && entry.id !== action.plannerEntryId,
+  )) {
+    return { valid: false, reason: 'Este hábito ya aparece en el planificador ese día.' }
   }
 
   const candidate = normalizeOvernightInterval({

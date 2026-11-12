@@ -100,9 +100,9 @@ describe('energy impact engine', () => {
       impact_type: 'task',
       energy_before: 7,
       energy_after: null,
-      energy_delta: null,
       finished_at: null,
     }))
+    expect(query.insert.mock.calls[0][0]).not.toHaveProperty('energy_delta')
     expect(query.insert.mock.calls[0][0]).not.toHaveProperty('planner_entry_id')
   })
 
@@ -119,9 +119,14 @@ describe('energy impact engine', () => {
       impact_type: impactType,
       energy_before: 6,
     }))
+    expect(query.insert.mock.calls[0][0]).not.toHaveProperty('energy_delta')
   })
 
-  it('calculates the delta and duration when completing a captured impact', async () => {
+  it.each([
+    ['task', recordTaskImpact, 'task-1'],
+    ['habit', recordHabitImpact, 'habit-1'],
+    ['obligation', recordObligationImpact, 'obligation-1'],
+  ])('updates a completed %s impact without writing the generated delta', async (_type, record, activityId) => {
     state.maybeSingleResult = {
       data: {
         id: 'impact-1',
@@ -132,14 +137,14 @@ describe('energy impact engine', () => {
     }
     state.singleResult = { data: { id: 'impact-1' }, error: null }
 
-    await recordTaskImpact('user-1', 'task-1', 'finish', 8)
+    await record('user-1', activityId, 'finish', 8)
 
     expect(query.update).toHaveBeenCalledWith(expect.objectContaining({
       energy_after: 8,
-      energy_delta: 4,
       duration_minutes: expect.any(Number),
       finished_at: expect.any(String),
     }))
+    expect(query.update.mock.calls[0][0]).not.toHaveProperty('energy_delta')
     expect(query.is).toHaveBeenCalledWith('finished_at', null)
   })
 

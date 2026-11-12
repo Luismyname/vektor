@@ -9,7 +9,7 @@ import {
   getRecommendationAvailability,
   sortAndLimitRecommendations,
 } from '../services/recommendation-engine'
-import type { Recommendation } from '../services/recommendation-engine'
+import type { ActivityLearningEvidence, Recommendation } from '../services/recommendation-engine'
 import {
   findRecommendedSlot,
   getRecommendationUnavailableReason,
@@ -46,6 +46,8 @@ export function useRecommendations({
   const [sleepRecord, setSleepRecord] = useState<SleepRecord | null>(null)
   const [obligations, setObligations] = useState([])
   const [plannerEntries, setPlannerEntries] = useState([])
+  const [activityEvidence, setActivityEvidence] = useState<ActivityLearningEvidence[]>([])
+  const [sleepRecords, setSleepRecords] = useState([])
   const [loading, setLoading] = useState(Boolean(userId))
   const [error, setError] = useState('')
   const requestId = useRef(0)
@@ -57,6 +59,8 @@ export function useRecommendations({
       setSleepRecord(null)
       setObligations([])
       setPlannerEntries([])
+      setActivityEvidence([])
+      setSleepRecords([])
       setLoading(false)
       setError('')
       return
@@ -82,12 +86,16 @@ export function useRecommendations({
       setSleepRecord(currentSleep)
       setObligations(availability.obligations)
       setPlannerEntries(availability.plannerEntries)
+      setActivityEvidence(availability.activityEvidence)
+      setSleepRecords(availability.sleepRecords)
     } catch (loadError) {
       if (currentRequestId === requestId.current) {
         setTasks([])
         setSleepRecord(null)
         setObligations([])
         setPlannerEntries([])
+        setActivityEvidence([])
+        setSleepRecords([])
         setError(errorMessage(loadError))
       }
     } finally {
@@ -112,6 +120,8 @@ export function useRecommendations({
         plannerEntries,
         today,
         isLowEnergy: lowEnergyDay.isLowEnergy,
+        activityEvidence,
+        sleepRecords,
       }),
       ...generateHabitRecommendations(
         [...new Map(habits.filter((habit) => habit.active).map((habit) => [habit.id, habit])).values()],
@@ -121,6 +131,8 @@ export function useRecommendations({
         obligations,
         plannerEntries,
         today,
+        activityEvidence,
+        sleepRecords,
         },
       ),
       ...generateLowEnergyRecommendations(lowEnergyDay, sleepRecord),

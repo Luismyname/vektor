@@ -211,21 +211,23 @@ async function recordImpact(
 
   const activityField = `${impactType}_id`
   if (phase === 'start') {
+    const payload = {
+      user_id: userId,
+      [activityField]: activityId,
+      impact_type: impactType,
+      energy_before: energyLevel,
+      energy_after: null,
+      duration_minutes: null,
+      started_at: new Date().toISOString(),
+      finished_at: null,
+    }
+    console.log('energy_impacts payload', payload)
     const { data, error } = await supabase
       .from('energy_impacts')
-      .insert({
-        user_id: userId,
-        [activityField]: activityId,
-        impact_type: impactType,
-        energy_before: energyLevel,
-        energy_after: null,
-        energy_delta: null,
-        duration_minutes: null,
-        started_at: new Date().toISOString(),
-        finished_at: null,
-      })
+      .insert(payload)
       .select(IMPACT_FIELDS)
       .single()
+    console.log('energy_impacts response', error)
     return { data: data as EnergyImpact | null, error }
   }
 
@@ -256,7 +258,6 @@ async function recordImpact(
     .from('energy_impacts')
     .update({
       energy_after: energyLevel,
-      energy_delta: energyLevel - Number(startedImpact.energy_before),
       duration_minutes: durationMinutes,
       finished_at: finishedAt.toISOString(),
     })

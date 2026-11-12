@@ -6,6 +6,7 @@ const { supabaseMock, getCurrentProfileMock, state } = vi.hoisted(() => {
     tableCalls: [],
     inserted: [],
     result: { data: [], error: null },
+    listResult: { data: [], error: null },
     profile: { habits: { recommended: [], custom: [] } },
   }
   const getCurrentProfileMock = vi.fn(async () => ({ profile: state.profile, error: null }))
@@ -25,7 +26,7 @@ const { supabaseMock, getCurrentProfileMock, state } = vi.hoisted(() => {
         return query
       })
       query.single = vi.fn(() => Promise.resolve(state.result))
-      query.then = (resolve, reject) => Promise.resolve(state.result).then(resolve, reject)
+      query.then = (resolve, reject) => Promise.resolve(state.listResult).then(resolve, reject)
       return query
     }),
   }
@@ -52,11 +53,12 @@ describe('consultas del planificador semanal', () => {
     state.inserted = []
     state.table = null
     state.result = { data: [], error: null }
+    state.listResult = { data: [], error: null }
     state.profile = { habits: { recommended: [], custom: [] } }
   })
 
   it('consulta IDs de tareas planificadas en cualquier semana', async () => {
-    state.result = { data: [{ task_id: 'task-15' }], error: null }
+    state.listResult = { data: [{ task_id: 'task-15' }], error: null }
     const { plannedTaskIds, error } = await getPlannerContext('user-1')
 
     expect(state.tableCalls).toContainEqual(['weekly_planner', 'select', 'task_id'])
@@ -111,6 +113,7 @@ describe('consultas del planificador semanal', () => {
 
   it('persiste el título de un recordatorio en el campo de notas existente', async () => {
     state.result = { data: { id: 'reminder-1', notes: 'Llamar al equipo' }, error: null }
+    state.listResult = { data: [], error: null }
 
     const { entry, error } = await createReminder(
       { title: 'Llamar al equipo' },

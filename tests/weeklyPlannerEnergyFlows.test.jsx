@@ -36,6 +36,7 @@ vi.mock('../src/services/energy-impact-engine', () => ({
 
 import TaskBlock from '../src/components/weekly-planner/TaskBlock'
 import HabitBlock from '../src/components/weekly-planner/HabitBlock'
+import { HabitEnergySelector } from '../src/components/weekly-planner/EnergySelector'
 import ObligationBlock from '../src/components/weekly-planner/ObligationBlock'
 import PlannerIncompleteSection from '../src/app/weekly-planner/components/PlannerIncompleteSection'
 
@@ -103,7 +104,7 @@ describe('planner energy check-ins', () => {
     await waitFor(() => expect(saveEnergyAtTaskStart).toHaveBeenCalledWith('user-1', 7))
   })
 
-  it('opens the habit action menu and records habit_start energy', async () => {
+  it('records habit-start energy only through the energy impact engine', async () => {
     renderWithProviders(<HabitBlock {...habitBlockProps()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
@@ -111,9 +112,10 @@ describe('planner energy check-ins', () => {
     await saveEnergy()
 
     await waitFor(() => {
-      expect(saveEnergyAtMoment).toHaveBeenCalledWith('user-1', 7, 'habit_start')
       expect(recordHabitImpact).toHaveBeenCalledWith('user-1', 'habit-1', 'start', 7)
     })
+    expect(saveEnergyAtMoment).not.toHaveBeenCalled()
+    expect(saveEnergyAtHabitCompletion).not.toHaveBeenCalled()
   })
 
   it('pairs task start and completion captures into one impact record', async () => {
@@ -139,7 +141,7 @@ describe('planner energy check-ins', () => {
 
   })
 
-  it('records habit_completion against the captured habit_start energy', async () => {
+  it('records habit start and completion through a single impact record', async () => {
     renderWithProviders(<HabitBlock {...habitBlockProps()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Acciones de hábito Meditar' }))
@@ -164,6 +166,8 @@ describe('planner energy check-ins', () => {
       6,
       'impact-1',
     ))
+    expect(saveEnergyAtMoment).not.toHaveBeenCalled()
+    expect(saveEnergyAtHabitCompletion).not.toHaveBeenCalled()
   })
 
   it('records before and after energy for obligation occurrences', async () => {
@@ -317,9 +321,13 @@ describe('planner energy check-ins', () => {
     },
   )
 
-  it.each(['completed', 'failed', 'moved'])(
-    'opens the habit end check-in when its status changes to %s',
-    async (status) => {
+  it.each([
+    ['completed', true],
+    ['failed', true],
+    ['moved', false],
+  ])(
+    'uses the energy impact engine for a habit marked %s',
+    async (status, recordsImpact) => {
       const onStatusChange = vi.fn()
       renderWithProviders(<HabitBlock {...habitBlockProps({ onStatusChange })} />)
 
@@ -331,22 +339,33 @@ describe('planner energy check-ins', () => {
       expect(screen.getByRole('dialog', { name: 'Seleccionar Energía al finalizar' })).toBeInTheDocument()
       await saveEnergy()
 
-      await waitFor(() => expect(saveEnergyAtHabitCompletion).toHaveBeenCalledWith('user-1', 7))
+      if (recordsImpact) {
+        await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
+          'user-1',
+          'habit-1',
+          'finish',
+          7,
+          undefined,
+        ))
+      } else {
+        expect(recordHabitImpact).not.toHaveBeenCalled()
+      }
+      expect(saveEnergyAtHabitCompletion).not.toHaveBeenCalled()
+      expect(saveEnergyAtMoment).not.toHaveBeenCalled()
     },
   )
 
   it.each([
-    ['task', 'completed', 'Finalizada', saveEnergyAtTaskEnd],
-    ['task', 'failed', 'No finalizada', saveEnergyAtTaskEnd],
-    ['habit', 'completed', 'Finalizada', saveEnergyAtHabitCompletion],
-    ['habit', 'failed', 'No finalizada', saveEnergyAtHabitCompletion],
-  ])('opens a final energy check-in for an incomplete %s marked %s', async (itemType, status, label, saveEnergyService) => {
-    const item = itemType === 'task' ? task : habit
+    ['completed', 'Finalizada'],
+    ['failed', 'No finalizada'],
+  ])('keeps task energy check-ins when an incomplete task is marked %s', async (status, label) => {
+    const itemType = 'task'
+    const item = task
     const onStatusChange = vi.fn()
     const incompleteEntry = {
       ...entry,
-      task_id: itemType === 'task' ? item.id : null,
-      habit_id: itemType === 'habit' ? item.id : null,
+      task_id: item.id,
+      habit_id: null,
     }
 
     renderWithProviders(
@@ -371,6 +390,78 @@ describe('planner energy check-ins', () => {
     expect(screen.getByRole('dialog', { name: 'Seleccionar Energía al finalizar' })).toBeInTheDocument()
     await saveEnergy()
 
-    await waitFor(() => expect(saveEnergyService).toHaveBeenCalledWith('user-1', 7))
+    await waitFor(() => expect(saveEnergyAtTaskEnd).toHaveBeenCalledWith('user-1', 7))
+  })
+
+  it('records habit completion from the incomplete-habit flow without a legacy energy check-in', async () => {
+    const incompleteEntry = { ...entry, task_id: null, habit_id: habit.id }
+
+    renderWithProviders(
+      <PlannerIncompleteSection
+        itemType="habit"
+        entries={[incompleteEntry]}
+        items={[habit]}
+        onStatusChange={vi.fn()}
+        updatingEntryId={null}
+        userId="user-1"
+      />,
+      { router: true },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finalizada' }))
+    await saveEnergy()
+
+    await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
+      'user-1',
+      'habit-1',
+      'finish',
+      7,
+      undefined,
+    ))
+    expect(saveEnergyAtHabitCompletion).not.toHaveBeenCalled()
+    expect(saveEnergyAtMoment).not.toHaveBeenCalled()
+  })
+
+  it('records initial energy for a habit from the incomplete-habit flow', async () => {
+    const incompleteEntry = { ...entry, task_id: null, habit_id: habit.id }
+
+    renderWithProviders(
+      <PlannerIncompleteSection
+        itemType="habit"
+        entries={[incompleteEntry]}
+        items={[habit]}
+        onStatusChange={vi.fn()}
+        updatingEntryId={null}
+        userId="user-1"
+      />,
+      { router: true },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía inicial' }))
+    await saveEnergy()
+
+    await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
+      'user-1',
+      'habit-1',
+      'start',
+      7,
+      undefined,
+    ))
+    expect(saveEnergyAtMoment).not.toHaveBeenCalled()
+  })
+
+  it('records the legacy habit energy selector through the energy impact engine', async () => {
+    renderWithProviders(<HabitEnergySelector userId="user-1" habitId="habit-1" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar energía al completar' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Energía 7' }))
+
+    await waitFor(() => expect(recordHabitImpact).toHaveBeenCalledWith(
+      'user-1',
+      'habit-1',
+      'finish',
+      7,
+    ))
+    expect(saveEnergyAtHabitCompletion).not.toHaveBeenCalled()
   })
 })
