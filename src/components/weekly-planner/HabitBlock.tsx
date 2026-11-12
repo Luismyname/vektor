@@ -85,6 +85,7 @@ export default function HabitBlock({ entry, habit, onStatusChange, onDragStart, 
       <article ref={articleRef} style={{ '--start-hour': startMinutes / 60, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-habit-block status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowContextMenu(true)} onKeyDown={handleActivityKeyDown} role="button" tabIndex={0} aria-label={`Acciones de hábito ${habit.title}`} aria-haspopup="menu" aria-expanded={showContextMenu}>
         <strong>{habit.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
+        <button type="button" onClick={() => onDelete(entry.id)} className="delete-block-button" aria-label="Eliminar hábito">Eliminar</button>
       </article>
       <ActivityContextMenu
         open={showContextMenu}

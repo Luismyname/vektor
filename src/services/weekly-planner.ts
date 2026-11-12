@@ -843,7 +843,7 @@ export async function createObligation(
   return { entry: { ...entry, obligation }, error: null };
 }
 
-export async function updateObligation(id: string, changes: { title: string }) {
+export async function updateObligation(id: string, changes: { title?: string; active?: boolean }) {
   const { data, error } = await supabase
     .from('obligations')
     .update({ ...changes, updated_at: new Date().toISOString() })

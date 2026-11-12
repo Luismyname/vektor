@@ -160,18 +160,34 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
   }
 
   async function removeEntry(entryId: string) {
+    const entry = entries.find((item) => item.id === entryId)
+    if (entry?.obligation_id) {
+      await updateObligation(entry.obligation_id, { active: false })
+    }
+    setEntries((current) => current.filter((item) => item.id !== entryId))
     const { error: operationError } = await deletePlannerEntry(entryId)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el bloque.')
     await load()
   }
 
   async function clearDay(date: Date | string) {
+    setEntries((current) => current.filter((item) => item.date !== date))
     const { error: operationError } = await deletePlannerDay(userId, date)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar el día.')
     await load()
   }
 
+  function isSameWeek(dateA: string | Date, dateB: string | Date) {
+    const d1 = new Date(dateA)
+    const d2 = new Date(dateB)
+    d1.setHours(0, 0, 0, 0)
+    d2.setHours(0, 0, 0, 0)
+    const diff = d1.getTime() - d2.getTime()
+    return Math.abs(diff) < 7 * 24 * 60 * 60 * 1000
+  }
+
   async function clearWeek() {
+    setEntries((current) => current.filter((item) => !isSameWeek(item.date, weekStart)))
     const { error: operationError } = await deletePlannerWeek(userId, weekStart)
     if (operationError) return setError(operationError.message || 'No se pudo limpiar la semana.')
     await load()

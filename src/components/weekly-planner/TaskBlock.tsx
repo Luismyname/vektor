@@ -112,6 +112,7 @@ export default function TaskBlock({ entry, task, onStatusChange, onDragStart, on
       <article ref={articleRef} style={{ '--start-hour': startHour, '--block-height': `${Math.round(duration / 60 * 48)}px` } as CSSProperties & { '--start-hour': number; '--block-height': string }} className={`weekly-block weekly-task-block priority-${task.priority || 'medium'} status-${entry.status}`} draggable onDragStart={(event) => onDragStart(event, entry)} onClick={() => setShowContextMenu(true)} onKeyDown={handleActivityKeyDown} role="button" tabIndex={0} aria-label={`Acciones de tarea ${task.title}`} aria-haspopup="menu" aria-expanded={showContextMenu}>
         <strong>{task.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
+        <button type="button" onClick={() => onDelete(entry.id)} className="delete-block-button" aria-label="Eliminar tarea">Eliminar</button>
       </article>
       <ActivityContextMenu
         open={showContextMenu}

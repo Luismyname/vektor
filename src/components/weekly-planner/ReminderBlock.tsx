@@ -55,6 +55,7 @@ export default function ReminderBlock({ entry, reminder, onStatusChange, onDragS
       >
         <strong>{reminder.title}</strong>
         <span>{entry.start_time.slice(0, 5)} - {entry.end_time.slice(0, 5)}</span>
+        <button type="button" onClick={() => onDelete(entry.id)} className="delete-block-button" aria-label="Eliminar recordatorio">Eliminar</button>
       </article>
       {showModal && <WeeklyBlockModal 
         title={reminder.title} 
