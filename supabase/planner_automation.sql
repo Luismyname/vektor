@@ -479,6 +479,21 @@ begin
      and status = 'manual'
      and grace_until <= now();
 
+  update public.planner_conflicts conflict
+     set status = 'manual',
+         grace_until = null,
+         resolution_message = 'Esta obligación o recordatorio no se modifica automáticamente. Resuélvelo manualmente.'
+   where conflict.user_id = target_user_id
+     and conflict.status = 'automatic'
+     and exists (
+       select 1
+       from public.weekly_planner entry
+       where entry.id = conflict.conflicting_entry_id
+         and entry.user_id = conflict.user_id
+         and entry.task_id is null
+         and entry.habit_id is null
+     );
+
   for conflict_group in
     select distinct source_entry_id
     from public.planner_conflicts
@@ -495,6 +510,7 @@ begin
       where conflict.user_id = target_user_id
         and conflict.source_entry_id = conflict_group.source_entry_id
         and conflict.status = 'automatic'
+        and (entry.task_id is not null or entry.habit_id is not null)
       order by entry.date, entry.start_time, entry.id
     loop
       if activity.task_id is null and activity.habit_id is null then

@@ -78,8 +78,9 @@ export default function PlannerConflictNotice({
                   )}
                   {conflict.status === 'manual' && (
                     <p role="status">
-                      Advertencia activa. Si el conflicto sigue presente, Vektor reorganizará tareas y hábitos después de las 30 min
-                      {conflict.grace_until ? ` (aprox. ${formatDeadline(conflict.grace_until)}).` : '.'}
+                      {conflict.grace_until
+                        ? `Advertencia activa. Si el conflicto sigue presente, Vektor reorganizará las tareas y los hábitos afectados después de 30 minutos (aprox. ${formatDeadline(conflict.grace_until)}).`
+                        : 'Este conflicto requiere una resolución manual. Las obligaciones y los recordatorios nunca se modifican automáticamente.'}
                     </p>
                   )}
                   {conflict.status === 'automatic' && <p role="status">Reorganización automática en curso; obligaciones y recordatorios no se moverán.</p>}
