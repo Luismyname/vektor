@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase } from '../../services/supabase'
+import { saveHabits } from '../../services/users'
 import { createObligation, createTaskAndSchedule, createHabitAndSchedule, createReminder, deletePlannerDay, deletePlannerEntry, deletePlannerWeek, dismissPlannerConflict, getFocusSessions, getPlannerConflicts, getPlannerContext, getWeeklyPlanner, getWeekStart, movePlannerEntry, resolvePlannerConflict, resizePlannerEntry, scheduleCreativeBlock, scheduleHabit, scheduleTask, updateObligation, updatePlannerEntry } from '../../services/weekly-planner'
 import type { PlannerObligation } from '../../services/weekly-planner'
 import type { Habit, Task } from '../../types'
@@ -220,6 +222,41 @@ export function useWeeklyPlanner(userId: string, initialWeek: Date | string = ge
       setError(result.error.message || 'No se pudo crear el hábito.')
       return null
     }
+
+    const habit = (result as { habit: { id: string; title: string; duration: number } }).habit
+    if (!habit) {
+      setError('No se pudo crear el hábito.')
+      return null
+    }
+
+    // Agregar el hábito a profile.habits.custom para que aparezca en la página de Hábitos
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('habits')
+        .eq('user_id', userId)
+        .single()
+
+      if (profile) {
+        const currentHabits = profile.habits || { recommended: [], custom: [] }
+        const newHabit = {
+          id: habit.id,
+          title: habitData.title,
+          duration: habitData.duration,
+          active: true,
+          source: 'custom'
+        }
+        const updatedHabits = {
+          ...currentHabits,
+          custom: [...(currentHabits.custom || []), newHabit]
+        }
+        await saveHabits(userId, updatedHabits)
+      }
+    } catch (err) {
+      console.error('Error saving habit to profile:', err)
+      // No fallar por esto, el hábito ya se creó y se agendó
+    }
+
     await load()
     return result.entry
   }
